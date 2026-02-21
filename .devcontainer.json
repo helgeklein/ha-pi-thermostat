@@ -1,0 +1,89 @@
+{
+    "name": "pi_thermostat",
+    "image": "mcr.microsoft.com/devcontainers/python:3.13",
+    // Install Ruby for Jekyll documentation
+    "onCreateCommand": "sudo apt-get update && sudo apt-get install -y ruby-full build-essential zlib1g-dev",
+    "postCreateCommand": "scripts/setup",
+    "forwardPorts": [
+        8123,
+        4000
+    ],
+    "portsAttributes": {
+        "8123": {
+            "label": "Home Assistant",
+            "onAutoForward": "notify"
+        },
+        "4000": {
+            "label": "Jekyll Documentation",
+            "onAutoForward": "notify"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "charliermarsh.ruff",
+                "ms-python.python",
+                "ms-python.vscode-pylance"
+            ],
+            "settings": {
+                // Testing configuration (workspace-wide)
+                "python.testing.pytestArgs": [
+                    "tests"
+                ],
+                "python.testing.unittestEnabled": false,
+                "python.testing.pytestEnabled": true,
+                "python.testing.autoTestDiscoverOnSaveEnabled": false,
+                "python.testing.pytestPath": "pytest",
+                "python.testing.cwd": "${workspaceFolder}",
+                // File handling
+                "files.eol": "\n",
+                "editor.tabSize": 4,
+                "editor.formatOnPaste": true,
+                "editor.formatOnSave": true,
+                "editor.formatOnType": false,
+                "files.trimTrailingWhitespace": true,
+                // Python/Pylance performance (VS Code specific only)
+                "python.analysis.typeCheckingMode": "basic",
+                "python.analysis.packageIndexDepths": [
+                    {
+                        "name": "homeassistant",
+                        "depth": 1,
+                        "includeAllSymbols": false
+                    }
+                ],
+                "python.analysis.inlayHints.functionReturnTypes": false,
+                "python.analysis.inlayHints.variableTypes": false,
+                "python.analysis.completeFunctionParens": false,
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                // VS Code file watching optimizations
+                "files.watcherExclude": {
+                    "**/__pycache__/**": true,
+                    "**/htmlcov/**": true,
+                    "coverage.json": true,
+                    "coverage.xml": true,
+                    "**/.git/**": true,
+                    "**/.mypy_cache/**": true,
+                    "**/.pytest_cache/**": true,
+                    "**/.ruff_cache/**": true
+                },
+                // Copilot Performance Optimization
+                "copilot.exclude": {
+                    "**/__pycache__/**": true,
+                    "**/htmlcov/**": true,
+                    "**/node_modules/**": true,
+                    "**/.git/**": true,
+                    "**/.mypy_cache/**": true,
+                    "**/.pytest_cache/**": true,
+                    "**/.ruff_cache/**": true,
+                    "**/build/**": true,
+                    "**/dist/**": true
+                },
+                // Python formatter
+                "[python]": {
+                    "editor.defaultFormatter": "charliermarsh.ruff"
+                }
+            }
+        }
+    },
+    "remoteUser": "vscode"
+}

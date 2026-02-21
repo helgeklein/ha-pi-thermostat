@@ -1,0 +1,275 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Benvenuti in PI Thermostat",
+                "description": "Questa integrazione viene installata con le impostazioni predefinite.\n\nConfigura le tapparelle, l'entità meteo e le impostazioni di automazione in seguito facendo clic sull'**icona dell'ingranaggio** (pulsante di configurazione) sulla scheda di integrazione.\n\n[Documentazione]({docs_url})"
+            }
+        }
+    },
+    "options": {
+        "error": {
+            "invalid_cover": "Una o più tapparelle selezionate non sono valide o non disponibili.",
+            "invalid_weather_entity": "L'entità meteo selezionata non supporta le previsioni giornaliere.",
+            "no_covers": "Nessuna tapparella selezionata.",
+            "no_weather_entity": "Nessuna entità meteo selezionata."
+        },
+        "step": {
+            "init": {
+                "title": "PI Thermostat - Passo 1 di 5",
+                "description": "Seleziona un **sensore di previsione meteo** e le **tapparelle** da automatizzare (obbligatorio).",
+                "data": {
+                    "covers": "Tapparelle da automatizzare:",
+                    "weather_entity_id": "Sensore previsioni meteo:"
+                },
+                "data_description": {
+                    "covers": "Seleziona le tapparelle che l'automazione deve controllare (obbligatorio).",
+                    "weather_entity_id": "Seleziona un'entità meteo che supporta le previsioni giornaliere (obbligatorio)."
+                }
+            },
+            "2": {
+                "title": "PI Thermostat - Passo 2 di 5",
+                "description": "Configura l'**azimut** (direzione) per ciascuna tapparella (obbligatorio).\n\n(0°=Nord, 90°=Est, 180°=Sud, 270°=Ovest)"
+            },
+            "3": {
+                "title": "PI Thermostat - Passo 3 di 5",
+                "description": "Configura le posizioni **min/max** delle tapparelle (opzionale).\nLe impostazioni globali si applicano a tutte le tapparelle, a meno che non vengano sovrascritte per tapparella.\n(0 = completamente chiusa, 100 = completamente aperta)",
+                "data": {
+                    "covers_max_closure": "Posizione massima della tapparella (globale):",
+                    "covers_min_closure": "Posizione minima della tapparella (globale):"
+                },
+                "data_description": {
+                    "covers_max_closure": "La posizione massima di chiusura per tutte le tapparelle, a meno che non venga sovrascritta per tapparella.",
+                    "covers_min_closure": "La posizione minima di apertura per tutte le tapparelle, a meno che non venga sovrascritta per tapparella."
+                },
+                "sections": {
+                    "section_max_closure": {
+                        "name": "Posizioni massime della tapparella (per tapparella)"
+                    },
+                    "section_min_closure": {
+                        "name": "Posizioni minime della tapparella (per tapparella)"
+                    }
+                }
+            },
+            "4": {
+                "title": "PI Thermostat - Passo 4 di 5",
+                "description": "Attiva la protezione anti-blocco configurando **sensori finestra** per ciascuna tapparella (opzionale). Se un sensore finestra associato a una tapparella segnala che la finestra è aperta, la tapparella non verrà chiusa.",
+                "sections": {
+                    "section_window_sensors": {
+                        "name": "Sensori finestra"
+                    }
+                }
+            },
+            "5": {
+                "title": "PI Thermostat - Passo 5 di 5",
+                "description": "Configura le **impostazioni temporali** dell'automazione (opzionale).",
+                "data": {
+                    "nighttime_block_opening": "Disattiva l'apertura delle tapparelle di notte:"
+                },
+                "data_description": {
+                    "nighttime_block_opening": "Quando è attivata, le tapparelle non si apriranno durante la notte (quando il sole è sotto l'orizzonte)."
+                },
+                "sections": {
+                    "section_time_range": {
+                        "name": "Intervallo orario bloccato",
+                        "data": {
+                            "automation_disabled_time_range": "Disattiva l'automazione in un intervallo orario:",
+                            "automation_disabled_time_range_start": "Disattiva da:",
+                            "automation_disabled_time_range_end": "Disattiva fino a:"
+                        },
+                        "data_description": {
+                            "automation_disabled_time_range": "Quando è attivata, l'automazione non viene eseguita durante l'intervallo specificato.",
+                            "automation_disabled_time_range_start": "Ora di inizio del periodo in cui l'automazione deve essere disattivata.",
+                            "automation_disabled_time_range_end": "Ora di fine del periodo in cui l'automazione deve essere disattivata."
+                        }
+                    },
+                    "section_close_after_sunset": {
+                        "name": "Chiusura serale",
+                        "data": {
+                            "close_covers_after_sunset": "Chiudere le tapparelle dopo il tramonto:",
+                            "close_covers_after_sunset_delay": "Ritardo temporale:",
+                            "close_covers_after_sunset_cover_list": "Tapparelle:"
+                        },
+                        "data_description": {
+                            "close_covers_after_sunset": "Quando è attivata, le tapparelle si chiuderanno dopo un certo tempo dal tramonto.",
+                            "close_covers_after_sunset_delay": "Tempo di attesa dopo il tramonto prima di chiudere le tapparelle.",
+                            "close_covers_after_sunset_cover_list": "Seleziona le tapparelle da chiudere dopo il tramonto."
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "entity": {
+        "binary_sensor": {
+            "close_covers_after_sunset": {
+                "name": "Chiusura serale: attivata?",
+                "state": {
+                    "on": "Sì",
+                    "off": "No"
+                }
+            },
+            "lock_active": {
+                "name": "Stato blocco"
+            },
+            "nighttime_block_opening": {
+                "name": "Notte: bloccare l'apertura?",
+                "state": {
+                    "on": "Sì",
+                    "off": "No"
+                }
+            },
+            "status": {
+                "name": "Stato"
+            },
+            "temp_hot": {
+                "name": "Meteo: caldo?",
+                "state": {
+                    "on": "Sì",
+                    "off": "No"
+                }
+            },
+            "weather_sunny": {
+                "name": "Meteo: soleggiato?",
+                "state": {
+                    "on": "Sì",
+                    "off": "No"
+                }
+            }
+        },
+        "select": {
+            "lock_mode": {
+                "name": "Modalità di blocco",
+                "state": {
+                    "unlocked": "Sbloccato (automazione attiva)",
+                    "hold_position": "Mantieni la posizione attuale",
+                    "force_open": "Forza apertura e blocca",
+                    "force_close": "Forza chiusura e blocca"
+                }
+            }
+        },
+        "sensor": {
+            "automation_disabled_time_range": {
+                "name": "Intervallo orario: disattivato",
+                "state": {
+                    "off": "Disattivato"
+                }
+            },
+            "close_covers_after_sunset_delay": {
+                "name": "Chiusura serale: ritardo"
+            },
+            "sun_azimuth": {
+                "name": "Azimut solare"
+            },
+            "sun_elevation": {
+                "name": "Elevazione solare"
+            },
+            "temp_current_max": {
+                "name": "Temperatura: massimo di oggi"
+            }
+        },
+        "number": {
+            "covers_max_closure": {
+                "name": "Posizione massima della tapparella:"
+            },
+            "covers_min_closure": {
+                "name": "Posizione minima della tapparella:"
+            },
+            "manual_override_duration": {
+                "name": "Durata dell'override manuale:"
+            },
+            "sun_azimuth_tolerance": {
+                "name": "Tolleranza dell'azimut solare:"
+            },
+            "sun_elevation_threshold": {
+                "name": "Elevazione minima del sole:"
+            },
+            "temp_threshold": {
+                "name": "Temperatura: soglia di calore"
+            }
+        },
+        "switch": {
+            "enabled": {
+                "name": "Automazione attiva"
+            },
+            "simulation_mode": {
+                "name": "Modalità simulazione"
+            },
+            "verbose_logging": {
+                "name": "Registrazione dettagliata"
+            }
+        }
+    },
+    "services": {
+        "logbook_entry": {
+            "name": "Crea voce nel registro",
+            "description": "Crea una voce del registro PI Thermostat.",
+            "fields": {
+                "entity_id": {
+                    "name": "Entità della tapparella",
+                    "description": "ID dell'entità della tapparella per la voce di registro."
+                },
+                "target_position": {
+                    "name": "Posizione target",
+                    "description": "Posizione target della tapparella tra 0 e 100."
+                },
+                "verb_key": {
+                    "name": "Chiave del verbo",
+                    "description": "Chiave di traduzione che descrive il verbo del movimento."
+                },
+                "reason_key": {
+                    "name": "Chiave del motivo",
+                    "description": "Chiave di traduzione che spiega perché la tapparella si è mossa."
+                },
+                "config_entry_id": {
+                    "name": "ID voce di configurazione",
+                    "description": "ID di configurazione facoltativo per indirizzare la voce di registro a un'istanza specifica."
+                },
+                "template_cover_movement": {
+                    "name": "{verb} {entity_id} per {reason}. Nuova posizione: {position} %.",
+                    "description": "Stringa modello utilizzata per visualizzare la voce di registro; supporta i segnaposto {verb}, {entity_id}, {reason} e {position}."
+                },
+                "verb_opening": {
+                    "name": "Apertura di",
+                    "description": "Traduzione utilizzata quando la tapparella si sta aprendo."
+                },
+                "verb_closing": {
+                    "name": "Chiusura di",
+                    "description": "Traduzione utilizzata quando la tapparella si sta chiudendo."
+                },
+                "reason_heat_protection": {
+                    "name": "proteggere dal calore",
+                    "description": "Motivo usato quando la tapparella si muove per proteggere la stanza dal calore."
+                },
+                "reason_let_light_in": {
+                    "name": "far entrare la luce",
+                    "description": "Motivo usato quando la tapparella si muove per far entrare più luce."
+                },
+                "reason_close_after_sunset": {
+                    "name": "proteggere la privacy di notte",
+                    "description": "Motivo usato quando la tapparella si chiude automaticamente dopo il tramonto."
+                }
+            }
+        },
+        "set_lock": {
+            "name": "Imposta blocco tapparelle",
+            "description": "Blocca tutte le tapparelle in uno stato specifico per impedire all'automazione di muoverle. Utile per emergenze meteorologiche (grandine, tempeste) o scenari di override manuale.",
+            "fields": {
+                "lock_mode": {
+                    "name": "Modalità di blocco",
+                    "description": "Come bloccare le tapparelle"
+                }
+            }
+        }
+    },
+    "selector": {
+        "lock_mode": {
+            "options": {
+                "unlocked": "Sbloccato (automazione attiva)",
+                "hold_position": "Mantieni la posizione attuale",
+                "force_open": "Forza apertura e blocca",
+                "force_close": "Forza chiusura e blocca"
+            }
+        }
+    }
+}

@@ -1,0 +1,16 @@
+{
+    "domain": "pi_thermostat",
+    "name": "PI Thermostat",
+    "codeowners": [
+        "@helgeklein"
+    ],
+    "config_flow": true,
+    "dependencies": [],
+    "documentation": "https://github.com/helgeklein/ha-pi-thermostat",
+    "iot_class": "calculated",
+    "issue_tracker": "https://github.com/helgeklein/ha-pi-thermostat/issues",
+    "requirements": [
+        "simple-pid==2.0.1"
+    ],
+    "version": "0.1.0"
+}

@@ -1,0 +1,275 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Välkommen till PI Thermostat",
+                "description": "Denna integration installeras med standardinställningar.\n\nKonfigurera persienner, väderentitet och automatiseringsinställningar senare genom att klicka på **kugghjulsikonen** (konfigurationsknappen) på integrationskortet.\n\n[Dokumentation]({docs_url})"
+            }
+        }
+    },
+    "options": {
+        "error": {
+            "invalid_cover": "En eller flera valda persienner är ogiltiga eller otillgängliga.",
+            "invalid_weather_entity": "Den valda väderentiteten stöder inte dagliga prognoser.",
+            "no_covers": "Inga persienner valda.",
+            "no_weather_entity": "Ingen väderentitet vald."
+        },
+        "step": {
+            "init": {
+                "title": "PI Thermostat - Steg 1 av 5",
+                "description": "Välj en **väderprognossensor** och de **persienner** som ska automatiseras (obligatoriskt).",
+                "data": {
+                    "covers": "Persienner att automatisera:",
+                    "weather_entity_id": "Väderprognosensor:"
+                },
+                "data_description": {
+                    "covers": "Välj de persienner som automationen ska styra (obligatorisk).",
+                    "weather_entity_id": "Välj en väderentitet som stöder dagliga prognoser (obligatorisk)."
+                }
+            },
+            "2": {
+                "title": "PI Thermostat - Steg 2 av 5",
+                "description": "Konfigurera **azimut** (riktning) för varje persienn (obligatoriskt).\n\n(0°=Nord, 90°=Öst, 180°=Syd, 270°=Väst)"
+            },
+            "3": {
+                "title": "PI Thermostat - Steg 3 av 5",
+                "description": "Konfigurera **min/max**-lägen för persienner (valfritt).\nGlobala inställningar gäller för alla persienner om de inte åsidosätts per persienn.\n(0 = helt stängd, 100 = helt öppen)",
+                "data": {
+                    "covers_max_closure": "Högsta läge för persienn (globalt):",
+                    "covers_min_closure": "Lägsta läge för persienn (globalt):"
+                },
+                "data_description": {
+                    "covers_max_closure": "Det högsta stängda läget för alla persienner om det inte åsidosätts per persienn.",
+                    "covers_min_closure": "Det lägsta öppna läget för alla persienner om det inte åsidosätts per persienn."
+                },
+                "sections": {
+                    "section_max_closure": {
+                        "name": "Högsta persiennlägen (per persienn)"
+                    },
+                    "section_min_closure": {
+                        "name": "Lägsta persiennlägen (per persienn)"
+                    }
+                }
+            },
+            "4": {
+                "title": "PI Thermostat - Steg 4 av 5",
+                "description": "Aktivera klämskydd genom att konfigurera **fönstersensorer** för varje persienn (valfritt). Om någon fönstersensor som är kopplad till en persienn rapporterar att fönstret är öppet stängs persiennen inte.",
+                "sections": {
+                    "section_window_sensors": {
+                        "name": "Fönstersensorer"
+                    }
+                }
+            },
+            "5": {
+                "title": "PI Thermostat - Steg 5 av 5",
+                "description": "Konfigurera **tidsinställningar** för automationen (valfritt).",
+                "data": {
+                    "nighttime_block_opening": "Inaktivera öppning av persienner på natten:"
+                },
+                "data_description": {
+                    "nighttime_block_opening": "När den är aktiverad öppnas persiennerna inte under natten (när solen är under horisonten)."
+                },
+                "sections": {
+                    "section_time_range": {
+                        "name": "Blockerat tidsintervall",
+                        "data": {
+                            "automation_disabled_time_range": "Inaktivera automation i tidsintervall:",
+                            "automation_disabled_time_range_start": "Inaktivera från:",
+                            "automation_disabled_time_range_end": "Inaktivera till:"
+                        },
+                        "data_description": {
+                            "automation_disabled_time_range": "När det är aktiverat körs inte automationen under det angivna tidsintervallet.",
+                            "automation_disabled_time_range_start": "Starttid för perioden då automationen ska vara inaktiverad.",
+                            "automation_disabled_time_range_end": "Sluttid för perioden då automationen ska vara inaktiverad."
+                        }
+                    },
+                    "section_close_after_sunset": {
+                        "name": "Kvällsstängning",
+                        "data": {
+                            "close_covers_after_sunset": "Stäng persienner efter solnedgång:",
+                            "close_covers_after_sunset_delay": "Tidsfördröjning:",
+                            "close_covers_after_sunset_cover_list": "Persienner:"
+                        },
+                        "data_description": {
+                            "close_covers_after_sunset": "När den är aktiverad stängs persiennerna en viss tid efter solnedgången.",
+                            "close_covers_after_sunset_delay": "Väntetid efter solnedgången innan persiennerna stängs.",
+                            "close_covers_after_sunset_cover_list": "Välj de persienner som ska stängas efter solnedgången."
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "entity": {
+        "binary_sensor": {
+            "close_covers_after_sunset": {
+                "name": "Kvällsstängning: aktiverad?",
+                "state": {
+                    "on": "Ja",
+                    "off": "Nej"
+                }
+            },
+            "lock_active": {
+                "name": "Låsstatus"
+            },
+            "nighttime_block_opening": {
+                "name": "Natt: blockera öppning?",
+                "state": {
+                    "on": "Ja",
+                    "off": "Nej"
+                }
+            },
+            "status": {
+                "name": "Status"
+            },
+            "temp_hot": {
+                "name": "Väder: varmt?",
+                "state": {
+                    "on": "Ja",
+                    "off": "Nej"
+                }
+            },
+            "weather_sunny": {
+                "name": "Väder: soligt?",
+                "state": {
+                    "on": "Ja",
+                    "off": "Nej"
+                }
+            }
+        },
+        "select": {
+            "lock_mode": {
+                "name": "Låsläge",
+                "state": {
+                    "unlocked": "Upplåst (automatisering aktiv)",
+                    "hold_position": "Behåll aktuell position",
+                    "force_open": "Tvinga öppning och lås",
+                    "force_close": "Tvinga stängning och lås"
+                }
+            }
+        },
+        "sensor": {
+            "automation_disabled_time_range": {
+                "name": "Tidsintervall: inaktiverat",
+                "state": {
+                    "off": "Av"
+                }
+            },
+            "close_covers_after_sunset_delay": {
+                "name": "Kvällsstängning: fördröjning"
+            },
+            "sun_azimuth": {
+                "name": "Solazimut"
+            },
+            "sun_elevation": {
+                "name": "Solhöjd"
+            },
+            "temp_current_max": {
+                "name": "Temperatur: dagens högsta"
+            }
+        },
+        "number": {
+            "covers_max_closure": {
+                "name": "Högsta läge för persienn:"
+            },
+            "covers_min_closure": {
+                "name": "Lägsta läge för persienn:"
+            },
+            "manual_override_duration": {
+                "name": "Manuell åsidosättningsvaraktighet:"
+            },
+            "sun_azimuth_tolerance": {
+                "name": "Tolerans för solens azimut:"
+            },
+            "sun_elevation_threshold": {
+                "name": "Minsta solhöjd:"
+            },
+            "temp_threshold": {
+                "name": "Temperatur: värmetröskel"
+            }
+        },
+        "switch": {
+            "enabled": {
+                "name": "Automatisering aktiverad"
+            },
+            "simulation_mode": {
+                "name": "Simuleringsläge"
+            },
+            "verbose_logging": {
+                "name": "Utförlig loggning"
+            }
+        }
+    },
+    "services": {
+        "logbook_entry": {
+            "name": "Skapa loggboksinlägg",
+            "description": "Skapar ett loggboksinlägg för PI Thermostat.",
+            "fields": {
+                "entity_id": {
+                    "name": "Persienn-entitet",
+                    "description": "Entitets-ID för persiennen för loggboksinlägget."
+                },
+                "target_position": {
+                    "name": "Målposition",
+                    "description": "Målposition för persiennen mellan 0 och 100."
+                },
+                "verb_key": {
+                    "name": "Verbnyckel",
+                    "description": "Översättningsnyckel som beskriver rörelseverbet."
+                },
+                "reason_key": {
+                    "name": "Orsaksnyckel",
+                    "description": "Översättningsnyckel som förklarar varför persiennen rörde sig."
+                },
+                "config_entry_id": {
+                    "name": "Konfigurationspost-ID",
+                    "description": "Valfritt konfigurations-ID för att koppla loggboksinlägget till en specifik integrationsinstans."
+                },
+                "template_cover_movement": {
+                    "name": "{verb} {entity_id} för att {reason}. Ny position: {position} %.",
+                    "description": "Mallsträng som används för att visa loggboksinlägget; stöder platshållarna {verb}, {entity_id}, {reason} och {position}."
+                },
+                "verb_opening": {
+                    "name": "Öppnar",
+                    "description": "Översättning som används när persiennen öppnas."
+                },
+                "verb_closing": {
+                    "name": "Stänger",
+                    "description": "Översättning som används när persiennen stängs."
+                },
+                "reason_heat_protection": {
+                    "name": "skydda mot värme",
+                    "description": "Orsak som används när persiennen rör sig för att skydda rummet mot värme."
+                },
+                "reason_let_light_in": {
+                    "name": "släppa in ljus",
+                    "description": "Orsak som används när persiennen rör sig för att släppa in mer ljus."
+                },
+                "reason_close_after_sunset": {
+                    "name": "skydda integriteten nattetid",
+                    "description": "Orsak som används när persiennen stängs automatiskt efter solnedgången."
+                }
+            }
+        },
+        "set_lock": {
+            "name": "Ställ in persiennlås",
+            "description": "Lås alla persienner i ett specifikt läge för att hindra automationen från att flytta dem. Användbart vid vädernödlägen (hagel, stormar) eller manuella åsidosättningar.",
+            "fields": {
+                "lock_mode": {
+                    "name": "Låsläge",
+                    "description": "Hur persiennerna ska låsas"
+                }
+            }
+        }
+    },
+    "selector": {
+        "lock_mode": {
+            "options": {
+                "unlocked": "Upplåst (automatisering aktiv)",
+                "hold_position": "Behåll aktuell position",
+                "force_open": "Tvinga öppning och lås",
+                "force_close": "Tvinga stängning och lås"
+            }
+        }
+    }
+}

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+cd "$(dirname "$0")/.."
+
+# Install test dependencies
+echo "Installing test dependencies..."
+# Use constraints to prevent upgrades of existing packages
+pip freeze > /tmp/constraints.txt
+python3 -m pip install -r requirements-test.txt -c /tmp/constraints.txt --quiet
+
+# Run static type checking
+echo "Running static type checking..."
+python3 -m mypy custom_components/smart_cover_automation/
+
+# Run the tests
+echo "Running tests..."
+python3 -m pytest tests/ -v --cov=custom_components.smart_cover_automation --cov-report=term-missing
+
+echo "Test run completed!"

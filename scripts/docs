@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+cd "$(dirname "$0")/../docs"
+
+# Ensure Ruby gems path is in PATH
+RUBY_VERSION=$(ruby -e 'puts "#{RUBY_VERSION[0..2]}.0"')
+export PATH="$PATH:/home/vscode/.local/share/gem/ruby/${RUBY_VERSION}/bin"
+export GEM_HOME="/home/vscode/.local/share/gem/ruby/${RUBY_VERSION}"
+export GEM_PATH="$GEM_HOME"
+
+# Check if bundle is available
+if ! command -v bundle &> /dev/null; then
+    echo "Bundle not found. Installing bundler..."
+    gem install bundler --user-install
+fi
+
+# Always ensure dependencies are installed
+echo "Checking/installing Jekyll dependencies..."
+bundle install --quiet
+
+echo "Starting Jekyll server for documentation preview..."
+echo "Site will be available at: http://localhost:4000/ha-smart-cover-automation/"
+echo "Press Ctrl+C to stop the server."
+echo
+
+# Start Jekyll server
+bundle exec jekyll serve --host 0.0.0.0 --port 4000 --livereload

@@ -1,0 +1,275 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Bienvenue dans PI Thermostat",
+                "description": "Cette intégration est installée avec les paramètres par défaut.\n\nVeuillez configurer les volets, l'entité météo et les paramètres d'automatisation plus tard en cliquant sur l'**icône d'engrenage** (bouton de configuration) sur la carte d'intégration.\n\n[Documentation]({docs_url})"
+            }
+        }
+    },
+    "options": {
+        "error": {
+            "invalid_cover": "Un ou plusieurs volets sélectionnés sont invalides ou indisponibles.",
+            "invalid_weather_entity": "L'entité météo sélectionnée ne prend pas en charge les prévisions quotidiennes.",
+            "no_covers": "Aucun volet sélectionné.",
+            "no_weather_entity": "Aucune entité météo sélectionnée."
+        },
+        "step": {
+            "init": {
+                "title": "PI Thermostat - Étape 1 sur 5",
+                "description": "Sélectionnez un **capteur de prévisions météo** et les **volets** à automatiser (obligatoire).",
+                "data": {
+                    "covers": "Volets à automatiser :",
+                    "weather_entity_id": "Capteur de prévisions météo :"
+                },
+                "data_description": {
+                    "covers": "Sélectionnez les volets que l'automatisation doit contrôler (obligatoire).",
+                    "weather_entity_id": "Sélectionnez une entité météo prenant en charge les prévisions quotidiennes (obligatoire)."
+                }
+            },
+            "2": {
+                "title": "PI Thermostat - Étape 2 sur 5",
+                "description": "Configurez l'**azimut** (direction) pour chaque volet (obligatoire).\n\n(0°=Nord, 90°=Est, 180°=Sud, 270°=Ouest)"
+            },
+            "3": {
+                "title": "PI Thermostat - Étape 3 sur 5",
+                "description": "Configurez les positions **min/max** des volets (facultatif).\nLes réglages globaux s'appliquent à tous les volets, sauf s'ils sont remplacés par volet.\n(0 = totalement fermé, 100 = totalement ouvert)",
+                "data": {
+                    "covers_max_closure": "Position maximale du volet (globale) :",
+                    "covers_min_closure": "Position minimale du volet (globale) :"
+                },
+                "data_description": {
+                    "covers_max_closure": "La position maximale de fermeture pour tous les volets, sauf si elle est remplacée par volet.",
+                    "covers_min_closure": "La position minimale d'ouverture pour tous les volets, sauf si elle est remplacée par volet."
+                },
+                "sections": {
+                    "section_max_closure": {
+                        "name": "Positions maximales du volet (par volet)"
+                    },
+                    "section_min_closure": {
+                        "name": "Positions minimales du volet (par volet)"
+                    }
+                }
+            },
+            "4": {
+                "title": "PI Thermostat - Étape 4 sur 5",
+                "description": "Activez la protection anti-blocage en configurant des **capteurs de fenêtre** pour chaque volet (facultatif). Si un capteur de fenêtre associé à un volet indique que la fenêtre est ouverte, le volet ne se fermera pas.",
+                "sections": {
+                    "section_window_sensors": {
+                        "name": "Capteurs de fenêtre"
+                    }
+                }
+            },
+            "5": {
+                "title": "PI Thermostat - Étape 5 sur 5",
+                "description": "Configurez les **paramètres temporels** de l'automatisation (facultatif).",
+                "data": {
+                    "nighttime_block_opening": "Désactiver l'ouverture des volets la nuit :"
+                },
+                "data_description": {
+                    "nighttime_block_opening": "Lorsqu'elle est activée, les volets ne s'ouvriront pas pendant la nuit (quand le soleil est sous l'horizon)."
+                },
+                "sections": {
+                    "section_time_range": {
+                        "name": "Plage horaire bloquée",
+                        "data": {
+                            "automation_disabled_time_range": "Désactiver l'automatisation sur une plage horaire :",
+                            "automation_disabled_time_range_start": "Désactiver à partir de :",
+                            "automation_disabled_time_range_end": "Désactiver jusqu'à :"
+                        },
+                        "data_description": {
+                            "automation_disabled_time_range": "Lorsque cette option est activée, l'automatisation ne fonctionne pas pendant la plage horaire indiquée.",
+                            "automation_disabled_time_range_start": "Heure de début de la période pendant laquelle l'automatisation doit être désactivée.",
+                            "automation_disabled_time_range_end": "Heure de fin de la période pendant laquelle l'automatisation doit être désactivée."
+                        }
+                    },
+                    "section_close_after_sunset": {
+                        "name": "Fermeture du soir",
+                        "data": {
+                            "close_covers_after_sunset": "Fermer les volets après le coucher du soleil :",
+                            "close_covers_after_sunset_delay": "Délai :",
+                            "close_covers_after_sunset_cover_list": "Volets :"
+                        },
+                        "data_description": {
+                            "close_covers_after_sunset": "Lorsqu'elle est activée, les volets se fermeront un certain temps après le coucher du soleil.",
+                            "close_covers_after_sunset_delay": "Durée d'attente après le coucher du soleil avant de fermer les volets.",
+                            "close_covers_after_sunset_cover_list": "Sélectionnez les volets qui doivent se fermer après le coucher du soleil."
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "entity": {
+        "binary_sensor": {
+            "close_covers_after_sunset": {
+                "name": "Fermeture du soir : activée ?",
+                "state": {
+                    "on": "Oui",
+                    "off": "Non"
+                }
+            },
+            "lock_active": {
+                "name": "Statut du verrouillage"
+            },
+            "nighttime_block_opening": {
+                "name": "Nuit : bloquer l'ouverture ?",
+                "state": {
+                    "on": "Oui",
+                    "off": "Non"
+                }
+            },
+            "status": {
+                "name": "Statut"
+            },
+            "temp_hot": {
+                "name": "Météo : chaud ?",
+                "state": {
+                    "on": "Oui",
+                    "off": "Non"
+                }
+            },
+            "weather_sunny": {
+                "name": "Météo : ensoleillé ?",
+                "state": {
+                    "on": "Oui",
+                    "off": "Non"
+                }
+            }
+        },
+        "select": {
+            "lock_mode": {
+                "name": "Mode de verrouillage",
+                "state": {
+                    "unlocked": "Déverrouillé (automatisation active)",
+                    "hold_position": "Maintenir la position actuelle",
+                    "force_open": "Forcer l'ouverture et verrouiller",
+                    "force_close": "Forcer la fermeture et verrouiller"
+                }
+            }
+        },
+        "sensor": {
+            "automation_disabled_time_range": {
+                "name": "Plage horaire : désactivée",
+                "state": {
+                    "off": "Désactivé"
+                }
+            },
+            "close_covers_after_sunset_delay": {
+                "name": "Fermeture du soir : délai"
+            },
+            "sun_azimuth": {
+                "name": "Azimut solaire"
+            },
+            "sun_elevation": {
+                "name": "Élévation solaire"
+            },
+            "temp_current_max": {
+                "name": "Température : maximum du jour"
+            }
+        },
+        "number": {
+            "covers_max_closure": {
+                "name": "Position maximale du volet :"
+            },
+            "covers_min_closure": {
+                "name": "Position minimale du volet :"
+            },
+            "manual_override_duration": {
+                "name": "Durée de l'override manuel :"
+            },
+            "sun_azimuth_tolerance": {
+                "name": "Tolérance de l'azimut solaire :"
+            },
+            "sun_elevation_threshold": {
+                "name": "Élévation minimale du soleil :"
+            },
+            "temp_threshold": {
+                "name": "Température : seuil de chaleur"
+            }
+        },
+        "switch": {
+            "enabled": {
+                "name": "Automatisation activée"
+            },
+            "simulation_mode": {
+                "name": "Mode simulation"
+            },
+            "verbose_logging": {
+                "name": "Journalisation détaillée"
+            }
+        }
+    },
+    "services": {
+        "logbook_entry": {
+            "name": "Créer une entrée de journal",
+            "description": "Crée une entrée de journal PI Thermostat.",
+            "fields": {
+                "entity_id": {
+                    "name": "Entité du volet",
+                    "description": "Identifiant de l'entité du volet pour l'entrée de journal."
+                },
+                "target_position": {
+                    "name": "Position cible",
+                    "description": "Position cible du volet entre 0 et 100."
+                },
+                "verb_key": {
+                    "name": "Clé du verbe",
+                    "description": "Clé de traduction décrivant le verbe du mouvement."
+                },
+                "reason_key": {
+                    "name": "Clé du motif",
+                    "description": "Clé de traduction expliquant pourquoi le volet s'est déplacé."
+                },
+                "config_entry_id": {
+                    "name": "ID d'entrée de configuration",
+                    "description": "ID d'entrée de configuration facultative pour diriger l'entrée de journal vers une instance spécifique."
+                },
+                "template_cover_movement": {
+                    "name": "{verb} {entity_id} pour {reason}. Nouvelle position : {position} %.",
+                    "description": "Chaîne modèle utilisée pour afficher l'entrée du journal ; prend en charge les variables {verb}, {entity_id}, {reason} et {position}."
+                },
+                "verb_opening": {
+                    "name": "Ouverture de",
+                    "description": "Traduction utilisée lorsque le volet est en train de s'ouvrir."
+                },
+                "verb_closing": {
+                    "name": "Fermeture de",
+                    "description": "Traduction utilisée lorsque le volet est en train de se fermer."
+                },
+                "reason_heat_protection": {
+                    "name": "protéger de la chaleur",
+                    "description": "Motif utilisé lorsque le volet se déplace pour protéger la pièce de la chaleur."
+                },
+                "reason_let_light_in": {
+                    "name": "laisser entrer la lumière",
+                    "description": "Motif utilisé lorsque le volet se déplace pour laisser entrer davantage de lumière."
+                },
+                "reason_close_after_sunset": {
+                    "name": "protéger la vie privée la nuit",
+                    "description": "Motif utilisé lorsque le volet se ferme automatiquement après le coucher du soleil."
+                }
+            }
+        },
+        "set_lock": {
+            "name": "Verrouiller le volet",
+            "description": "Verrouiller tous les volets dans un état spécifique pour empêcher l'automatisation de les déplacer. Utile pour les urgences météorologiques (grêle, tempêtes) ou les scénarios de remplacement manuel.",
+            "fields": {
+                "lock_mode": {
+                    "name": "Mode de verrouillage",
+                    "description": "Comment verrouiller les volets"
+                }
+            }
+        }
+    },
+    "selector": {
+        "lock_mode": {
+            "options": {
+                "unlocked": "Déverrouillé (automatisation active)",
+                "hold_position": "Maintenir la position actuelle",
+                "force_open": "Forcer l'ouverture et verrouiller",
+                "force_close": "Forcer la fermeture et verrouiller"
+            }
+        }
+    }
+}

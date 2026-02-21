@@ -1,0 +1,275 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Bem-vindo ao PI Thermostat",
+                "description": "Esta integração está instalada com as configurações padrão.\n\nConfigure as persianas, a entidade meteorológica e as configurações de automação mais tarde clicando no **ícone de engrenagem** (botão de configuração) no cartão de integração.\n\n[Documentação]({docs_url})"
+            }
+        }
+    },
+    "options": {
+        "error": {
+            "invalid_cover": "Uma ou mais persianas selecionadas são inválidas ou indisponíveis.",
+            "invalid_weather_entity": "A entidade meteorológica selecionada não suporta previsões diárias.",
+            "no_covers": "Nenhuma persiana selecionada.",
+            "no_weather_entity": "Nenhuma entidade meteorológica selecionada."
+        },
+        "step": {
+            "init": {
+                "title": "PI Thermostat - Passo 1 de 5",
+                "description": "Selecione um **sensor de previsão do tempo** e as **persianas** para automatizar (obrigatório).",
+                "data": {
+                    "covers": "Persianas para automatizar:",
+                    "weather_entity_id": "Sensor de previsão do tempo:"
+                },
+                "data_description": {
+                    "covers": "Selecione as persianas que a automação deve controlar (obrigatório).",
+                    "weather_entity_id": "Selecione uma entidade meteorológica que suporte previsões diárias (obrigatório)."
+                }
+            },
+            "2": {
+                "title": "PI Thermostat - Passo 2 de 5",
+                "description": "Configure o **azimute** (direção) de cada persiana (obrigatório).\n\n(0°=Norte, 90°=Este, 180°=Sul, 270°=Oeste)"
+            },
+            "3": {
+                "title": "PI Thermostat - Passo 3 de 5",
+                "description": "Configure as posições **mín/máx** das persianas (opcional).\nAs definições globais aplicam-se a todas as persianas, a menos que sejam substituídas por persiana.\n(0 = totalmente fechada, 100 = totalmente aberta)",
+                "data": {
+                    "covers_max_closure": "Posição máxima da persiana (global):",
+                    "covers_min_closure": "Posição mínima da persiana (global):"
+                },
+                "data_description": {
+                    "covers_max_closure": "A posição máxima de fecho para todas as persianas, a menos que seja substituída por persiana.",
+                    "covers_min_closure": "A posição mínima de abertura para todas as persianas, a menos que seja substituída por persiana."
+                },
+                "sections": {
+                    "section_max_closure": {
+                        "name": "Posições máximas da persiana (por persiana)"
+                    },
+                    "section_min_closure": {
+                        "name": "Posições mínimas da persiana (por persiana)"
+                    }
+                }
+            },
+            "4": {
+                "title": "PI Thermostat - Passo 4 de 5",
+                "description": "Ative a proteção contra bloqueio configurando **sensores de janela** para cada persiana (opcional). Se algum sensor de janela associado a uma persiana indicar que a janela está aberta, a persiana não será fechada.",
+                "sections": {
+                    "section_window_sensors": {
+                        "name": "Sensores de janela"
+                    }
+                }
+            },
+            "5": {
+                "title": "PI Thermostat - Passo 5 de 5",
+                "description": "Configure **definições de tempo** para a automação (opcional).",
+                "data": {
+                    "nighttime_block_opening": "Desativar abertura das persianas à noite:"
+                },
+                "data_description": {
+                    "nighttime_block_opening": "Quando ativada, as persianas não se abrirão durante a noite (quando o sol está abaixo do horizonte)."
+                },
+                "sections": {
+                    "section_time_range": {
+                        "name": "Intervalo de tempo bloqueado",
+                        "data": {
+                            "automation_disabled_time_range": "Desativar a automação num intervalo de tempo:",
+                            "automation_disabled_time_range_start": "Desativar de:",
+                            "automation_disabled_time_range_end": "Desativar até:"
+                        },
+                        "data_description": {
+                            "automation_disabled_time_range": "Quando ativada, a automação não será executada durante o intervalo de tempo especificado.",
+                            "automation_disabled_time_range_start": "Hora de início do período em que a automação deve ser desativada.",
+                            "automation_disabled_time_range_end": "Hora de fim do período em que a automação deve ser desativada."
+                        }
+                    },
+                    "section_close_after_sunset": {
+                        "name": "Fecho ao entardecer",
+                        "data": {
+                            "close_covers_after_sunset": "Fechar persianas após o pôr do sol:",
+                            "close_covers_after_sunset_delay": "Atraso de tempo:",
+                            "close_covers_after_sunset_cover_list": "Persianas:"
+                        },
+                        "data_description": {
+                            "close_covers_after_sunset": "Quando ativada, as persianas serão fechadas após algum tempo do pôr do sol.",
+                            "close_covers_after_sunset_delay": "Tempo de espera após o pôr do sol antes de fechar as persianas.",
+                            "close_covers_after_sunset_cover_list": "Selecione as persianas que devem ser fechadas após o pôr do sol."
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "entity": {
+        "binary_sensor": {
+            "close_covers_after_sunset": {
+                "name": "Fecho ao entardecer: ativado?",
+                "state": {
+                    "on": "Sim",
+                    "off": "Não"
+                }
+            },
+            "lock_active": {
+                "name": "Estado do bloqueio"
+            },
+            "nighttime_block_opening": {
+                "name": "Noite: bloquear abertura?",
+                "state": {
+                    "on": "Sim",
+                    "off": "Não"
+                }
+            },
+            "status": {
+                "name": "Estado"
+            },
+            "temp_hot": {
+                "name": "Tempo: calor?",
+                "state": {
+                    "on": "Sim",
+                    "off": "Não"
+                }
+            },
+            "weather_sunny": {
+                "name": "Tempo: ensolarado?",
+                "state": {
+                    "on": "Sim",
+                    "off": "Não"
+                }
+            }
+        },
+        "select": {
+            "lock_mode": {
+                "name": "Modo de bloqueio",
+                "state": {
+                    "unlocked": "Desbloqueado (automação ativa)",
+                    "hold_position": "Manter posição atual",
+                    "force_open": "Forçar abertura e bloquear",
+                    "force_close": "Forçar fecho e bloquear"
+                }
+            }
+        },
+        "sensor": {
+            "automation_disabled_time_range": {
+                "name": "Intervalo de tempo: desativado",
+                "state": {
+                    "off": "Desativado"
+                }
+            },
+            "close_covers_after_sunset_delay": {
+                "name": "Fecho ao entardecer: atraso"
+            },
+            "sun_azimuth": {
+                "name": "Azimute solar"
+            },
+            "sun_elevation": {
+                "name": "Elevação solar"
+            },
+            "temp_current_max": {
+                "name": "Temperatura: máximo de hoje"
+            }
+        },
+        "number": {
+            "covers_max_closure": {
+                "name": "Posição máxima da persiana:"
+            },
+            "covers_min_closure": {
+                "name": "Posição mínima da persiana:"
+            },
+            "manual_override_duration": {
+                "name": "Duração da override manual:"
+            },
+            "sun_azimuth_tolerance": {
+                "name": "Tolerância do azimute solar:"
+            },
+            "sun_elevation_threshold": {
+                "name": "Elevação mínima do sol:"
+            },
+            "temp_threshold": {
+                "name": "Temperatura: limiar de calor"
+            }
+        },
+        "switch": {
+            "enabled": {
+                "name": "Automação ativada"
+            },
+            "simulation_mode": {
+                "name": "Modo de simulação"
+            },
+            "verbose_logging": {
+                "name": "Registo detalhado"
+            }
+        }
+    },
+    "services": {
+        "logbook_entry": {
+            "name": "Criar entrada no registo",
+            "description": "Cria uma entrada de registo do PI Thermostat.",
+            "fields": {
+                "entity_id": {
+                    "name": "Entidade da persiana",
+                    "description": "ID da entidade da persiana para a entrada do registo."
+                },
+                "target_position": {
+                    "name": "Posição alvo",
+                    "description": "Posição alvo da persiana entre 0 e 100."
+                },
+                "verb_key": {
+                    "name": "Chave do verbo",
+                    "description": "Chave de tradução que descreve o verbo do movimento."
+                },
+                "reason_key": {
+                    "name": "Chave do motivo",
+                    "description": "Chave de tradução que explica porque a persiana se moveu."
+                },
+                "config_entry_id": {
+                    "name": "ID da entrada de configuração",
+                    "description": "ID de entrada de configuração opcional para direcionar o registo para uma instância específica."
+                },
+                "template_cover_movement": {
+                    "name": "{verb} {entity_id} para {reason}. Nova posição: {position} %.",
+                    "description": "Texto de modelo usado ao apresentar a entrada de registo; suporta os marcadores {verb}, {entity_id}, {reason} e {position}."
+                },
+                "verb_opening": {
+                    "name": "Abrindo",
+                    "description": "Tradução usada quando a persiana está a abrir."
+                },
+                "verb_closing": {
+                    "name": "Fechando",
+                    "description": "Tradução usada quando a persiana está a fechar."
+                },
+                "reason_heat_protection": {
+                    "name": "proteger do calor",
+                    "description": "Motivo usado quando a persiana se move para proteger o ambiente do calor."
+                },
+                "reason_let_light_in": {
+                    "name": "deixar entrar luz",
+                    "description": "Motivo usado quando a persiana se move para deixar entrar mais luz."
+                },
+                "reason_close_after_sunset": {
+                    "name": "proteger a privacidade à noite",
+                    "description": "Motivo usado quando a persiana fecha automaticamente após o pôr do sol."
+                }
+            }
+        },
+        "set_lock": {
+            "name": "Definir bloqueio da persiana",
+            "description": "Bloqueia todas as persianas num estado específico para impedir que a automação as mova. Útil para emergências meteorológicas (granizo, tempestades) ou cenários de substituição manual.",
+            "fields": {
+                "lock_mode": {
+                    "name": "Modo de bloqueio",
+                    "description": "Como bloquear as persianas"
+                }
+            }
+        }
+    },
+    "selector": {
+        "lock_mode": {
+            "options": {
+                "unlocked": "Desbloqueado (automação ativa)",
+                "hold_position": "Manter posição atual",
+                "force_open": "Forçar abertura e bloquear",
+                "force_close": "Forçar fecho e bloquear"
+            }
+        }
+    }
+}

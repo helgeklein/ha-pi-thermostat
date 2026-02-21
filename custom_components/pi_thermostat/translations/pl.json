@@ -1,0 +1,275 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Witamy w PI Thermostat",
+                "description": "Ta integracja jest instalowana z domyślnymi ustawieniami.\n\nSkonfiguruj rolety, encję pogodową i ustawienia automatyzacji później, klikając **ikonę koła zębatego** (przycisk konfiguracji) na karcie integracji.\n\n[Dokumentacja]({docs_url})"
+            }
+        }
+    },
+    "options": {
+        "error": {
+            "invalid_cover": "Jedna lub więcej wybranych rolet jest nieprawidłowych lub niedostępnych.",
+            "invalid_weather_entity": "Wybrana encja pogodowa nie obsługuje prognoz dziennych.",
+            "no_covers": "Nie wybrano żadnych rolet.",
+            "no_weather_entity": "Nie wybrano encji pogodowej."
+        },
+        "step": {
+            "init": {
+                "title": "PI Thermostat - Krok 1 z 5",
+                "description": "Wybierz **czujnik prognozy pogody** oraz **rolety** do automatyzacji (wymagane).",
+                "data": {
+                    "covers": "Rolety do automatyzacji:",
+                    "weather_entity_id": "Czujnik prognozy pogody:"
+                },
+                "data_description": {
+                    "covers": "Wybierz rolety, którymi ma sterować automatyzacja (wymagane).",
+                    "weather_entity_id": "Wybierz encję pogodową obsługującą prognozy dzienne (wymagane)."
+                }
+            },
+            "2": {
+                "title": "PI Thermostat - Krok 2 z 5",
+                "description": "Skonfiguruj **azymut** (kierunek) dla każdej rolety (wymagane).\n\n(0°=Północ, 90°=Wschód, 180°=Południe, 270°=Zachód)"
+            },
+            "3": {
+                "title": "PI Thermostat - Krok 3 z 5",
+                "description": "Skonfiguruj pozycje **min/max** rolet (opcjonalne).\nUstawienia globalne dotyczą wszystkich rolet, chyba że zostaną nadpisane dla konkretnej rolety.\n(0 = całkowicie zamknięte, 100 = całkowicie otwarte)",
+                "data": {
+                    "covers_max_closure": "Maksymalna pozycja rolety (globalnie):",
+                    "covers_min_closure": "Minimalna pozycja rolety (globalnie):"
+                },
+                "data_description": {
+                    "covers_max_closure": "Maksymalna pozycja zamknięcia dla wszystkich rolet, chyba że zostanie nadpisana dla konkretnej rolety.",
+                    "covers_min_closure": "Minimalna pozycja otwarcia dla wszystkich rolet, chyba że zostanie nadpisana dla konkretnej rolety."
+                },
+                "sections": {
+                    "section_max_closure": {
+                        "name": "Maksymalne pozycje rolet (per roleta)"
+                    },
+                    "section_min_closure": {
+                        "name": "Minimalne pozycje rolet (per roleta)"
+                    }
+                }
+            },
+            "4": {
+                "title": "PI Thermostat - Krok 4 z 5",
+                "description": "Włącz ochronę przed zablokowaniem, konfigurując **czujniki okienne** dla każdej rolety (opcjonalne). Jeśli którykolwiek czujnik okna powiązany z roletą zgłosi, że okno jest otwarte, roleta nie zostanie zamknięta.",
+                "sections": {
+                    "section_window_sensors": {
+                        "name": "Czujniki okienne"
+                    }
+                }
+            },
+            "5": {
+                "title": "PI Thermostat - Krok 5 z 5",
+                "description": "Skonfiguruj **ustawienia czasowe** automatyzacji (opcjonalne).",
+                "data": {
+                    "nighttime_block_opening": "Wyłącz otwieranie rolet w nocy:"
+                },
+                "data_description": {
+                    "nighttime_block_opening": "Po włączeniu rolety nie będą się otwierały w nocy (gdy słońce znajduje się poniżej horyzontu)."
+                },
+                "sections": {
+                    "section_time_range": {
+                        "name": "Zablokowany przedział czasu",
+                        "data": {
+                            "automation_disabled_time_range": "Wyłącz automatyzację w przedziale czasowym:",
+                            "automation_disabled_time_range_start": "Wyłącz od:",
+                            "automation_disabled_time_range_end": "Wyłącz do:"
+                        },
+                        "data_description": {
+                            "automation_disabled_time_range": "Po włączeniu automatyzacja nie będzie działać w podanym przedziale czasowym.",
+                            "automation_disabled_time_range_start": "Czas rozpoczęcia okresu, w którym automatyzacja ma być wyłączona.",
+                            "automation_disabled_time_range_end": "Czas zakończenia okresu, w którym automatyzacja ma być wyłączona."
+                        }
+                    },
+                    "section_close_after_sunset": {
+                        "name": "Zamykanie wieczorne",
+                        "data": {
+                            "close_covers_after_sunset": "Zamykanie rolet po zachodzie słońca:",
+                            "close_covers_after_sunset_delay": "Opóźnienie czasowe:",
+                            "close_covers_after_sunset_cover_list": "Rolety:"
+                        },
+                        "data_description": {
+                            "close_covers_after_sunset": "Po włączeniu rolety zostaną zamknięte po określonym czasie od zachodu słońca.",
+                            "close_covers_after_sunset_delay": "Czas oczekiwania po zachodzie słońca przed zamknięciem rolet.",
+                            "close_covers_after_sunset_cover_list": "Wybierz rolety, które mają zostać zamknięte po zachodzie słońca."
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "entity": {
+        "binary_sensor": {
+            "close_covers_after_sunset": {
+                "name": "Zamykanie wieczorne: włączone?",
+                "state": {
+                    "on": "Tak",
+                    "off": "Nie"
+                }
+            },
+            "lock_active": {
+                "name": "Stan blokady"
+            },
+            "nighttime_block_opening": {
+                "name": "Noc: blokować otwieranie?",
+                "state": {
+                    "on": "Tak",
+                    "off": "Nie"
+                }
+            },
+            "status": {
+                "name": "Status"
+            },
+            "temp_hot": {
+                "name": "Pogoda: gorąco?",
+                "state": {
+                    "on": "Tak",
+                    "off": "Nie"
+                }
+            },
+            "weather_sunny": {
+                "name": "Pogoda: słonecznie?",
+                "state": {
+                    "on": "Tak",
+                    "off": "Nie"
+                }
+            }
+        },
+        "select": {
+            "lock_mode": {
+                "name": "Tryb blokady",
+                "state": {
+                    "unlocked": "Odblokowany (automatyzacja aktywna)",
+                    "hold_position": "Utrzymaj bieżącą pozycję",
+                    "force_open": "Wymuś otwarcie i zablokuj",
+                    "force_close": "Wymuś zamknięcie i zablokuj"
+                }
+            }
+        },
+        "sensor": {
+            "automation_disabled_time_range": {
+                "name": "Przedział czasu: wyłączony",
+                "state": {
+                    "off": "Wyłączone"
+                }
+            },
+            "close_covers_after_sunset_delay": {
+                "name": "Zamykanie wieczorne: opóźnienie"
+            },
+            "sun_azimuth": {
+                "name": "Azymut słońca"
+            },
+            "sun_elevation": {
+                "name": "Wysokość słońca"
+            },
+            "temp_current_max": {
+                "name": "Temperatura: dzisiejsze maksimum"
+            }
+        },
+        "number": {
+            "covers_max_closure": {
+                "name": "Maksymalna pozycja rolety:"
+            },
+            "covers_min_closure": {
+                "name": "Minimalna pozycja rolety:"
+            },
+            "manual_override_duration": {
+                "name": "Czas trwania ręcznego pominięcia:"
+            },
+            "sun_azimuth_tolerance": {
+                "name": "Tolerancja azymutu słońca:"
+            },
+            "sun_elevation_threshold": {
+                "name": "Minimalna wysokość słońca:"
+            },
+            "temp_threshold": {
+                "name": "Temperatura: próg upału"
+            }
+        },
+        "switch": {
+            "enabled": {
+                "name": "Automatyzacja włączona"
+            },
+            "simulation_mode": {
+                "name": "Tryb symulacji"
+            },
+            "verbose_logging": {
+                "name": "Szczegółowe logowanie"
+            }
+        }
+    },
+    "services": {
+        "logbook_entry": {
+            "name": "Utwórz wpis w dzienniku",
+            "description": "Tworzy wpis dziennika PI Thermostat.",
+            "fields": {
+                "entity_id": {
+                    "name": "Encja rolety",
+                    "description": "ID encji rolety dla wpisu w dzienniku."
+                },
+                "target_position": {
+                    "name": "Pozycja docelowa",
+                    "description": "Docelowa pozycja rolety w zakresie 0-100."
+                },
+                "verb_key": {
+                    "name": "Klucz czasownika",
+                    "description": "Klucz tłumaczenia opisujący czasownik ruchu."
+                },
+                "reason_key": {
+                    "name": "Klucz powodu",
+                    "description": "Klucz tłumaczenia wyjaśniający, dlaczego roleta się poruszyła."
+                },
+                "config_entry_id": {
+                    "name": "ID wpisu konfiguracji",
+                    "description": "Opcjonalny identyfikator konfiguracji kierujący wpis dziennika do konkretnej instancji integracji."
+                },
+                "template_cover_movement": {
+                    "name": "{verb} {entity_id}, aby {reason}. Nowa pozycja: {position} %.",
+                    "description": "Ciąg szablonu używany do wyświetlania wpisu w dzienniku; obsługuje znaczniki {verb}, {entity_id}, {reason} i {position}."
+                },
+                "verb_opening": {
+                    "name": "Otwieranie",
+                    "description": "Tłumaczenie używane, gdy roleta się otwiera."
+                },
+                "verb_closing": {
+                    "name": "Zamykanie",
+                    "description": "Tłumaczenie używane, gdy roleta się zamyka."
+                },
+                "reason_heat_protection": {
+                    "name": "chronić przed upałem",
+                    "description": "Powód używany, gdy roleta porusza się, aby chronić pomieszczenie przed upałem."
+                },
+                "reason_let_light_in": {
+                    "name": "wpuścić światło",
+                    "description": "Powód używany, gdy roleta porusza się, aby wpuścić więcej światła."
+                },
+                "reason_close_after_sunset": {
+                    "name": "chronić prywatność nocą",
+                    "description": "Powód używany, gdy roleta zamyka się automatycznie po zachodzie słońca."
+                }
+            }
+        },
+        "set_lock": {
+            "name": "Ustaw blokadę rolet",
+            "description": "Zablokuj wszystkie rolety w określonym stanie, aby automatyzacja nie mogła ich poruszać. Przydatne w sytuacjach awaryjnych pogodowych (grad, burze) lub podczas ręcznego nadpisania.",
+            "fields": {
+                "lock_mode": {
+                    "name": "Tryb blokady",
+                    "description": "Jak zablokować rolety"
+                }
+            }
+        }
+    },
+    "selector": {
+        "lock_mode": {
+            "options": {
+                "unlocked": "Odblokowany (automatyzacja aktywna)",
+                "hold_position": "Utrzymaj bieżącą pozycję",
+                "force_open": "Wymuś otwarcie i zablokuj",
+                "force_close": "Wymuś zamknięcie i zablokuj"
+            }
+        }
+    }
+}
