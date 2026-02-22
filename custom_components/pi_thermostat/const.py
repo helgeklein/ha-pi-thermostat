@@ -1,29 +1,21 @@
-"""
-Constants for pi_thermostat.
+"""Constants for pi_thermostat.
 
-Logging Information:
-- INFO includes automation decisions and cover actions
-- Set log level to WARNING for configuration issues
-- Set log level to ERROR for system failures
-
-Note: Detailed cover position/evaluation calculations are not logged by default.
-
-To enable verbose logging, either use the integration's Options (Verbose logging)
-or add this to your configuration.yaml:
-logger:
-  logs:
-    custom_components.pi_thermostat: debug
+Central definitions for domain identity, default values, entity keys, and enums.
+All magic numbers and strings used across the integration are defined here.
 """
 
 from __future__ import annotations
 
-from datetime import timedelta
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Final
 
 # For static type checking only
 if TYPE_CHECKING:
     from .log import Log
+
+# ---------------------------------------------------------------------------
+# Module-level logger
+# ---------------------------------------------------------------------------
 
 # Module-level logger for the integration.
 # This is an instance of the custom Log class which wraps Python's standard logger.
@@ -62,6 +54,11 @@ def _init_logger() -> None:
             raise ImportError("Could not load log.py")
 
 
+# ---------------------------------------------------------------------------
+# Log severity
+# ---------------------------------------------------------------------------
+
+
 #
 # LogSeverity
 #
@@ -74,112 +71,121 @@ class LogSeverity(Enum):
     ERROR = "error"
 
 
+# ---------------------------------------------------------------------------
+# Domain identity
+# ---------------------------------------------------------------------------
+
 DOMAIN: Final[str] = "pi_thermostat"
 INTEGRATION_NAME: Final[str] = "PI Thermostat"
 
-# Per-cover configuration key suffixes
-COVER_SFX_AZIMUTH: Final[str] = "cover_azimuth"  # Cover/window azimuth (°)
-COVER_SFX_MAX_CLOSURE: Final[str] = "cover_max_closure"  # Cover maximum closure position (%)
-COVER_SFX_MIN_CLOSURE: Final[str] = "cover_min_closure"  # Cover minimum closure position (%)
-COVER_SFX_WINDOW_SENSORS: Final[str] = "cover_window_sensors"  # Window sensor entity IDs
-
-# Per-cover position history configuration
-COVER_POSITION_HISTORY_SIZE: Final[int] = 3  # Number of positions to store in history
-
-
-#
-# LockMode
-#
-class LockMode(StrEnum):
-    """Lock mode enum - single source of truth for all lock mode values."""
-
-    UNLOCKED = "unlocked"
-    HOLD_POSITION = "hold_position"
-    FORCE_OPEN = "force_open"
-    FORCE_CLOSE = "force_close"
-
-
-# Service constants
-SERVICE_SET_LOCK: Final[str] = "set_lock"  # Service name for setting lock mode
-SERVICE_FIELD_LOCK_MODE: Final[str] = "lock_mode"  # Field name for lock mode parameter
-
-# Entity keys
-BINARY_SENSOR_KEY_STATUS: Final[str] = "status"  # Key for the status binary sensor entity
-BINARY_SENSOR_KEY_CLOSE_COVERS_AFTER_SUNSET: Final[str] = (
-    "close_covers_after_sunset"  # Key for the close covers after sunset binary sensor entity
-)
-BINARY_SENSOR_KEY_NIGHTTIME_BLOCK_OPENING: Final[str] = (
-    "nighttime_block_opening"  # Key for the nighttime block opening binary sensor entity
-)
-BINARY_SENSOR_KEY_TEMP_HOT: Final[str] = "temp_hot"  # Key for the temp_hot binary sensor entity
-BINARY_SENSOR_KEY_WEATHER_SUNNY: Final[str] = "weather_sunny"  # Key for the weather_sunny binary sensor entity
-BINARY_SENSOR_KEY_LOCK_ACTIVE: Final[str] = "lock_active"  # Key for the lock active binary sensor entity
-SENSOR_KEY_AUTOMATION_DISABLED_TIME_RANGE: Final[str] = (
-    "automation_disabled_time_range"  # Key for the automation disabled time range sensor entity
-)
-SENSOR_KEY_CLOSE_COVERS_AFTER_SUNSET_DELAY: Final[str] = (
-    "close_covers_after_sunset_delay"  # Key for the close covers after sunset delay sensor entity
-)
-NUMBER_KEY_SUN_AZIMUTH_TOLERANCE: Final[str] = "sun_azimuth_tolerance"  # Key for the sun azimuth tolerance number entity
-NUMBER_KEY_COVERS_MAX_CLOSURE: Final[str] = "covers_max_closure"  # Key for the covers maximum closure number entity
-NUMBER_KEY_COVERS_MIN_CLOSURE: Final[str] = "covers_min_closure"  # Key for the covers minimum closure number entity
-NUMBER_KEY_MANUAL_OVERRIDE_DURATION: Final[str] = "manual_override_duration"  # Key for the manual override duration number entity
-SENSOR_KEY_SUN_AZIMUTH: Final[str] = "sun_azimuth"  # Key for the sun azimuth sensor entity
-SENSOR_KEY_SUN_ELEVATION: Final[str] = "sun_elevation"  # Key for the sun sun_elevation sensor entity
-SENSOR_KEY_TEMP_CURRENT_MAX: Final[str] = "temp_current_max"  # Key for the current maximum temperature sensor entity
-SENSOR_KEY_LOCK_MODE: Final[str] = "lock_mode"  # Key for the lock mode sensor entity
-SELECT_KEY_LOCK_MODE: Final[str] = "lock_mode"  # Key for the lock mode select entity
-NUMBER_KEY_TEMP_THRESHOLD: Final[str] = "temp_threshold"  # Key for the temperature threshold number entity
-NUMBER_KEY_SUN_ELEVATION_THRESHOLD: Final[str] = "sun_elevation_threshold"  # Key for the sun elevation threshold number entity
-
-# Options flow translation keys
-ERROR_INVALID_COVER: Final[str] = "invalid_cover"
-ERROR_INVALID_WEATHER_ENTITY: Final[str] = "invalid_weather_entity"
-ERROR_NO_COVERS: Final[str] = "no_covers"
-ERROR_NO_WEATHER_ENTITY: Final[str] = "no_weather_entity"
-STEP_3_SECTION_MAX_CLOSURE: Final[str] = "section_max_closure"
-STEP_3_SECTION_MIN_CLOSURE: Final[str] = "section_min_closure"
-STEP_4_SECTION_WINDOW_SENSORS: Final[str] = "section_window_sensors"
-STEP_5_SECTION_TIME_RANGE: Final[str] = "section_time_range"
-STEP_5_SECTION_CLOSE_AFTER_SUNSET: Final[str] = "section_close_after_sunset"
-
 # Home Assistant string literals
 HA_OPTIONS: Final[str] = "options"
-HA_SUN_ATTR_AZIMUTH: Final[str] = "azimuth"
-HA_SUN_ATTR_ELEVATION: Final[str] = "elevation"
-HA_SUN_ENTITY_ID: Final[str] = "sun.sun"
-HA_SUN_STATE_BELOW_HORIZON: Final[str] = "below_horizon"
-HA_WEATHER_COND_SUNNY: Final[str] = "sunny"
-HA_WEATHER_COND_PARTCLOUDY: Final[str] = "partlycloudy"
 
-# Weather conditions that indicate sunny conditions
-WEATHER_SUNNY_CONDITIONS: Final[tuple[str, ...]] = (
-    HA_WEATHER_COND_SUNNY,
-    HA_WEATHER_COND_PARTCLOUDY,
-)
+# ---------------------------------------------------------------------------
+# Coordinator defaults
+# ---------------------------------------------------------------------------
 
-# Home Assistant cover positions
-COVER_POS_FULLY_OPEN: Final = 100
-COVER_POS_FULLY_CLOSED: Final = 0
+UPDATE_INTERVAL_DEFAULT_SECONDS: Final[int] = 60
 
-# Coordinator
-UPDATE_INTERVAL: Final = timedelta(seconds=60)
-SUNSET_CLOSING_WINDOW_MINUTES: Final[int] = 10  # Duration of the evening closure window
+# ---------------------------------------------------------------------------
+# PI controller defaults (HVAC-standard units)
+# ---------------------------------------------------------------------------
 
-# Logbook service/translation keys
-SERVICE_LOGBOOK_ENTRY: Final[str] = "logbook_entry"
-TRANSL_LOGBOOK_TEMPLATE_COVER_MOVEMENT: Final[str] = "template_cover_movement"
-TRANSL_LOGBOOK_VERB_OPENING: Final[str] = "verb_opening"
-TRANSL_LOGBOOK_VERB_CLOSING: Final[str] = "verb_closing"
-TRANSL_LOGBOOK_REASON_HEAT_PROTECTION: Final[str] = "reason_heat_protection"
-TRANSL_LOGBOOK_REASON_LET_LIGHT_IN: Final[str] = "reason_let_light_in"
-TRANSL_LOGBOOK_REASON_CLOSE_AFTER_SUNSET: Final[str] = "reason_close_after_sunset"
-TRANSL_ATTR_NAME: Final[str] = "name"
-TRANSL_KEY_SERVICES: Final[str] = "services"
-TRANSL_KEY_FIELDS: Final[str] = "fields"
+DEFAULT_PROP_BAND: Final[float] = 4.0  # Proportional band in Kelvin
+DEFAULT_INT_TIME: Final[float] = 120.0  # Integral time (reset time) in minutes
+DEFAULT_OUTPUT_MIN: Final[float] = 0.0  # Minimum output %
+DEFAULT_OUTPUT_MAX: Final[float] = 100.0  # Maximum output %
 
-# hass.data keys
-DATA_COORDINATORS: Final[str] = "coordinators"
+# ---------------------------------------------------------------------------
+# Entity keys — sensors (read-only, from coordinator data)
+# ---------------------------------------------------------------------------
 
-# Initialize the module-level logger
+SENSOR_KEY_OUTPUT: Final[str] = "output"  # PI output percentage
+SENSOR_KEY_ERROR: Final[str] = "error"  # Current error (target − actual)
+SENSOR_KEY_P_TERM: Final[str] = "p_term"  # Proportional component
+SENSOR_KEY_I_TERM: Final[str] = "i_term"  # Integral component (also persisted)
+
+# ---------------------------------------------------------------------------
+# Entity keys — number entities (writable, runtime-configurable)
+# ---------------------------------------------------------------------------
+
+NUMBER_KEY_PROP_BAND: Final[str] = "proportional_band"
+NUMBER_KEY_INT_TIME: Final[str] = "integral_time"
+NUMBER_KEY_TARGET_TEMP: Final[str] = "target_temp"
+NUMBER_KEY_OUTPUT_MIN: Final[str] = "output_min"
+NUMBER_KEY_OUTPUT_MAX: Final[str] = "output_max"
+NUMBER_KEY_UPDATE_INTERVAL: Final[str] = "update_interval"
+
+# ---------------------------------------------------------------------------
+# Entity keys — switches
+# ---------------------------------------------------------------------------
+
+SWITCH_KEY_ENABLED: Final[str] = "enabled"
+
+# ---------------------------------------------------------------------------
+# Entity keys — binary sensors
+# ---------------------------------------------------------------------------
+
+BINARY_SENSOR_KEY_ACTIVE: Final[str] = "active"
+
+# ---------------------------------------------------------------------------
+# Operating mode enum
+# ---------------------------------------------------------------------------
+
+
+#
+# OperatingMode
+#
+class OperatingMode(StrEnum):
+    """How the controller determines heating vs. cooling direction."""
+
+    HEAT_COOL = "heat_cool"  # Auto: read mode from a climate entity
+    HEAT = "heat"  # Heating only
+    COOL = "cool"  # Cooling only
+
+
+# ---------------------------------------------------------------------------
+# Target temperature mode constants
+# ---------------------------------------------------------------------------
+
+TARGET_TEMP_MODE_INTERNAL: Final[str] = "internal"
+TARGET_TEMP_MODE_EXTERNAL: Final[str] = "external"
+TARGET_TEMP_MODE_CLIMATE: Final[str] = "climate"
+
+# ---------------------------------------------------------------------------
+# Sensor fault behavior enum
+# ---------------------------------------------------------------------------
+
+
+#
+# SensorFaultMode
+#
+class SensorFaultMode(StrEnum):
+    """Behavior when the temperature sensor becomes unavailable."""
+
+    SHUTDOWN = "shutdown"  # Set output to 0% immediately
+    HOLD = "hold"  # Hold last output for grace period, then shutdown
+
+
+# ---------------------------------------------------------------------------
+# Safety
+# ---------------------------------------------------------------------------
+
+SENSOR_FAULT_GRACE_PERIOD_SECONDS: Final[int] = 300  # 5 min before shutdown in HOLD mode
+
+# ---------------------------------------------------------------------------
+# Options flow error translation keys
+# ---------------------------------------------------------------------------
+
+ERROR_NO_TEMP_SOURCE: Final[str] = "no_temp_source"
+ERROR_HEAT_COOL_REQUIRES_CLIMATE: Final[str] = "heat_cool_requires_climate"
+ERROR_CLIMATE_TARGET_REQUIRES_CLIMATE: Final[str] = "climate_target_requires_climate"
+ERROR_PROP_BAND_POSITIVE: Final[str] = "prop_band_positive"
+ERROR_INT_TIME_POSITIVE: Final[str] = "int_time_positive"
+ERROR_OUTPUT_MIN_LT_MAX: Final[str] = "output_min_lt_max"
+
+# ---------------------------------------------------------------------------
+# Module initialization
+# ---------------------------------------------------------------------------
+
 _init_logger()
