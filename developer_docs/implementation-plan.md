@@ -25,18 +25,29 @@ This document describes how to transform the **Smart Cover Automation** template
 | 13 | 4 | Implement `binary_sensor.py` (§4.5) | **DONE** |
 | 14 | 5 | Implement config flow + options flow (§5) | **DONE** |
 | 15 | 6 | Create `translations/en.json` (§6) | **DONE** |
-| 16 | 7 | Write remaining tests (§7) | Not started |
-| 17 | 7 | Lint + type-check + full test run | Not started |
+| 16 | 7 | Write remaining tests (§7) | **DONE** |
+| 17 | 7 | Lint + type-check + full test run | **DONE** |
 | 18 | 8 | Update docs/README (§8) | Not started |
 
-**Next step**: 16 — Write remaining tests (Phase 7).
+**Next step**: 18 — Update docs/README (Phase 8).
 
 **Notes**:
 - Phase 1 validated: lint passes. README.md body content still has cover-specific text — full rewrite deferred to Phase 8.
 - Phase 2 validated: lint passes. `const.py`, `config.py`, `data.py` rewritten with PI thermostat types.
 - Phase 3 validated: lint passes, 40 unit tests pass. `pi_controller.py` (new), `ha_interface.py`, `coordinator.py` rewritten.
 - Phase 4 validated: lint passes, 40 unit tests pass. `entity.py` unchanged (already correct). `sensor.py`, `number.py`, `switch.py`, `binary_sensor.py` rewritten with PI thermostat entities.
-- Phase 5-6 validated: lint passes, Pyright clean. `config_flow.py` rewritten (minimal config flow + 4-step options flow). `translations/en.json` rewritten with all entity names, config/options flow labels, selector translations, error messages.
+- Phase 5-6 validated: lint passes, Pyright clean. `config_flow.py` rewritten (minimal config flow + 3-step options wizard). `translations/en.json` rewritten with all entity names, config/options flow labels, selector translations, error messages.
+- Phase 7 validated: lint passes, Pyright clean, **263 tests pass, 97% overall coverage**. Test files:
+  - `test_pi_controller.py` — 40 tests: PI logic, clamping, mode switching, HVAC unit conversion, anti-windup.
+  - `test_const.py` — 29 tests (previously 24): constants, enums, entity keys.
+  - `test_config.py` — 32 tests: ConfKeys, CONF_SPECS, resolve(), ResolvedConfig.
+  - `test_config_flow.py` — 30 tests: config flow + 3-step options wizard, validation, schema builders.
+  - `test_coordinator.py` — 34 tests: PI control cycle, pause, auto-disable, sensor faults.
+  - `test_entities.py` — 20 tests: full integration setup, entity platforms, I-term startup modes (zero, fixed, last + restore), switch write (turn on/off), number write (set value).
+  - `test_ha_interface.py` — 38 tests: state reading, service calls, error handling.
+  - `test_init.py` — 11 tests: setup/unload error handling, options flow handler, smart reload logic (runtime vs structural vs mixed changes).
+  - `test_util.py` — 29 tests: to_float_or_none, to_int_or_none coercion helpers.
+  - Per-module coverage: `__init__.py` 100%, `binary_sensor.py` 100%, `config.py` 98%, `config_flow.py` 100%, `coordinator.py` 97%, `data.py` 100%, `entity.py` 100%, `ha_interface.py` 100%, `number.py` 100%, `switch.py` 100%, `util.py` 100%, `pi_controller.py` 99%, `sensor.py` 96%, `log.py` 90%, `const.py` 84%.
 
 ---
 
@@ -620,39 +631,8 @@ def pi_controller() -> PIController: ...
 
 - Update `README.md` with PI thermostat description, installation, configuration.
 - Update `CONTRIBUTING.md` as needed.
-- Keep `developer_docs/integration-template-guide.md` for reference.
-- Update `docs/` site content for the new integration.
-
----
-
-## Implementation Order
-
-The phases above describe *what* to build. Here is the recommended *sequence* for implementation:
-
-| Step | Description | Depends On |
-|---|---|---|
-| 1 | Delete unneeded files (§1.1) | — |
-| 2 | Rename folder and global string replacements (§1.2, §1.3) | Step 1 |
-| 3 | Update manifest.json, hacs.json, pyproject.toml, requirements (§1.4–§1.8) | Step 2 |
-| 4 | Delete all existing tests (§1.9) | Step 2 |
-| 5 | Strip `const.py` to skeleton, define new constants (§2.1) | Step 2 |
-| 6 | Strip `config.py`, define new ConfKeys + CONF_SPECS + ResolvedConfig (§2.2) | Step 5 |
-| 7 | Strip `data.py`, define new CoordinatorData + RuntimeData (§2.3) | Step 5 |
-| 8 | Create `pi_controller.py` with PIController + PIResult (§3.1) | Step 5 |
-| 9 | Write unit tests for `pi_controller.py` (§7.2) | Step 8 |
-| 10 | Strip `ha_interface.py`, implement new methods (§3.3) | Step 7 |
-| 11 | Strip `coordinator.py`, implement new update loop (§3.2) | Steps 8, 10 |
-| 12 | Clean up `__init__.py` (§1.10) | Steps 6, 11 |
-| 13 | Implement `entity.py` adjustments (§4, base class) | Step 5 |
-| 14 | Implement `sensor.py` with RestoreEntity for i_term (§4.2, §3.4) | Steps 7, 13 |
-| 15 | Implement `number.py` (§4.3) | Steps 6, 13 |
-| 16 | Implement `switch.py` (§4.4) | Steps 6, 13 |
-| 17 | Implement `binary_sensor.py` (§4.5) | Steps 7, 13 |
-| 18 | Implement config flow + options flow (§5) | Steps 6, 10 |
-| 19 | Create `translations/en.json` (§6) | Steps 14–18 |
-| 20 | Write remaining tests: config_flow (100%), coordinator, components, etc. (§7) | Steps 11–19 |
-| 21 | Lint + type-check + full test run | Step 20 |
-| 22 | Update docs/README (§8) | Step 21 |
+- Delete `developer_docs/integration-template-guide.md`.
+- Don't update `docs/` site content (will be done manually).
 
 ---
 
