@@ -46,7 +46,7 @@ jobs:
 
       - name: Run tests
         run: |
-          python -m pytest -n auto tests/ -o addopts="--strict-markers --strict-config --cov=custom_components.smart_cover_automation --cov-report=term-missing --cov-report=xml --cov-report=json --cov-fail-under=80"
+          python -m pytest -n auto tests/ -o addopts="--strict-markers --strict-config --cov=custom_components.pi_thermostat --cov-report=term-missing --cov-report=xml --cov-report=json --cov-fail-under=80"
 
       - name: Generate coverage badge
         run: |
@@ -86,8 +86,8 @@ jobs:
           import importlib.util
           from pathlib import Path
 
-          const_path = Path('custom_components/smart_cover_automation/const.py')
-          spec = importlib.util.spec_from_file_location('sca_const', const_path)
+          const_path = Path('custom_components/pi_thermostat/const.py')
+          spec = importlib.util.spec_from_file_location('pi_thermostat_const', const_path)
           const = importlib.util.module_from_spec(spec)
           assert spec and spec.loader
           spec.loader.exec_module(const)
@@ -100,7 +100,7 @@ jobs:
         run: |
           python -c "
           import json
-          with open('custom_components/smart_cover_automation/manifest.json') as f:
+          with open('custom_components/pi_thermostat/manifest.json') as f:
               manifest = json.load(f)
           required_keys = ['domain', 'name', 'version', 'documentation', 'issue_tracker']
           for key in required_keys:
