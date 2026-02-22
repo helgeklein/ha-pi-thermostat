@@ -4,6 +4,7 @@ Provides read-only sensors exposing the PI controller's internal state:
 
 - **output**: PI output percentage (0-100 %).
 - **deviation**: Control deviation (target - current temperature).
+- **current_temp**: Current temperature reading.
 - **p_term**: Proportional component of the output.
 - **i_term**: Integral component (uses ``RestoreEntity`` for persistence across restarts).
 """
@@ -22,6 +23,7 @@ from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
+    SENSOR_KEY_CURRENT_TEMP,
     SENSOR_KEY_DEVIATION,
     SENSOR_KEY_I_TERM,
     SENSOR_KEY_OUTPUT,
@@ -57,6 +59,15 @@ SENSOR_DEVIATION = SensorEntityDescription(
     device_class=SensorDeviceClass.TEMPERATURE,
     state_class=SensorStateClass.MEASUREMENT,
     suggested_display_precision=2,
+)
+
+SENSOR_CURRENT_TEMP = SensorEntityDescription(
+    key=SENSOR_KEY_CURRENT_TEMP,
+    translation_key=SENSOR_KEY_CURRENT_TEMP,
+    native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+    device_class=SensorDeviceClass.TEMPERATURE,
+    state_class=SensorStateClass.MEASUREMENT,
+    suggested_display_precision=1,
 )
 
 SENSOR_P_TERM = SensorEntityDescription(
@@ -97,6 +108,7 @@ async def async_setup_entry(
         [
             IntegrationSensor(coordinator, SENSOR_OUTPUT),
             IntegrationSensor(coordinator, SENSOR_DEVIATION),
+            IntegrationSensor(coordinator, SENSOR_CURRENT_TEMP),
             IntegrationSensor(coordinator, SENSOR_P_TERM),
             ITermSensor(coordinator),
         ]

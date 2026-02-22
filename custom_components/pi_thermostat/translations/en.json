@@ -97,6 +97,9 @@
             "deviation": {
                 "name": "Deviation"
             },
+            "current_temp": {
+                "name": "Current temperature"
+            },
             "p_term": {
                 "name": "Proportional term"
             },

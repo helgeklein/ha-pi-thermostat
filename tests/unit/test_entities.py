@@ -121,6 +121,7 @@ class TestSensorEntities:
         expected_entity_ids = [
             "sensor.pi_thermostat_output",
             "sensor.pi_thermostat_deviation",
+            "sensor.pi_thermostat_current_temperature",
             "sensor.pi_thermostat_proportional_term",
             "sensor.pi_thermostat_integral_term",
         ]

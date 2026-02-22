@@ -24,6 +24,7 @@ from custom_components.pi_thermostat.const import (
     NUMBER_KEY_TARGET_TEMP,
     NUMBER_KEY_UPDATE_INTERVAL,
     SENSOR_FAULT_GRACE_PERIOD_SECONDS,
+    SENSOR_KEY_CURRENT_TEMP,
     SENSOR_KEY_DEVIATION,
     SENSOR_KEY_I_TERM,
     SENSOR_KEY_OUTPUT,
@@ -109,7 +110,7 @@ class TestEntityKeys:
     def test_sensor_keys_unique(self) -> None:
         """Sensor keys are unique."""
 
-        keys = [SENSOR_KEY_OUTPUT, SENSOR_KEY_DEVIATION, SENSOR_KEY_P_TERM, SENSOR_KEY_I_TERM]
+        keys = [SENSOR_KEY_OUTPUT, SENSOR_KEY_DEVIATION, SENSOR_KEY_CURRENT_TEMP, SENSOR_KEY_P_TERM, SENSOR_KEY_I_TERM]
         assert len(keys) == len(set(keys))
 
     def test_number_keys_unique(self) -> None:
