@@ -1,4 +1,4 @@
-#! Test requirements for Smart Cover Automation
+#! Test requirements for PI Thermostat
 
 # Core test dependencies
 pytest>=8.0.0

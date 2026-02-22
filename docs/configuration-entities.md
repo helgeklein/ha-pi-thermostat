@@ -2,75 +2,87 @@
 layout: default
 title: UI Configuration Entities
 nav_order: 5
-description: "Configuration guide part 2 for Smart Cover Automation for Home Assistant."
+description: "Configuration guide part 2 for PI Thermostat for Home Assistant."
 permalink: /ui-configuration-entities/
 ---
 
 # UI Configuration Entities
 
-In addition to the rather static configuration settings managed through the wizard, the integration's behavior can be controlled via switches and other UI configuration entities on the device page of the integration instance.
+In addition to the configuration settings managed through the wizard, the integration's behavior can be fine-tuned at runtime via entities on the device page. Changes take effect immediately without requiring a restart.
 
-## Integration Settings
-
-The entities in this section control how the integration works.
+## Switch
 
 ### Enabled
 
-**Enables** or disables the automation. This should be viewed as a on/off switch, a quick way to stop the integration altogether, one step short of deactivating it by Home Assistant's means.
+Master **on/off switch** for the PI controller. When off, the controller is paused and output is set to 0 %. Turning it back on resumes normal operation.
 
-### Simulation Mode
+## Number Entities
 
-If **simulation mode** is enabled, the automation runs through all calculations without actually moving the covers.
+### Proportional Band
 
-### Verbose Logging
+The temperature range (in Kelvin) over which the PI output spans from 0 to 100 %. A smaller proportional band means more aggressive control; a larger band means smoother, less responsive control.
 
-**Verbose logging** enables or disables detailed logging.
+- **Range:** 0.5–30.0 K
+- **Default:** 4.0 K
 
-## Cover Settings
+### Integral Time
 
-The entities in this section control the cover movements.
+The integral (reset) time in minutes. Controls how quickly the integral action eliminates steady-state error. A shorter time means faster correction but more risk of oscillation.
 
-### Lock Mode
+- **Range:** 1–600 minutes
+- **Default:** 120 minutes
 
-Lock mode moves the covers to either opened or closed state, or keeps them in their current position. It then locks the covers, keeping them in that position until lock mode is disabled.
+### Target Temperature
 
-Lock mode can be manually set, but is primarily designed to be triggered as an action, e.g., when a wind or hail warning is received from a weather service. Note that such automations are not part of this integration and need to be set up by the user.
+The temperature setpoint when target temperature mode is set to "Built-in setpoint" in the configuration wizard. This entity uses Home Assistant's temperature device class, so it automatically displays in the user's configured unit system (°C or °F).
 
-**Lock mode** has the following options:
+- **Range:** 5.0–35.0 °C
+- **Default:** 20.0 °C
 
-- `Unlocked (automation active)` [default]
-- `Hold current position`
-- `Force open and lock`
-- `Force close and lock`
+### Output Minimum
 
-### Manual Override
+The minimum output percentage. The PI controller's output will never go below this value (unless the controller is disabled or shut down).
 
-**Manual override duration** specifies how long a cover is skipped after it has been moved manually (0 = no skipping).
+- **Range:** 0–100 %
+- **Default:** 0 %
 
-### Minimum & Maximum Position
+### Output Maximum
 
-These settings control the minimum and maximum positions to which the automation moves the covers (0 = fully closed, 100 = fully open). These options can be used to always let some light in and/or always provide a minimum of shade.
+The maximum output percentage. The PI controller's output will never exceed this value.
 
-- **Maximum cover position:** Never close more than this.
-- **Minimum cover position:** Never open more than this.
+- **Range:** 0–100 %
+- **Default:** 100 %
 
-**Note:** The minimum and maximum positions can also be configured per cover in the configuration wizard.
+### Update Interval
 
-## Sun & Temperature Settings
+How often the PI controller recalculates the output, in seconds.
 
-The entities in this section control at which temperatures and sun positions the integration automates cover movements.
+- **Range:** 10–600 seconds
+- **Default:** 60 seconds
 
-### Sun Azimuth
+## Sensors (Read-Only)
 
-**Sun azimuth tolerance:** The maximum horizontal angle at which the sun is considered to be shining on the window (degrees).
+### Output
 
-### Sun Elevation
+The current PI controller output as a percentage (0–100 %). This is the main output value that gets written to the configured output entity.
 
-**Minimal sun elevation:** The automation starts operating when the sun's elevation is above this threshold (degrees above the horizon).
+### Error
 
-### Temperature: Heat Threshold
+The current control error: target temperature minus current temperature (in heating mode) or current temperature minus target temperature (in cooling mode). Measured in °C.
 
-**Temperature: heat threshold:** The temperature at which the automation starts closing covers to protect from heat (degrees Celsius).
+### Proportional Term
+
+The proportional component of the PI output. Shows how much of the output is due to the current error.
+
+### Integral Term
+
+The integral component of the PI output. Shows how much of the output is due to accumulated past error. This value is persisted across restarts via Home Assistant's `RestoreEntity` mechanism.
+
+## Binary Sensor
+
+### Active
+
+**On** when the PI controller's output is greater than 0 %. Useful for dashboard indicators and automations (e.g., turn on a "heating active" indicator light).
 
 ## Next Steps
 

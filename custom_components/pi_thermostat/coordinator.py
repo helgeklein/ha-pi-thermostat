@@ -1,47 +1,65 @@
-"""Implementation of the automation logic."""
+"""PI thermostat coordinator — update loop.
+
+Reads temperatures, delegates to the PI controller, and returns
+``CoordinatorData`` consumed by all entities.
+
+The ``_async_update_data`` cycle runs on every update interval:
+
+ 1. Resolve configuration from config entry options.
+ 1b. Check the enabled flag — return paused result if off (preserves last state).
+ 2. Auto-disable when the climate entity's HVAC mode is "off".
+ 3. Determine heating / cooling direction (fixed or from climate entity).
+ 4. Read the current temperature (sensor or climate entity).
+ 5. Determine the target temperature (internal, external, or climate).
+ 6. Handle sensor faults (shutdown immediately or hold then shutdown).
+ 7. Apply any runtime tuning changes to the PI controller.
+ 8. Run the PI controller to get output, error, P-term, and I-term.
+ 9. Write the output value to the configured output entity (optional).
+10. Return ``CoordinatorData`` for consumption by all entities.
+"""
 
 from __future__ import annotations
 
-import logging
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator as BaseCoordinator
-from homeassistant.helpers.update_coordinator import UpdateFailed
+from homeassistant.components.climate.const import HVACAction, HVACMode
+from homeassistant.helpers.update_coordinator import (
+    DataUpdateCoordinator as BaseCoordinator,
+)
+from homeassistant.helpers.update_coordinator import (
+    UpdateFailed,
+)
 
-from . import const
-from .automation_engine import AutomationEngine
-from .config import ConfKeys, ResolvedConfig, resolve_entry
-from .const import LockMode
+from .config import ResolvedConfig, resolve_entry
+from .const import (
+    DOMAIN,
+    HA_OPTIONS,
+    SENSOR_FAULT_GRACE_PERIOD_SECONDS,
+    OperatingMode,
+    SensorFaultMode,
+)
 from .data import CoordinatorData
-from .ha_interface import HomeAssistantInterface, WeatherEntityNotFoundError
+from .ha_interface import HomeAssistantInterface
 from .log import Log
+from .pi_controller import PIController
 
 if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant, State
+    from homeassistant.core import HomeAssistant
 
     from .data import IntegrationConfigEntry
 
 
-#
-# Exception classes
-#
-class PiThermostatError(UpdateFailed):
-    """Base class for this integration's errors."""
-
-
-class SunSensorNotFoundError(PiThermostatError):
-    """Sun sensor could not be found."""
-
-    def __init__(self, sensor_name: str) -> None:
-        super().__init__(f"Sun sensor '{sensor_name}' not found")
-        self.sensor_name = sensor_name
+# ---------------------------------------------------------------------------
+# DataUpdateCoordinator
+# ---------------------------------------------------------------------------
 
 
 #
 # DataUpdateCoordinator
 #
 class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
-    """Automation engine."""
+    """PI thermostat update coordinator."""
 
     config_entry: IntegrationConfigEntry
 
@@ -49,217 +67,407 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
     # __init__
     #
     def __init__(self, hass: HomeAssistant, config_entry: IntegrationConfigEntry) -> None:
-        # Create instance-specific logger with entry_id prefix
+        """Initialize the coordinator.
+
+        Args:
+            hass: Home Assistant instance.
+            config_entry: The integration's config entry.
+        """
+
+        # Instance-specific logger
         self._logger = Log(entry_id=config_entry.entry_id)
+
+        resolved = resolve_entry(config_entry)
 
         super().__init__(
             hass,
             self._logger.underlying_logger,
-            name=const.DOMAIN,
-            update_interval=const.UPDATE_INTERVAL,
+            name=DOMAIN,
+            update_interval=timedelta(seconds=resolved.update_interval),
             config_entry=config_entry,
         )
         self.config_entry = config_entry
 
-        # Store merged config for comparison during reload
+        # Merged config dict for reload-comparison in __init__.py
         self._merged_config: dict[str, Any] = {}
 
-        resolved = resolve_entry(config_entry)
-        self._logger.info(f"Initializing coordinator: update_interval={const.UPDATE_INTERVAL.total_seconds()} s")
+        # HA abstraction layer
+        self._ha = HomeAssistantInterface(hass, self._logger)
 
-        # Get configuration from options (all user settings are stored there)
-        config = dict(getattr(config_entry, const.HA_OPTIONS, {}) or {})
+        # PI controller — created with initial resolved settings
+        self._pi = PIController(
+            proportional_band=resolved.proportional_band,
+            integral_time_min=resolved.integral_time,
+            output_min=resolved.output_min,
+            output_max=resolved.output_max,
+            sample_time=float(resolved.update_interval),
+            setpoint=resolved.target_temp,
+            is_cooling=(resolved.operating_mode == OperatingMode.COOL),
+        )
 
-        # Create the HA interface layer (pass instance logger)
-        self._ha_interface = HomeAssistantInterface(hass, self._resolved_settings, logger=self._logger)
+        # Sensor-fault tracking for HOLD mode
+        self._fault_cycles: int = 0
+        self._last_good_output: float = 0.0
 
-        # Initialize the automation engine (persists across runs, pass instance logger)
-        self._automation_engine = AutomationEngine(resolved=resolved, config=config, ha_interface=self._ha_interface, logger=self._logger)
+        # Last coordinator result — used to preserve state when paused
+        self._last_data: CoordinatorData | None = None
 
-        # Track verbose logging state to avoid redundant setLevel calls
-        self._verbose_logging_enabled: bool | None = None
+        # Track last-applied tunings to detect changes
+        self._last_prop_band: float = resolved.proportional_band
+        self._last_int_time: float = resolved.integral_time
+        self._last_output_min: float = resolved.output_min
+        self._last_output_max: float = resolved.output_max
+        self._last_update_interval: int = resolved.update_interval
 
-        # Apply verbose logging setting from config
-        self._apply_verbose_logging(resolved.verbose_logging)
+        self._logger.info(
+            "Coordinator initialized: update_interval=%s s, prop_band=%s K, int_time=%s min, mode=%s",
+            resolved.update_interval,
+            resolved.proportional_band,
+            resolved.integral_time,
+            resolved.operating_mode,
+        )
+
+    # ------------------------------------------------------------------
+    # Public helpers
+    # ------------------------------------------------------------------
 
     #
-    # _apply_verbose_logging
+    # restore_integral_term
     #
-    def _apply_verbose_logging(self, enabled: bool) -> None:
-        """Apply the verbose logging setting to this instance's logger.
-
-        This method is called during initialization and on each coordinator
-        refresh. It only changes the logger level when the setting actually
-        changes, avoiding redundant calls.
+    def restore_integral_term(self, value: float) -> None:
+        """Restore the integral term after a restart (called by the i_term sensor).
 
         Args:
-            enabled: Whether verbose (DEBUG) logging should be enabled
+            value: Previously persisted integral term.
         """
 
-        # Skip if state hasn't changed
-        if enabled == self._verbose_logging_enabled:
-            return
+        self._pi.restore_integral_term(value)
+        self._logger.info("Restored integral term: %s", value)
 
-        self._verbose_logging_enabled = enabled
-
-        try:
-            if enabled:
-                self._logger.setLevel(logging.DEBUG)
-                self._logger.debug("Verbose logging enabled")
-            else:
-                # Reset to NOTSET so the logger inherits from parent
-                self._logger.setLevel(logging.NOTSET)
-        except Exception:
-            pass
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
 
     #
-    # status_sensor_unique_id
+    # _resolve
     #
-    @property
-    def status_sensor_unique_id(self) -> str | None:
-        """Get the unique_id of the status binary sensor."""
-
-        return self._ha_interface.status_sensor_unique_id
-
-    #
-    # status_sensor_unique_id setter
-    #
-    @status_sensor_unique_id.setter
-    def status_sensor_unique_id(self, value: str | None) -> None:
-        """Set the unique_id of the status binary sensor."""
-
-        self._ha_interface.status_sensor_unique_id = value
-
-    #
-    # lock_mode
-    #
-    @property
-    def lock_mode(self) -> LockMode:
-        """Get current lock mode."""
-
-        resolved = self._resolved_settings()
-        return resolved.lock_mode
-
-    #
-    # is_locked
-    #
-    @property
-    def is_locked(self) -> bool:
-        """Check if covers are locked (any mode except unlocked)."""
-
-        return self.lock_mode != const.LockMode.UNLOCKED
-
-    #
-    # async_set_lock_mode
-    #
-    async def async_set_lock_mode(self, lock_mode: const.LockMode) -> None:
-        """Set the lock mode and persist to config.
-
-        Args:
-            lock_mode: lock mode to set
-
-        This method:
-        1. Validates the lock mode
-        2. Persists to config options
-        3. Triggers immediate coordinator refresh
-        4. Logs the change
-        """
-
-        # Validate lock mode
-        valid_modes = [mode.value for mode in const.LockMode]
-        if lock_mode not in valid_modes:
-            self._logger.error(f"Invalid lock mode: {lock_mode}. Valid modes: {valid_modes}")
-            raise ValueError(f"Invalid lock mode: {lock_mode}")
-
-        # Update config entry options
-        new_options = dict(self.config_entry.options)
-        new_options[ConfKeys.LOCK_MODE.value] = lock_mode
-
-        # This will trigger the update listener (async_reload_entry) in __init__.py
-        # which will compare configs and decide on refresh vs. reload
-        self.hass.config_entries.async_update_entry(self.config_entry, options=new_options)
-
-    #
-    # _resolved_settings
-    #
-    def _resolved_settings(self) -> ResolvedConfig:
+    def _resolve(self) -> ResolvedConfig:
         """Return resolved settings from the config entry options."""
 
         from .config import resolve
 
-        # Get configuration from options (all user settings are stored there)
-        opts = dict(getattr(self.config_entry, const.HA_OPTIONS, {}) or {})
-
+        opts = dict(getattr(self.config_entry, HA_OPTIONS, {}) or {})
         return resolve(opts)
+
+    #
+    # _paused_result
+    #
+    def _paused_result(self) -> CoordinatorData:
+        """Return a CoordinatorData that preserves the last state (controller paused).
+
+        When no previous data exists (e.g. first cycle after startup with
+        the enabled switch off), returns a safe default with output = 0.
+        The output entity is **not** written to, so whatever value the
+        external entity already has is preserved.
+        """
+
+        if self._last_data is not None:
+            return CoordinatorData(
+                output=self._last_data.output,
+                error=self._last_data.error,
+                p_term=self._last_data.p_term,
+                i_term=self._last_data.i_term,
+                current_temp=self._last_data.current_temp,
+                target_temp=self._last_data.target_temp,
+                sensor_available=self._last_data.sensor_available,
+                controller_active=False,
+            )
+
+        return self._shutdown_result()
+
+    #
+    # _shutdown_result
+    #
+    @staticmethod
+    def _shutdown_result(
+        *,
+        current_temp: float | None = None,
+        target_temp: float | None = None,
+        sensor_available: bool = True,
+    ) -> CoordinatorData:
+        """Return a CoordinatorData with output = 0 (shutdown / auto-disabled)."""
+
+        return CoordinatorData(
+            output=0.0,
+            error=None,
+            p_term=None,
+            i_term=None,
+            current_temp=current_temp,
+            target_temp=target_temp,
+            sensor_available=sensor_available,
+            controller_active=False,
+        )
+
+    #
+    # _read_current_temp
+    #
+    def _read_current_temp(self, resolved: ResolvedConfig) -> float | None:
+        """Read the current temperature from the configured source.
+
+        Priority:
+        1. Dedicated temperature sensor entity (temp_sensor).
+        2. Climate entity's current_temperature attribute.
+
+        Returns:
+            Temperature as float, or ``None`` if unavailable.
+        """
+
+        if resolved.temp_sensor:
+            return self._ha.get_temperature(resolved.temp_sensor)
+
+        if resolved.climate_entity:
+            return self._ha.get_climate_current_temperature(resolved.climate_entity)
+
+        return None
+
+    #
+    # _read_target_temp
+    #
+    def _read_target_temp(self, resolved: ResolvedConfig) -> float | None:
+        """Read the target temperature from the configured source.
+
+        Returns:
+            Target temperature, or ``None`` if unavailable from an external source.
+        """
+
+        from .const import (
+            TARGET_TEMP_MODE_CLIMATE,
+            TARGET_TEMP_MODE_EXTERNAL,
+            TARGET_TEMP_MODE_INTERNAL,
+        )
+
+        mode = resolved.target_temp_mode
+
+        if mode == TARGET_TEMP_MODE_INTERNAL:
+            return resolved.target_temp
+
+        if mode == TARGET_TEMP_MODE_EXTERNAL and resolved.target_temp_entity:
+            return self._ha.get_target_temperature(resolved.target_temp_entity)
+
+        if mode == TARGET_TEMP_MODE_CLIMATE and resolved.climate_entity:
+            return self._ha.get_climate_target_temperature(resolved.climate_entity)
+
+        # Fallback — no valid source
+        return None
+
+    #
+    # _apply_tuning_changes
+    #
+    def _apply_tuning_changes(self, resolved: ResolvedConfig) -> None:
+        """Detect and apply any runtime tuning changes to the PI controller."""
+
+        # Proportional band or integral time changed
+        if resolved.proportional_band != self._last_prop_band or resolved.integral_time != self._last_int_time:
+            self._pi.update_tunings(resolved.proportional_band, resolved.integral_time)
+            self._last_prop_band = resolved.proportional_band
+            self._last_int_time = resolved.integral_time
+            self._logger.info(
+                "Tunings updated: prop_band=%s K, int_time=%s min",
+                resolved.proportional_band,
+                resolved.integral_time,
+            )
+
+        # Output limits changed
+        if resolved.output_min != self._last_output_min or resolved.output_max != self._last_output_max:
+            self._pi.update_output_limits(resolved.output_min, resolved.output_max)
+            self._last_output_min = resolved.output_min
+            self._last_output_max = resolved.output_max
+            self._logger.info(
+                "Output limits updated: min=%s, max=%s",
+                resolved.output_min,
+                resolved.output_max,
+            )
+
+        # Update interval changed
+        if resolved.update_interval != self._last_update_interval:
+            new_interval = resolved.update_interval
+            self._pi.update_sample_time(float(new_interval))
+            self.update_interval = timedelta(seconds=new_interval)
+            self._last_update_interval = new_interval
+            self._logger.info("Update interval changed to %s s", new_interval)
+
+    #
+    # _determine_cooling
+    #
+    def _determine_cooling(self, resolved: ResolvedConfig) -> bool:
+        """Determine whether the controller should operate in cooling mode.
+
+        Returns:
+            ``True`` if cooling, ``False`` if heating.
+        """
+
+        mode = resolved.operating_mode
+
+        if mode == OperatingMode.COOL:
+            return True
+        if mode == OperatingMode.HEAT:
+            return False
+
+        # heat_cool → read from climate entity
+        if resolved.climate_entity:
+            action = self._ha.get_climate_hvac_action(resolved.climate_entity)
+            if action == HVACAction.COOLING:
+                return True
+
+        # Default to heating when action is unknown / idle
+        return False
+
+    # ------------------------------------------------------------------
+    # Core update loop
+    # ------------------------------------------------------------------
 
     #
     # _async_update_data
     #
     async def _async_update_data(self) -> CoordinatorData:
-        """Update automation state and control covers.
+        """Run one PI control cycle.
 
-        This is the heart of the automation logic. It evaluates sensor states and
-        controls covers as needed.
-
-        This is called by HA in the following cases:
-        - First refresh
-        - Periodically at update_interval
-        - Manual refresh
-        - Integration reload
+        This is called by HA's DataUpdateCoordinator on every update interval,
+        on first refresh, and on manual refresh requests.
 
         Returns:
-        CoordinatorData that stores details of the last automation run.
-        Data entries are converted to HA entity attributes which are visible
-        in the integration's automation sensor.
+            ``CoordinatorData`` consumed by all entities.
 
         Raises:
-        UpdateFailed: For critical errors that should make entities unavailable
+            UpdateFailed: On critical configuration errors.
         """
 
-        # Prepare minimal valid state to keep integration entities available
-        error_result = CoordinatorData(covers={})
-
+        # ── Step 1: Resolve config ──────────────────────────────────────
         try:
-            self._logger.info("Starting cover automation update")
-
-            # Keep a reference to raw config for dynamic per-cover direction
-            config = self.config_entry.runtime_data.config
-
-            # Get the resolved settings - configuration errors are critical
-            try:
-                resolved = self._resolved_settings()
-            except Exception as err:
-                # Configuration resolution failure is critical - entities should be unavailable
-                self._logger.error(f"Critical configuration error: {err}")
-                raise UpdateFailed(f"Configuration error: {err}") from err
-
-            # Apply verbose logging setting (may have changed via switch)
-            self._apply_verbose_logging(resolved.verbose_logging)
-
-            # Collect states for all configured covers
-            covers = tuple(resolved.covers)
-            states: dict[str, State | None] = {entity_id: self.hass.states.get(entity_id) for entity_id in covers}
-
-            # Update the resolved config and raw config in the persistent engine
-            # (These may change when user updates options)
-            self._automation_engine.resolved = resolved
-            self._automation_engine.config = config
-
-            # Run the automation logic
-            return await self._automation_engine.run(states)
-
-        except (SunSensorNotFoundError, WeatherEntityNotFoundError) as err:
-            # Critical sensor errors - these make the automation non-functional
-            self._logger.error(f"Critical sensor error: {err}")
-            raise UpdateFailed(str(err)) from err
-        except UpdateFailed:
-            # Re-raise other UpdateFailed exceptions (critical errors)
-            raise
+            resolved = self._resolve()
         except Exception as err:
-            # Unexpected errors - log but continue operation to maintain system stability
-            self._logger.error(f"Unexpected error during automation update: {err}")
-            self._logger.debug(f"Exception details: {type(err).__name__}: {err}", exc_info=True)
+            self._logger.error("Configuration error: %s", err)
+            raise UpdateFailed(f"Configuration error: {err}") from err
 
-            # For unexpected errors, return empty result to keep entities available
-            # This prevents system instability from unknown issues
-            return error_result
+        # ── Step 1b: Check enabled flag (pause — preserve last state) ──
+        if not resolved.enabled:
+            self._logger.debug("Controller paused via enabled flag")
+            return self._paused_result()
+
+        # ── Step 2: Auto-disable on HVAC off ────────────────────────────
+        if resolved.climate_entity and resolved.auto_disable_on_hvac_off:
+            hvac_mode = self._ha.get_climate_hvac_mode(resolved.climate_entity)
+            if hvac_mode == HVACMode.OFF:
+                self._logger.debug("Auto-disabled: climate entity hvac_mode is off")
+                return self._shutdown_result()
+
+        # ── Step 3: Determine heating / cooling direction ───────────────
+        is_cooling = self._determine_cooling(resolved)
+        self._pi.set_cooling(is_cooling)
+
+        # ── Step 4: Read current temperature ────────────────────────────
+        current_temp = self._read_current_temp(resolved)
+
+        # ── Step 5: Determine target temperature ────────────────────────
+        target_temp = self._read_target_temp(resolved)
+
+        if target_temp is not None:
+            self._pi.set_target(target_temp)
+
+        # ── Step 6: Handle sensor faults ────────────────────────────────
+        if current_temp is None:
+            return self._handle_sensor_fault(resolved, target_temp)
+
+        # Sensor is OK — reset fault counter
+        self._fault_cycles = 0
+
+        # ── Step 7: Apply tuning changes ────────────────────────────────
+        self._apply_tuning_changes(resolved)
+
+        # ── Step 8: Run PI controller ───────────────────────────────────
+        result = self._pi.update(current_temp)
+
+        # Track last good output for HOLD fault mode
+        self._last_good_output = result.output
+
+        # ── Step 9: Write output to entity (optional) ───────────────────
+        if resolved.output_entity:
+            try:
+                await self._ha.set_output(resolved.output_entity, result.output)
+            except Exception:  # noqa: BLE001
+                self._logger.warning(
+                    "Failed to write output %s to %s",
+                    result.output,
+                    resolved.output_entity,
+                )
+
+        # ── Step 10: Return CoordinatorData ─────────────────────────────
+        data = CoordinatorData(
+            output=result.output,
+            error=result.error,
+            p_term=result.p_term,
+            i_term=result.i_term,
+            current_temp=current_temp,
+            target_temp=target_temp,
+            sensor_available=True,
+            controller_active=result.output > 0,
+        )
+        self._last_data = data
+        return data
+
+    #
+    # _handle_sensor_fault
+    #
+    def _handle_sensor_fault(
+        self,
+        resolved: ResolvedConfig,
+        target_temp: float | None,
+    ) -> CoordinatorData:
+        """Handle a sensor fault (current temperature unavailable).
+
+        Args:
+            resolved: Current resolved configuration.
+            target_temp: Current target temperature (may be ``None``).
+
+        Returns:
+            ``CoordinatorData`` with either held output or shutdown (output=0).
+        """
+
+        fault_mode = resolved.sensor_fault_mode
+
+        if fault_mode == SensorFaultMode.HOLD:
+            grace_cycles = max(
+                1,
+                SENSOR_FAULT_GRACE_PERIOD_SECONDS // max(resolved.update_interval, 1),
+            )
+
+            self._fault_cycles += 1
+
+            if self._fault_cycles <= grace_cycles:
+                self._logger.warning(
+                    "Sensor unavailable (cycle %s/%s) — holding last output %s",
+                    self._fault_cycles,
+                    grace_cycles,
+                    self._last_good_output,
+                )
+                return CoordinatorData(
+                    output=self._last_good_output,
+                    error=None,
+                    p_term=None,
+                    i_term=None,
+                    current_temp=None,
+                    target_temp=target_temp,
+                    sensor_available=False,
+                    controller_active=self._last_good_output > 0,
+                )
+
+            # Grace period exceeded — fall through to shutdown
+            self._logger.warning("Sensor unavailable — grace period exceeded, shutting down output")
+
+        else:
+            self._logger.warning("Sensor unavailable — shutting down output (shutdown mode)")
+
+        return self._shutdown_result(
+            target_temp=target_temp,
+            sensor_available=False,
+        )

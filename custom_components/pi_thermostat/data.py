@@ -1,4 +1,10 @@
-"""Runtime data."""
+"""Runtime data types for pi_thermostat.
+
+Defines the data structures used at runtime:
+- CoordinatorData: output of each coordinator update cycle, consumed by entities.
+- RuntimeData: stored on config_entry.runtime_data during the integration's lifetime.
+- IntegrationConfigEntry: typed alias for ConfigEntry[RuntimeData].
+"""
 
 from __future__ import annotations
 
@@ -10,7 +16,6 @@ if TYPE_CHECKING:
     from homeassistant.loader import Integration
 
     from .coordinator import DataUpdateCoordinator
-    from .cover_automation import CoverState
 
 
 # Type safety: entry.runtime_data will be of type RuntimeData
@@ -22,38 +27,37 @@ type IntegrationConfigEntry = ConfigEntry[RuntimeData]
 #
 @dataclass
 class CoordinatorData:
-    """Type-safe structure for coordinator data.
+    """Output of each coordinator update cycle.
 
-    This dataclass ensures type safety for all values stored in the coordinator's data.
-    It defines the expected types for sensor attributes that are exposed to Home Assistant
-    entities.
-
-    The 'covers' field is always required (even if empty dict), while other fields are
-    optional and may be None depending on automation state.
+    All sensor entities read their values from this structure.
 
     Attributes:
-        covers: Dictionary mapping cover entity IDs to their CoverState objects (required)
-        sun_azimuth: Current sun azimuth angle in degrees (0° to 360°)
-        sun_elevation: Current sun elevation angle in degrees (-90° to +90°)
-        temp_current_max: Current maximum temperature forecast in degrees Celsius
-        temp_hot: Whether the temperature is above threshold (hot day indicator)
-        weather_sunny: Whether the weather condition is sunny or partly cloudy
+        output: PI output percentage (0–100).
+        error: Target − current temperature (or current − target in cool mode).
+        p_term: Proportional component of the PI output.
+        i_term: Integral component of the PI output.
+        current_temp: Current temperature reading from the sensor.
+        target_temp: Active target temperature (setpoint).
+        sensor_available: Whether the temperature sensor is available.
+        controller_active: Whether the controller is actively outputting > 0.
     """
 
-    # Required field
-    covers: dict[str, CoverState]
+    output: float
+    error: float | None = None
+    p_term: float | None = None
+    i_term: float | None = None
+    current_temp: float | None = None
+    target_temp: float | None = None
+    sensor_available: bool = True
+    controller_active: bool = False
 
-    # Optional fields - may be None depending on automation state
-    sun_azimuth: float | None = None
-    sun_elevation: float | None = None
-    temp_current_max: float | None = None
-    temp_hot: bool | None = None
-    weather_sunny: bool | None = None
 
-
+#
+# RuntimeData
+#
 @dataclass
 class RuntimeData:
-    """Data for the integration."""
+    """Data stored on config_entry.runtime_data during the integration's lifetime."""
 
     coordinator: DataUpdateCoordinator
     integration: Integration

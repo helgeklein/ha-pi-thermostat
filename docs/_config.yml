@@ -1,8 +1,8 @@
-# Jekyll configuration for HA Smart Cover Automation
-title: Smart Cover Automation for Home Assistant
+# Jekyll configuration for HA PI Thermostat
+title: PI Thermostat for Home Assistant
 description: >-
-  A Home Assistant integration to automate the control of your smart home's window covers with a focus is on quality, reliability, and flexibility.
-url: "https://ha-smart-cover-automation.helgeklein.com"
+  A Home Assistant custom integration that implements a PI (proportional–integral) controller for precise temperature regulation.
+url: "https://ha-pi-thermostat.helgeklein.com"
 
 # Logo configuration
 logo: "/assets/img/logo.png"
@@ -30,7 +30,7 @@ search:
 # Auxiliary links in header
 aux_links:
   "GitHub Repository":
-    - "https://github.com/helgeklein/ha-smart-cover-automation"
+    - "https://github.com/helgeklein/ha-pi-thermostat"
 # Open aux links in a new tab.
 aux_links_new_tab: true
 
@@ -67,8 +67,8 @@ collections:
 
 # GitHub repository info
 github:
-  repository_url: https://github.com/helgeklein/ha-smart-cover-automation
-  repository_name: ha-smart-cover-automation
+  repository_url: https://github.com/helgeklein/ha-pi-thermostat
+  repository_name: ha-pi-thermostat
   owner_name: helgeklein
 
 # Social
