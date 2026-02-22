@@ -6,7 +6,7 @@ Reads temperatures, delegates to the PI controller, and returns
 The ``_async_update_data`` cycle runs on every update interval:
 
  1. Resolve configuration from config entry options.
- 1b. Check the enabled flag — return disabled result if off.
+ 1b. Check the enabled flag — return paused result if off (preserves last state).
  2. Auto-disable when the climate entity's HVAC mode is "off".
  3. Determine heating / cooling direction (fixed or from climate entity).
  4. Read the current temperature (sensor or climate entity).
@@ -109,6 +109,9 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         self._fault_cycles: int = 0
         self._last_good_output: float = 0.0
 
+        # Last coordinator result — used to preserve state when paused
+        self._last_data: CoordinatorData | None = None
+
         # Track last-applied tunings to detect changes
         self._last_prop_band: float = resolved.proportional_band
         self._last_int_time: float = resolved.integral_time
@@ -157,16 +160,42 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         return resolve(opts)
 
     #
-    # _disabled_result
+    # _paused_result
+    #
+    def _paused_result(self) -> CoordinatorData:
+        """Return a CoordinatorData that preserves the last state (controller paused).
+
+        When no previous data exists (e.g. first cycle after startup with
+        the enabled switch off), returns a safe default with output = 0.
+        The output entity is **not** written to, so whatever value the
+        external entity already has is preserved.
+        """
+
+        if self._last_data is not None:
+            return CoordinatorData(
+                output=self._last_data.output,
+                error=self._last_data.error,
+                p_term=self._last_data.p_term,
+                i_term=self._last_data.i_term,
+                current_temp=self._last_data.current_temp,
+                target_temp=self._last_data.target_temp,
+                sensor_available=self._last_data.sensor_available,
+                controller_active=False,
+            )
+
+        return self._shutdown_result()
+
+    #
+    # _shutdown_result
     #
     @staticmethod
-    def _disabled_result(
+    def _shutdown_result(
         *,
         current_temp: float | None = None,
         target_temp: float | None = None,
         sensor_available: bool = True,
     ) -> CoordinatorData:
-        """Return a CoordinatorData with output = 0 (controller disabled / auto-disabled)."""
+        """Return a CoordinatorData with output = 0 (shutdown / auto-disabled)."""
 
         return CoordinatorData(
             output=0.0,
@@ -320,17 +349,17 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             self._logger.error("Configuration error: %s", err)
             raise UpdateFailed(f"Configuration error: {err}") from err
 
-        # ── Step 1b: Check enabled flag ─────────────────────────────────
+        # ── Step 1b: Check enabled flag (pause — preserve last state) ──
         if not resolved.enabled:
-            self._logger.debug("Controller disabled via enabled flag")
-            return self._disabled_result()
+            self._logger.debug("Controller paused via enabled flag")
+            return self._paused_result()
 
         # ── Step 2: Auto-disable on HVAC off ────────────────────────────
         if resolved.climate_entity and resolved.auto_disable_on_hvac_off:
             hvac_mode = self._ha.get_climate_hvac_mode(resolved.climate_entity)
             if hvac_mode == HVACMode.OFF:
                 self._logger.debug("Auto-disabled: climate entity hvac_mode is off")
-                return self._disabled_result()
+                return self._shutdown_result()
 
         # ── Step 3: Determine heating / cooling direction ───────────────
         is_cooling = self._determine_cooling(resolved)
@@ -373,7 +402,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
                 )
 
         # ── Step 10: Return CoordinatorData ─────────────────────────────
-        return CoordinatorData(
+        data = CoordinatorData(
             output=result.output,
             error=result.error,
             p_term=result.p_term,
@@ -383,6 +412,8 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             sensor_available=True,
             controller_active=result.output > 0,
         )
+        self._last_data = data
+        return data
 
     #
     # _handle_sensor_fault
@@ -436,7 +467,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         else:
             self._logger.warning("Sensor unavailable — shutting down output (shutdown mode)")
 
-        return self._disabled_result(
+        return self._shutdown_result(
             target_temp=target_temp,
             sensor_available=False,
         )

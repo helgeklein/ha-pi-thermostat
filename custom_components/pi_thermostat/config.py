@@ -13,12 +13,14 @@ from typing import Any, Callable, Generic, Mapping, TypeVar
 
 from custom_components.pi_thermostat.const import (
     DEFAULT_INT_TIME,
+    DEFAULT_ITERM_STARTUP_VALUE,
     DEFAULT_OUTPUT_MAX,
     DEFAULT_OUTPUT_MIN,
     DEFAULT_PROP_BAND,
     HA_OPTIONS,
     TARGET_TEMP_MODE_INTERNAL,
     UPDATE_INTERVAL_DEFAULT_SECONDS,
+    ITermStartupMode,
     OperatingMode,
     SensorFaultMode,
 )
@@ -74,6 +76,8 @@ class ConfKeys(StrEnum):
     OUTPUT_MAX = "output_max"
     UPDATE_INTERVAL = "update_interval"
     SENSOR_FAULT_MODE = "sensor_fault_mode"
+    ITERM_STARTUP_MODE = "iterm_startup_mode"
+    ITERM_STARTUP_VALUE = "iterm_startup_value"
 
 
 class _Converters:
@@ -187,6 +191,14 @@ CONF_SPECS: dict[ConfKeys, _ConfSpec[Any]] = {
         default=SensorFaultMode.SHUTDOWN,
         converter=_Converters.to_str,
     ),
+    ConfKeys.ITERM_STARTUP_MODE: _ConfSpec(
+        default=ITermStartupMode.LAST,
+        converter=_Converters.to_str,
+    ),
+    ConfKeys.ITERM_STARTUP_VALUE: _ConfSpec(
+        default=DEFAULT_ITERM_STARTUP_VALUE,
+        converter=_Converters.to_float,
+    ),
 }
 
 # Public API of this module (keep helper class internal)
@@ -241,6 +253,8 @@ class ResolvedConfig:
     output_max: float
     update_interval: int
     sensor_fault_mode: str
+    iterm_startup_mode: str
+    iterm_startup_value: float
 
     #
     # get

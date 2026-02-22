@@ -23,19 +23,20 @@ This document describes how to transform the **Smart Cover Automation** template
 | 11 | 4 | Implement `number.py` (§4.3) | **DONE** |
 | 12 | 4 | Implement `switch.py` (§4.4) | **DONE** |
 | 13 | 4 | Implement `binary_sensor.py` (§4.5) | **DONE** |
-| 14 | 5 | Implement config flow + options flow (§5) | Not started |
-| 15 | 6 | Create `translations/en.json` (§6) | Not started |
+| 14 | 5 | Implement config flow + options flow (§5) | **DONE** |
+| 15 | 6 | Create `translations/en.json` (§6) | **DONE** |
 | 16 | 7 | Write remaining tests (§7) | Not started |
 | 17 | 7 | Lint + type-check + full test run | Not started |
 | 18 | 8 | Update docs/README (§8) | Not started |
 
-**Next step**: 14 — Implement config flow + options flow (Phase 5).
+**Next step**: 16 — Write remaining tests (Phase 7).
 
 **Notes**:
 - Phase 1 validated: lint passes. README.md body content still has cover-specific text — full rewrite deferred to Phase 8.
 - Phase 2 validated: lint passes. `const.py`, `config.py`, `data.py` rewritten with PI thermostat types.
 - Phase 3 validated: lint passes, 40 unit tests pass. `pi_controller.py` (new), `ha_interface.py`, `coordinator.py` rewritten.
 - Phase 4 validated: lint passes, 40 unit tests pass. `entity.py` unchanged (already correct). `sensor.py`, `number.py`, `switch.py`, `binary_sensor.py` rewritten with PI thermostat entities.
+- Phase 5-6 validated: lint passes, Pyright clean. `config_flow.py` rewritten (minimal config flow + 4-step options flow). `translations/en.json` rewritten with all entity names, config/options flow labels, selector translations, error messages.
 
 ---
 

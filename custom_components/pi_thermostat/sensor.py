@@ -160,9 +160,14 @@ class IntegrationSensor(IntegrationEntity, SensorEntity):  # pyright: ignore[rep
 class ITermSensor(IntegrationEntity, RestoreEntity, SensorEntity):  # pyright: ignore[reportIncompatibleVariableOverride]
     """Integral-term sensor with state persistence across restarts.
 
-    On startup, the last known integral value is restored from HA's state
-    machine and fed back into the PI controller so that the integral term
-    survives HA restarts without resetting to zero.
+    On startup, the integral term is initialized based on the configured
+    startup mode:
+
+    - **last**: Restore from HA's state machine. If no persisted value is
+      available (e.g., first startup), fall back to the user-provided
+      startup value (default: 0).
+    - **fixed**: Always use the user-provided startup value.
+    - **zero**: Always start at 0%.
     """
 
     #
@@ -183,27 +188,48 @@ class ITermSensor(IntegrationEntity, RestoreEntity, SensorEntity):  # pyright: i
     # async_added_to_hass
     #
     async def async_added_to_hass(self) -> None:
-        """Restore the integral term when the entity is added to HA.
+        """Initialize the integral term based on the configured startup mode.
 
         Steps:
         1. Call the parent implementation to register coordinator listeners.
-        2. Retrieve the last stored state from HA's restore-state infrastructure.
-        3. If a valid numeric state is found, pass it to the coordinator so the
-           PI controller's integral term is seeded with the previous value.
+        2. Read the startup mode from the resolved configuration.
+        3. Depending on mode:
+           - **zero**: Do nothing (PI controller defaults to 0).
+           - **fixed**: Use the configured startup value.
+           - **last**: Attempt to restore from persisted state; fall back to
+             the configured startup value if unavailable.
         """
 
         await super().async_added_to_hass()
 
+        from .config import resolve_entry
+        from .const import ITermStartupMode
+
+        resolved = resolve_entry(self.coordinator.config_entry)
+        mode = resolved.iterm_startup_mode
+        startup_value = resolved.iterm_startup_value
+
+        if mode == ITermStartupMode.ZERO:
+            # PI controller starts at 0 by default — nothing to do
+            return
+
+        if mode == ITermStartupMode.FIXED:
+            self.coordinator.restore_integral_term(startup_value)
+            return
+
+        # mode == ITermStartupMode.LAST: restore from persisted state
         last_state = await self.async_get_last_state()
-        if last_state is None or last_state.state in (None, "", "unknown", "unavailable"):
-            return
+        if last_state is not None and last_state.state not in (None, "", "unknown", "unavailable"):
+            try:
+                restored_value = float(last_state.state)
+                self.coordinator.restore_integral_term(restored_value)
+                return
+            except (ValueError, TypeError):
+                pass
 
-        try:
-            restored_value = float(last_state.state)
-        except (ValueError, TypeError):
-            return
-
-        self.coordinator.restore_integral_term(restored_value)
+        # No valid persisted state — fall back to startup value
+        if startup_value != 0.0:
+            self.coordinator.restore_integral_term(startup_value)
 
     #
     # native_value

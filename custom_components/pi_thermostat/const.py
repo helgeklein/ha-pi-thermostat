@@ -170,6 +170,24 @@ class SensorFaultMode(StrEnum):
 
 
 # ---------------------------------------------------------------------------
+# Integral term startup mode enum
+# ---------------------------------------------------------------------------
+
+DEFAULT_ITERM_STARTUP_VALUE: Final[float] = 0.0  # Default startup output %
+
+
+#
+# ITermStartupMode
+#
+class ITermStartupMode(StrEnum):
+    """How the integral term is initialized on startup."""
+
+    LAST = "last"  # Persisted value; falls back to startup value if unavailable
+    FIXED = "fixed"  # Always use the user-provided startup value
+    ZERO = "zero"  # Always start at 0%
+
+
+# ---------------------------------------------------------------------------
 # Safety
 # ---------------------------------------------------------------------------
 
@@ -182,9 +200,6 @@ SENSOR_FAULT_GRACE_PERIOD_SECONDS: Final[int] = 300  # 5 min before shutdown in 
 ERROR_NO_TEMP_SOURCE: Final[str] = "no_temp_source"
 ERROR_HEAT_COOL_REQUIRES_CLIMATE: Final[str] = "heat_cool_requires_climate"
 ERROR_CLIMATE_TARGET_REQUIRES_CLIMATE: Final[str] = "climate_target_requires_climate"
-ERROR_PROP_BAND_POSITIVE: Final[str] = "prop_band_positive"
-ERROR_INT_TIME_POSITIVE: Final[str] = "int_time_positive"
-ERROR_OUTPUT_MIN_LT_MAX: Final[str] = "output_min_lt_max"
 
 # ---------------------------------------------------------------------------
 # Module initialization
