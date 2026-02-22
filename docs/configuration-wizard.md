@@ -2,16 +2,16 @@
 layout: default
 title: Configuration Wizard
 nav_order: 4
-description: "Configuration guide part 1 for Smart Cover Automation for Home Assistant."
+description: "Configuration guide part 1 for PI Thermostat for Home Assistant."
 permalink: /configuration-wizard/
 ---
 
 # Configuration Wizard
 
-The integration's settings are managed via a multi-step wizard. To invoke the configuration wizard:
+The integration's settings are managed via a three-step options wizard. To invoke the configuration wizard:
 
 1. Go to **Settings** → **Devices & Services**.
-2. Find **Smart Cover Automation**.
+2. Find **PI Thermostat**.
 3. Click the **gear icon** to open the configuration wizard.
 
 **Notes**
@@ -19,77 +19,76 @@ The integration's settings are managed via a multi-step wizard. To invoke the co
 - The configuration wizard can be canceled at any time. When you do that, no changes are made to the configuration.
 - The configuration wizard can be invoked as often as needed to inspect the configuration or make changes to it.
 
-## Step 1: Weather Forecast Sensor and Covers to Automate
+## Step 1: Climate Entity & Operating Mode
 
-### Weather Forecast Sensor
+### Climate Entity (Optional)
 
-The integration needs to determine:
+If you have a climate entity (e.g., from a smart thermostat or HVAC system), you can configure it here. When configured, the climate entity can serve as a source for:
 
-- Is the **weather hot** enough to require sun protection?
-- Is the **sun** currently **shining**?
+- **Current temperature** — used as fallback when no dedicated temperature sensor is configured.
+- **Target temperature** — when target temperature mode is set to "From climate entity".
+- **Heating/cooling direction** — required when operating mode is "Heat + Cool (auto)".
+- **Auto-disable** — optionally set output to 0 % when the climate entity's HVAC mode is "off".
 
-This is done with the help of a weather forecast sensor. Home Assistant provides various weather integrations that should work well. See this [official list of weather integrations](https://www.home-assistant.io/integrations/#weather) and this [community guide to weather integrations](https://community.home-assistant.io/t/definitive-guide-to-weather-integrations/736419/1) for help choosing one.
+### Operating Mode
 
-I've **tested** the following weather integrations successfully:
+Determines how the controller decides between heating and cooling:
 
-- [Met.no](https://www.home-assistant.io/integrations/met/)
-- [Open-Meteo](https://www.home-assistant.io/integrations/open_meteo/)
+- **Heat + Cool (auto):** The controller reads the HVAC action (heating/cooling) from the configured climate entity and adjusts the output direction accordingly. Requires a climate entity.
+- **Heat only:** The controller always operates in heating mode. Positive error (target > actual) produces positive output.
+- **Cool only:** The controller always operates in cooling mode. Positive error (actual > target) produces positive output.
 
-To determine if the **weather is hot enough** to require sun protection, the integration needs today's maximum temperature. Unfortunately, some weather forecast services only provide the maximum temperature for the remaining hours of the day. To compensate, this integration switches to the next day's temperature reading starting at 16:00 (afternoon).
+### Auto-Disable on HVAC Off
 
-The maximum temperature received from the weather forecast service is compared with the heat threshold (see below). If the forecast temperature is above the threshold, the integration considers the weather to be hot.
+When enabled and a climate entity is configured, the controller's output is set to 0 % whenever the climate entity's HVAC mode is "off".
 
-The integration considers the following current weather conditions as the **sun is shining** (as reported by the weather forecast service):
+## Step 2: Temperature Sensors & Target
 
-- `sunny`
-- `partlycloudy`
+### Temperature Sensor (Optional)
 
-### Covers
+Select a temperature sensor entity to provide the current temperature reading. This is optional if a climate entity is configured (falls back to the climate entity's `current_temperature` attribute).
 
-Select the covers the integration should automate.
+**Note:** At least one temperature source is required — either a dedicated temperature sensor or a climate entity.
 
-## Step 2: Cover Azimuth
+### Target Temperature Mode
 
-In the second step of the configuration wizard, specify each cover's azimuth, aka the direction, as an angle from north. This is necessary so that the integration can calculate when the sun is shining on a window.
+Where to read the target (setpoint) temperature from:
 
-There are several online tools available to measure azimuth. [OpenStreetMap Compass](https://osmcompass.com/) works well, as does [SunCalc](https://www.suncalc.org/). [This website](https://doc.forecast.solar/find_your_azimuth) has instructions for both.
+- **Built-in setpoint:** Use the integration's own target temperature number entity. This is the simplest option — adjust the target directly from the device page.
+- **External entity:** Read the target temperature from another entity (e.g., an `input_number` helper). Useful for sharing a setpoint across multiple zones or automations.
+- **From climate entity:** Use the climate entity's target temperature. Only available when a climate entity is configured.
 
-## Step 3: Per-Cover Max/Min Positions (Optional)
+### Target Temperature Entity
 
-In the third step of the configuration wizard, you can specify maximum and minimum positions per cover. If configured, these per-cover settings override the global max/min positions which can be configured in the previous step.
+Only used when the target temperature mode is "External entity". Select the entity to read the target temperature from.
 
-## Step 4: Window Sensors for Lockout Protection (Optional)
+## Step 3: Output & Sensor Fault Mode
 
-In the fourth step of the configuration wizard, you can enable lockout protection by configuring window sensors for each cover. If any window sensor associated with a cover reports that the window is open, the cover won't be closed. This is especially useful for patio or terrace doors with a cover that would block you from re-entering the building if closed.
+### Output Entity (Optional)
 
-## Step 5: Time Settings (Optional)
+Select an `input_number` or `number` entity to write the PI controller's output to. This entity receives a value between 0 and 100 (percent) on every update cycle. Use this entity in automations to control physical actuators like valves, heaters, or fans.
 
-In the fifth step of the configuration wizard, the following settings can be configured:
+If no output entity is configured, the output is still available as a sensor on the device page.
 
-- **Disable cover opening at night:** The automation opens the covers when they needn't be closed for heat protection. By default, this auto-opening doesn't happen at night (when the sun is below the horizon). You can change that behavior by flipping this setting to disabled.
+### Sensor Fault Mode
 
-### Blocked Time Range
+Behavior when the temperature sensor becomes unavailable:
 
-Blocked time range allows you to disable the automation in a certain time range, e.g., when you sleep.
+- **Shutdown immediately:** Set output to 0 % right away. Safest option for most scenarios.
+- **Hold last output:** Maintain the last calculated output for a 5-minute grace period, then shut down. Useful for short sensor dropouts.
 
-Blocked time range settings:
+### Output Startup Mode
 
-- **Disable automation in time range:** Enable or disable the blocked time range function.
-- **Disable from:** Start time of the time period in which the automation should be inactive.
-- **Disable until:** End time of the time period in which the automation should be inactive.
+How the integral term (and thus the output) is initialized when the integration starts:
 
-### Evening Closure
+- **Last persisted:** Restore the integral term from before the last restart. Falls back to the startup value if no saved state exists.
+- **Fixed value:** Always start with the configured startup value.
+- **Zero:** Always start at 0 %.
 
-Evening closure allows you to automatically close a subset of the previously selected covers with a certain delay after sunset.
+### Output Startup Value
 
-**Note:** The evening closure function is active in a 10 minute time window that starts at the configured point in time (sunset + delay). If the integration is not running during that time window, the covers will not be closed.
-
-Evening closure settings:
-
-- **Close covers after sunset:** Enable or disable the evening closure function.
-- **Time delay:** How long to wait after sunset unteil the selected subset of covers are closed.
-- **Covers:** Subset of covers to close after sunset.
+The output percentage to use on startup. Used as the initial value when startup mode is "Fixed value", or as the fallback when mode is "Last persisted" and no previous value exists. Range: 0–100 %.
 
 ## Next Steps
 
-After the configuration wizard, take a look at the [UI configuration entities]({{ '/ui-configuration-entities/' | relative_url }}).
+After the configuration wizard, take a look at the [runtime-configurable entities]({{ '/ui-configuration-entities/' | relative_url }}).

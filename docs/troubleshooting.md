@@ -2,47 +2,73 @@
 layout: default
 title: Troubleshooting
 nav_order: 6
-description: "Common issues and solutions for Smart Cover Automation for Home Assistant."
+description: "Common issues and solutions for PI Thermostat for Home Assistant."
 permalink: /troubleshooting/
 ---
 
 # Troubleshooting Guide
 
-This guide helps resolve issues with the Smart Cover Automation integration.
+This guide helps resolve issues with the PI Thermostat integration.
 
 ## Monitoring the Integration from the UI
 
-### Activity Logbook
-
-All cover movements are logged in Home Assistant's [activity logbook](https://www.home-assistant.io/integrations/logbook/). Fully translated, of course.
-
-Filter the logbook for entries from this integration's instances by selecting `Smart Cover Automation` as device (or whatever name you chose for your instances).
-
 ### Sensors
 
-The integration comes with the following sensors that help you understand the integration's inner workings:
+The integration comes with the following sensors that help you understand the controller's inner workings:
 
-- **Evening closure: enabled?** When enabled, covers will be closed a certain time after sunset.
-- **Evening closure: delay** Time to wait after sunset before closing the covers.
-- **Lock status**: Whether lock mode is enabled or disabled.
-- **Nighttime: block opening?** Whether to block automatic cover opening during nighttime (when the sun is below the horizon).
-- **Status:** Overall status returned by the last automation update.
-- **Sun azimuth:** Current sun azimuth (angle from north).
-- **Sun elevation:** Current sun elevation (angle above the horizon).
-- **Temperature: today's maximum:** Maximum (expected) temperature of the current day. Derived from the configured weather forecast sensor.
-- **Temperature: heat threshold:** The configured temperature at which the automation starts closing covers to protect from heat.
-- **Time range: disabled:** Start and end of a configured time interval during which the automation is disabled. `Off` it this is not configured.
-- **Weather: hot?** Is today's forecast maximum temperature expected to rise above the configured threshold temperature?
-  - After 16:00, tomorrow's forecast maximum temperature is used instead of today's.
-- **Weather: sunny?** Is the day expected to be at least partly sunny? Derived from the configured weather forecast sensor.
+- **Output:** The current PI output percentage (0–100 %).
+- **Error:** The current control error (target − actual temperature).
+- **Proportional term:** How much of the output is due to the current temperature error.
+- **Integral term:** How much of the output is due to accumulated past error.
+- **Active:** Binary sensor indicating whether the controller output is > 0 %.
+
+### Checking the Output Entity
+
+If you have configured an output entity (`input_number` or `number`), you can observe it directly in the Home Assistant UI. Its value should update on every controller cycle (default: every 60 seconds).
+
+## Common Issues
+
+### Output Stays at 0 %
+
+Check the following:
+
+1. **Enabled switch** — Make sure the integration's enabled switch is turned on.
+2. **Temperature sensor** — Verify the temperature sensor entity is available and reporting values.
+3. **Target temperature** — Ensure the target temperature is set (check the target temperature number entity or configured source entity).
+4. **Auto-disable on HVAC off** — If enabled and a climate entity is configured, the output is 0 % when the climate entity's HVAC mode is "off".
+5. **Sensor fault** — If the temperature sensor became unavailable, the controller may have shut down. Check the sensor's state.
+
+### Output Oscillates
+
+If the output swings rapidly between high and low values:
+
+1. **Increase the proportional band** — A larger proportional band produces smoother control.
+2. **Increase the integral time** — A longer integral time slows down the integral action, reducing oscillation.
+3. **Increase the update interval** — Less frequent updates can help stabilize noisy sensors.
+
+### Controller Overshoots
+
+If the temperature consistently overshoots the target:
+
+1. **Increase the proportional band** — Makes the controller less aggressive near the setpoint.
+2. **Increase the integral time** — Slows the integral wind-up.
+3. **Reduce the output maximum** — Limit the maximum output if full power causes overshoot.
 
 ## Debugging
 
-### Enable Verbose Logging
+### Enable Debug Logging
 
-Make sure to enable verbose (debug) logging when analyzing a problem. This can be done via the UI (see the [Configuration Guide]({{ '/configuration-wizard/' | relative_url }})).
+To enable debug logging, add the following to your `configuration.yaml`:
 
-Note that verbose logging is enabled per integration instance. This facilitates troubleshooting in a multi-instance setup as you'll only see verbose messages from the instance(s) you're interested in.
+```yaml
+logger:
+  logs:
+    custom_components.pi_thermostat: debug
+```
+
+Then restart Home Assistant. Debug messages will appear in the Home Assistant log.
+
+Note that debug logging is enabled per integration instance. Log messages are prefixed with the last five characters of the instance's entry ID (e.g., `[ABC12]`) to distinguish between multiple instances.
 
 ### Log File Location
 
@@ -53,22 +79,19 @@ You can find the **Home Assistant Core** log at **Settings** → **Systems** →
 - **Timestamp:** e.g., `2026-01-31 17:20:22.174`
 - **Severity:** e.g., `DEBUG`
 - **HA thread name:** e.g., `(MainThread)`
-- **Integration instance:** e.g., `[custom_components.smart_cover_automation.ABC12]`
-- **Cover entity:** e.g., `[cover.kitchen]` (logged only when the message pertains to a cover)
-- **Log message:** the actual log message, e.g., `Current weather condition: partlycloudy`
-
-As you can see above, the integration instance field contains the last five characters of the instance's entry ID that logged the message (`ABC12` in the example). This makes it easy to distinguish between messages from multiple instances.
+- **Integration instance:** e.g., `[custom_components.pi_thermostat.ABC12]`
+- **Log message:** the actual log message, e.g., `PI output: 42.5%, error: 1.2K, P: 30.0%, I: 12.5%`
 
 ## Getting Help
 
 ### Before Seeking Help
 
-1. **Enable verbose logging** and reproduce the issue.
+1. **Enable debug logging** and reproduce the issue.
 1. **Check the logs** to understand what's going on.
 1. **Document your configuration** and the exact problem.
 
 ### Where to Get Help
 
 1. **Documentation:** Review all sections of this documentation.
-1. **GitHub Issues:** [Report a bug](https://github.com/helgeklein/ha-smart-cover-automation/issues).
+1. **GitHub Issues:** [Report a bug](https://github.com/helgeklein/ha-pi-thermostat/issues).
 1. **Home Assistant Community:** [Join a forum discussion](https://community.home-assistant.io/).
