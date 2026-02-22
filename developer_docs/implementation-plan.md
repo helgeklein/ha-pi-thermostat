@@ -14,10 +14,10 @@ This document describes how to transform the **Smart Cover Automation** template
 | 2 | 2 | Strip `const.py`, define new constants (§2.1) | **DONE** |
 | 3 | 2 | Strip `config.py`, define ConfKeys + CONF_SPECS + ResolvedConfig (§2.2) | **DONE** |
 | 4 | 2 | Strip `data.py`, define CoordinatorData + RuntimeData (§2.3) | **DONE** |
-| 5 | 3 | Create `pi_controller.py` with PIController + PIResult (§3.1) | Not started |
-| 6 | 3 | Write unit tests for `pi_controller.py` (§7.2) | Not started |
-| 7 | 3 | Strip `ha_interface.py`, implement new methods (§3.3) | Not started |
-| 8 | 3 | Strip `coordinator.py`, implement new update loop (§3.2) | Not started |
+| 5 | 3 | Create `pi_controller.py` with PIController + PIResult (§3.1) | **DONE** |
+| 6 | 3 | Write unit tests for `pi_controller.py` (§7.2) | **DONE** |
+| 7 | 3 | Strip `ha_interface.py`, implement new methods (§3.3) | **DONE** |
+| 8 | 3 | Strip `coordinator.py`, implement new update loop (§3.2) | **DONE** |
 | 9 | 4 | Implement `entity.py` base class (§4.1) | Not started |
 | 10 | 4 | Implement `sensor.py` with RestoreEntity for i_term (§4.2, §3.4) | Not started |
 | 11 | 4 | Implement `number.py` (§4.3) | Not started |
@@ -29,12 +29,13 @@ This document describes how to transform the **Smart Cover Automation** template
 | 17 | 7 | Lint + type-check + full test run | Not started |
 | 18 | 8 | Update docs/README (§8) | Not started |
 
-**Next step**: 5 — Create `pi_controller.py` (Phase 3).
+**Next step**: 9 — Implement `entity.py` base class (Phase 4).
 
 **Notes**:
 - Phase 1 validated: lint passes. README.md body content still has cover-specific text — full rewrite deferred to Phase 8.
 - Phase 2 validated: lint passes. `const.py`, `config.py`, `data.py` rewritten with PI thermostat types.
-- Remaining source files still contain cover-specific code from the template. They will be rewritten in Phases 3–6.
+- Phase 3 validated: lint passes, 40 unit tests pass. `pi_controller.py` (new), `ha_interface.py`, `coordinator.py` rewritten.
+- Remaining source files still contain cover-specific code from the template. They will be rewritten in Phases 4–6.
 
 ---
 

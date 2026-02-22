@@ -9,6 +9,8 @@ from __future__ import annotations
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Final
 
+from homeassistant.components.climate.const import HVACMode
+
 # For static type checking only
 if TYPE_CHECKING:
     from .log import Log
@@ -139,9 +141,9 @@ BINARY_SENSOR_KEY_ACTIVE: Final[str] = "active"
 class OperatingMode(StrEnum):
     """How the controller determines heating vs. cooling direction."""
 
-    HEAT_COOL = "heat_cool"  # Auto: read mode from a climate entity
-    HEAT = "heat"  # Heating only
-    COOL = "cool"  # Cooling only
+    HEAT_COOL = HVACMode.HEAT_COOL  # Auto: read mode from a climate entity
+    HEAT = HVACMode.HEAT  # Heating only
+    COOL = HVACMode.COOL  # Cooling only
 
 
 # ---------------------------------------------------------------------------
