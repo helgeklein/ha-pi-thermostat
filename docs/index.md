@@ -22,7 +22,7 @@ A Home Assistant custom integration that implements a **PI (proportional–integ
 - **Sensor fault handling** — Shut down immediately or hold the last output for a grace period when the temperature sensor becomes unavailable.
 - **I-term persistence** — The integral term is saved across restarts. Configurable startup modes: last persisted, fixed value, or zero.
 - **Runtime-configurable entities** — Number entities for proportional band, integral time, target temperature, output min/max, and update interval. Enabled switch to pause/resume.
-- **Diagnostic sensors** — Output %, control error, proportional term, integral term, plus an active binary sensor.
+- **Diagnostic sensors** — Output %, deviation, proportional term, integral term.
 - **Multiple instances** — Run independent thermostat controllers for different zones.
 - **Fully UI-configured** — Three-step options wizard, no YAML required.
 - **Rich language support** — Chinese, Dutch, English, French, German, Italian, Polish, Portuguese, Spanish, Swedish.

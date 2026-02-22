@@ -35,8 +35,8 @@ If you have a climate entity (e.g., from a smart thermostat or HVAC system), you
 Determines how the controller decides between heating and cooling:
 
 - **Heat + Cool (auto):** The controller reads the HVAC action (heating/cooling) from the configured climate entity and adjusts the output direction accordingly. Requires a climate entity.
-- **Heat only:** The controller always operates in heating mode. Positive error (target > actual) produces positive output.
-- **Cool only:** The controller always operates in cooling mode. Positive error (actual > target) produces positive output.
+- **Heat only:** The controller always operates in heating mode. Positive deviation (target > actual) produces positive output.
+- **Cool only:** The controller always operates in cooling mode. Positive deviation (actual > target) produces positive output.
 
 ### Auto-Disable on HVAC Off
 

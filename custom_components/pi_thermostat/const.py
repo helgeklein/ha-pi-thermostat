@@ -103,7 +103,9 @@ DEFAULT_OUTPUT_MAX: Final[float] = 100.0  # Maximum output %
 # ---------------------------------------------------------------------------
 
 SENSOR_KEY_OUTPUT: Final[str] = "output"  # PI output percentage
-SENSOR_KEY_ERROR: Final[str] = "error"  # Current error (target − actual)
+SENSOR_KEY_DEVIATION: Final[str] = "deviation"  # Current deviation (target − actual)
+SENSOR_KEY_CURRENT_TEMP: Final[str] = "current_temp"  # Current temperature reading
+SENSOR_KEY_TARGET_TEMP: Final[str] = "target_temp"  # Target temperature (read-only)
 SENSOR_KEY_P_TERM: Final[str] = "p_term"  # Proportional component
 SENSOR_KEY_I_TERM: Final[str] = "i_term"  # Integral component (also persisted)
 
@@ -125,12 +127,6 @@ NUMBER_KEY_UPDATE_INTERVAL: Final[str] = "update_interval"
 SWITCH_KEY_ENABLED: Final[str] = "enabled"
 
 # ---------------------------------------------------------------------------
-# Entity keys — binary sensors
-# ---------------------------------------------------------------------------
-
-BINARY_SENSOR_KEY_ACTIVE: Final[str] = "active"
-
-# ---------------------------------------------------------------------------
 # Operating mode enum
 # ---------------------------------------------------------------------------
 
@@ -147,12 +143,20 @@ class OperatingMode(StrEnum):
 
 
 # ---------------------------------------------------------------------------
-# Target temperature mode constants
+# Target temperature mode enum
 # ---------------------------------------------------------------------------
 
-TARGET_TEMP_MODE_INTERNAL: Final[str] = "internal"
-TARGET_TEMP_MODE_EXTERNAL: Final[str] = "external"
-TARGET_TEMP_MODE_CLIMATE: Final[str] = "climate"
+
+#
+# TargetTempMode
+#
+class TargetTempMode(StrEnum):
+    """Where the target (setpoint) temperature is read from."""
+
+    INTERNAL = "internal"  # Built-in setpoint (number entity)
+    EXTERNAL = "external"  # External entity (e.g., input_number)
+    CLIMATE = "climate"  # From the configured climate entity
+
 
 # ---------------------------------------------------------------------------
 # Sensor fault behavior enum

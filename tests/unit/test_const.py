@@ -7,7 +7,6 @@ string values match expectations for serialization/translation lookups.
 from __future__ import annotations
 
 from custom_components.pi_thermostat.const import (
-    BINARY_SENSOR_KEY_ACTIVE,
     DEFAULT_INT_TIME,
     DEFAULT_ITERM_STARTUP_VALUE,
     DEFAULT_OUTPUT_MAX,
@@ -25,10 +24,12 @@ from custom_components.pi_thermostat.const import (
     NUMBER_KEY_TARGET_TEMP,
     NUMBER_KEY_UPDATE_INTERVAL,
     SENSOR_FAULT_GRACE_PERIOD_SECONDS,
-    SENSOR_KEY_ERROR,
+    SENSOR_KEY_CURRENT_TEMP,
+    SENSOR_KEY_DEVIATION,
     SENSOR_KEY_I_TERM,
     SENSOR_KEY_OUTPUT,
     SENSOR_KEY_P_TERM,
+    SENSOR_KEY_TARGET_TEMP,
     SWITCH_KEY_ENABLED,
     UPDATE_INTERVAL_DEFAULT_SECONDS,
     ITermStartupMode,
@@ -110,7 +111,14 @@ class TestEntityKeys:
     def test_sensor_keys_unique(self) -> None:
         """Sensor keys are unique."""
 
-        keys = [SENSOR_KEY_OUTPUT, SENSOR_KEY_ERROR, SENSOR_KEY_P_TERM, SENSOR_KEY_I_TERM]
+        keys = [
+            SENSOR_KEY_OUTPUT,
+            SENSOR_KEY_DEVIATION,
+            SENSOR_KEY_CURRENT_TEMP,
+            SENSOR_KEY_TARGET_TEMP,
+            SENSOR_KEY_P_TERM,
+            SENSOR_KEY_I_TERM,
+        ]
         assert len(keys) == len(set(keys))
 
     def test_number_keys_unique(self) -> None:
@@ -130,11 +138,6 @@ class TestEntityKeys:
         """Switch key matches expected value."""
 
         assert SWITCH_KEY_ENABLED == "enabled"
-
-    def test_binary_sensor_key(self) -> None:
-        """Binary sensor key matches expected value."""
-
-        assert BINARY_SENSOR_KEY_ACTIVE == "active"
 
 
 # ---------------------------------------------------------------------------

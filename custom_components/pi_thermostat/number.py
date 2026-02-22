@@ -35,6 +35,7 @@ from .const import (
     NUMBER_KEY_PROP_BAND,
     NUMBER_KEY_TARGET_TEMP,
     NUMBER_KEY_UPDATE_INTERVAL,
+    TargetTempMode,
 )
 from .entity import IntegrationEntity
 
@@ -77,7 +78,7 @@ NUMBER_INT_TIME = NumberEntityDescription(
 NUMBER_TARGET_TEMP = NumberEntityDescription(
     key=NUMBER_KEY_TARGET_TEMP,
     translation_key=NUMBER_KEY_TARGET_TEMP,
-    entity_category=EntityCategory.CONFIG,
+    entity_category=None,  # Primary control. Appears in the "Controls" section of the UI, not in "Configuration".
     device_class=NumberDeviceClass.TEMPERATURE,
     native_min_value=5.0,
     native_max_value=35.0,
@@ -123,14 +124,19 @@ NUMBER_UPDATE_INTERVAL = NumberEntityDescription(
 )
 
 # Map each description to the ConfKeys enum member it controls
-_NUMBERS: list[tuple[NumberEntityDescription, ConfKeys]] = [
+_NUMBERS_ALWAYS: list[tuple[NumberEntityDescription, ConfKeys]] = [
     (NUMBER_PROP_BAND, ConfKeys.PROPORTIONAL_BAND),
     (NUMBER_INT_TIME, ConfKeys.INTEGRAL_TIME),
-    (NUMBER_TARGET_TEMP, ConfKeys.TARGET_TEMP),
     (NUMBER_OUTPUT_MIN, ConfKeys.OUTPUT_MIN),
     (NUMBER_OUTPUT_MAX, ConfKeys.OUTPUT_MAX),
     (NUMBER_UPDATE_INTERVAL, ConfKeys.UPDATE_INTERVAL),
 ]
+
+# Target temp number is only created when target_temp_mode is INTERNAL
+_NUMBER_TARGET_TEMP: tuple[NumberEntityDescription, ConfKeys] = (
+    NUMBER_TARGET_TEMP,
+    ConfKeys.TARGET_TEMP,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -146,11 +152,24 @@ async def async_setup_entry(
     entry: IntegrationConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Create all number entities for a config entry."""
+    """Create all number entities for a config entry.
+
+    The target temperature number entity is only created when
+    ``target_temp_mode`` is ``INTERNAL`` (built-in setpoint).
+    In other modes the setpoint comes from an external or climate
+    entity and the number would be misleading.
+    """
 
     coordinator = entry.runtime_data.coordinator
+    resolved = resolve_entry(entry)
 
-    async_add_entities([IntegrationNumber(coordinator, desc, conf_key) for desc, conf_key in _NUMBERS])
+    entities: list[IntegrationNumber] = [IntegrationNumber(coordinator, desc, conf_key) for desc, conf_key in _NUMBERS_ALWAYS]
+
+    if resolved.target_temp_mode == TargetTempMode.INTERNAL:
+        desc, conf_key = _NUMBER_TARGET_TEMP
+        entities.append(IntegrationNumber(coordinator, desc, conf_key))
+
+    async_add_entities(entities)
 
 
 # ---------------------------------------------------------------------------

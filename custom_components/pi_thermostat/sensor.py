@@ -3,7 +3,9 @@
 Provides read-only sensors exposing the PI controller's internal state:
 
 - **output**: PI output percentage (0-100 %).
-- **error**: Control error (target - current temperature).
+- **deviation**: Control deviation (target - current temperature).
+- **current_temp**: Current temperature reading.
+- **target_temp**: Target temperature (read-only; only when target_temp_mode is not internal).
 - **p_term**: Proportional component of the output.
 - **i_term**: Integral component (uses ``RestoreEntity`` for persistence across restarts).
 """
@@ -21,11 +23,15 @@ from homeassistant.components.sensor import (
 from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.helpers.restore_state import RestoreEntity
 
+from .config import resolve_entry
 from .const import (
-    SENSOR_KEY_ERROR,
+    SENSOR_KEY_CURRENT_TEMP,
+    SENSOR_KEY_DEVIATION,
     SENSOR_KEY_I_TERM,
     SENSOR_KEY_OUTPUT,
     SENSOR_KEY_P_TERM,
+    SENSOR_KEY_TARGET_TEMP,
+    TargetTempMode,
 )
 from .entity import IntegrationEntity
 
@@ -45,34 +51,54 @@ SENSOR_OUTPUT = SensorEntityDescription(
     key=SENSOR_KEY_OUTPUT,
     translation_key=SENSOR_KEY_OUTPUT,
     native_unit_of_measurement="%",
-    device_class=SensorDeviceClass.POWER_FACTOR,
     state_class=SensorStateClass.MEASUREMENT,
+    icon="mdi:gauge",
     suggested_display_precision=1,
 )
 
-SENSOR_ERROR = SensorEntityDescription(
-    key=SENSOR_KEY_ERROR,
-    translation_key=SENSOR_KEY_ERROR,
+SENSOR_DEVIATION = SensorEntityDescription(
+    key=SENSOR_KEY_DEVIATION,
+    translation_key=SENSOR_KEY_DEVIATION,
     native_unit_of_measurement=UnitOfTemperature.CELSIUS,
     device_class=SensorDeviceClass.TEMPERATURE,
     state_class=SensorStateClass.MEASUREMENT,
     suggested_display_precision=2,
 )
 
+SENSOR_CURRENT_TEMP = SensorEntityDescription(
+    key=SENSOR_KEY_CURRENT_TEMP,
+    translation_key=SENSOR_KEY_CURRENT_TEMP,
+    native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+    device_class=SensorDeviceClass.TEMPERATURE,
+    state_class=SensorStateClass.MEASUREMENT,
+    suggested_display_precision=1,
+)
+
+SENSOR_TARGET_TEMP = SensorEntityDescription(
+    key=SENSOR_KEY_TARGET_TEMP,
+    translation_key=SENSOR_KEY_TARGET_TEMP,
+    native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+    device_class=SensorDeviceClass.TEMPERATURE,
+    state_class=SensorStateClass.MEASUREMENT,
+    suggested_display_precision=1,
+)
+
 SENSOR_P_TERM = SensorEntityDescription(
     key=SENSOR_KEY_P_TERM,
     translation_key=SENSOR_KEY_P_TERM,
+    native_unit_of_measurement="%",
     entity_category=EntityCategory.DIAGNOSTIC,
     state_class=SensorStateClass.MEASUREMENT,
-    suggested_display_precision=2,
+    suggested_display_precision=1,
 )
 
 SENSOR_I_TERM = SensorEntityDescription(
     key=SENSOR_KEY_I_TERM,
     translation_key=SENSOR_KEY_I_TERM,
+    native_unit_of_measurement="%",
     entity_category=EntityCategory.DIAGNOSTIC,
     state_class=SensorStateClass.MEASUREMENT,
-    suggested_display_precision=2,
+    suggested_display_precision=1,
 )
 
 
@@ -92,15 +118,22 @@ async def async_setup_entry(
     """Create all sensor entities for a config entry."""
 
     coordinator = entry.runtime_data.coordinator
+    resolved = resolve_entry(entry)
 
-    async_add_entities(
-        [
-            IntegrationSensor(coordinator, SENSOR_OUTPUT),
-            IntegrationSensor(coordinator, SENSOR_ERROR),
-            IntegrationSensor(coordinator, SENSOR_P_TERM),
-            ITermSensor(coordinator),
-        ]
-    )
+    entities: list[IntegrationSensor | ITermSensor] = [
+        IntegrationSensor(coordinator, SENSOR_OUTPUT),
+        IntegrationSensor(coordinator, SENSOR_DEVIATION),
+        IntegrationSensor(coordinator, SENSOR_CURRENT_TEMP),
+        IntegrationSensor(coordinator, SENSOR_P_TERM),
+        ITermSensor(coordinator),
+    ]
+
+    # Show target temperature as a read-only sensor when the setpoint
+    # comes from an external or climate entity (not user-configurable).
+    if resolved.target_temp_mode != TargetTempMode.INTERNAL:
+        entities.append(IntegrationSensor(coordinator, SENSOR_TARGET_TEMP))
+
+    async_add_entities(entities)
 
 
 # ---------------------------------------------------------------------------

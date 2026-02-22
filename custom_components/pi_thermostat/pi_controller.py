@@ -26,13 +26,13 @@ class PIResult:
 
     Attributes:
         output: Controller output percentage (clamped to output limits).
-        error: Setpoint minus current temperature (positive = needs heating).
+        deviation: Setpoint minus current temperature (positive = needs heating).
         p_term: Proportional component of the output.
         i_term: Integral component of the output.
     """
 
     output: float
-    error: float
+    deviation: float
     p_term: float
     i_term: float
 
@@ -54,7 +54,7 @@ class PIController:
     - Integral Time (min): time for integral action to repeat proportional action.
       Converted to simple-pid Ki: Ki = Kp / (integral_time_minutes * 60)
 
-    Cooling mode is handled by negating gains (not the error), which keeps
+    Cooling mode is handled by negating gains (not the deviation), which keeps
     simple-pid's anti-windup working correctly.
     """
 
@@ -134,8 +134,8 @@ class PIController:
     def _apply_sign(self) -> None:
         """Apply sign to gains based on current mode.
 
-        Heating mode: positive gains (error = setpoint - current > 0 → positive output).
-        Cooling mode: negative gains (error = setpoint - current < 0 → positive output).
+        Heating mode: positive gains (deviation = setpoint - current > 0 → positive output).
+        Cooling mode: negative gains (deviation = setpoint - current < 0 → positive output).
         """
 
         if self._is_cooling:
@@ -186,11 +186,11 @@ class PIController:
             output = 0.0
 
         p_term, i_term, _ = self._pid.components
-        error = self._pid.setpoint - current_temp
+        deviation = self._pid.setpoint - current_temp
 
         return PIResult(
             output=output,
-            error=error,
+            deviation=deviation,
             p_term=p_term,
             i_term=i_term,
         )

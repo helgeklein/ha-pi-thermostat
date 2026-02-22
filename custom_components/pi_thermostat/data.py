@@ -33,23 +33,21 @@ class CoordinatorData:
 
     Attributes:
         output: PI output percentage (0–100).
-        error: Target − current temperature (or current − target in cool mode).
+        deviation: Target − current temperature (or current − target in cool mode).
         p_term: Proportional component of the PI output.
         i_term: Integral component of the PI output.
         current_temp: Current temperature reading from the sensor.
         target_temp: Active target temperature (setpoint).
         sensor_available: Whether the temperature sensor is available.
-        controller_active: Whether the controller is actively outputting > 0.
     """
 
     output: float
-    error: float | None = None
+    deviation: float | None = None
     p_term: float | None = None
     i_term: float | None = None
     current_temp: float | None = None
     target_temp: float | None = None
     sensor_available: bool = True
-    controller_active: bool = False
 
 
 #

@@ -132,7 +132,7 @@ class TestNormalCycle:
         assert data.target_temp == 22.0
         assert data.sensor_available is True
         assert data.output >= 0.0  # Should be positive (needs heating)
-        assert data.error == pytest.approx(2.0)  # 22 - 20
+        assert data.deviation == pytest.approx(2.0)  # 22 - 20
 
     async def test_cooling_cycle(self, hass: HomeAssistant) -> None:
         """Normal cooling cycle returns valid CoordinatorData."""
@@ -168,7 +168,7 @@ class TestNormalCycle:
         ):
             data = await coordinator._async_update_data()
 
-        assert data.error == pytest.approx(0.0)
+        assert data.deviation == pytest.approx(0.0)
 
     async def test_output_written_to_entity(self, hass: HomeAssistant) -> None:
         """Output is written to the configured output entity."""
@@ -214,21 +214,6 @@ class TestNormalCycle:
         assert isinstance(data, CoordinatorData)
         assert data.current_temp == 20.0
 
-    async def test_controller_active_flag(self, hass: HomeAssistant) -> None:
-        """controller_active is True when output > 0."""
-
-        entry = _make_entry(hass, _default_options(target_temp=25.0))
-        coordinator = DataUpdateCoordinator(hass, entry)
-
-        with (
-            patch.object(coordinator._ha, "get_temperature", return_value=20.0),
-            patch.object(coordinator._ha, "set_output", new_callable=AsyncMock),
-        ):
-            data = await coordinator._async_update_data()
-
-        assert data.output > 0
-        assert data.controller_active is True
-
     async def test_stores_last_data(self, hass: HomeAssistant) -> None:
         """Coordinator stores result in _last_data after each cycle."""
 
@@ -258,7 +243,6 @@ class TestPausedResult:
         data = await coordinator._async_update_data()
 
         assert isinstance(data, CoordinatorData)
-        assert data.controller_active is False
         # No temp reading should have been attempted
         assert data.output == 0.0
 
@@ -287,7 +271,6 @@ class TestPausedResult:
         assert paused_data.output == first_data.output
         assert paused_data.p_term == first_data.p_term
         assert paused_data.i_term == first_data.i_term
-        assert paused_data.controller_active is False
 
     async def test_paused_without_previous_data(self, hass: HomeAssistant) -> None:
         """Pausing without previous data returns shutdown result."""
@@ -299,7 +282,6 @@ class TestPausedResult:
         data = await coordinator._async_update_data()
 
         assert data.output == 0.0
-        assert data.controller_active is False
 
 
 class TestAutoDisable:
@@ -322,7 +304,6 @@ class TestAutoDisable:
             data = await coordinator._async_update_data()
 
         assert data.output == 0.0
-        assert data.controller_active is False
 
     async def test_no_auto_disable_when_heating(self, hass: HomeAssistant) -> None:
         """Normal cycle when climate HVAC mode is heat."""
@@ -391,7 +372,6 @@ class TestSensorFault:
 
         assert data.output == 0.0
         assert data.sensor_available is False
-        assert data.controller_active is False
 
     async def test_hold_mode_within_grace(self, hass: HomeAssistant) -> None:
         """Hold mode keeps last output within grace period."""
@@ -421,7 +401,6 @@ class TestSensorFault:
 
         assert data.output == last_output
         assert data.sensor_available is False
-        assert data.controller_active is True  # Output > 0
 
     async def test_hold_mode_grace_exceeded(self, hass: HomeAssistant) -> None:
         """Hold mode shuts down after grace period exceeds."""
@@ -457,7 +436,6 @@ class TestSensorFault:
 
         assert data.output == 0.0
         assert data.sensor_available is False
-        assert data.controller_active is False
 
     async def test_fault_counter_resets_on_recovery(self, hass: HomeAssistant) -> None:
         """Fault counter resets when sensor recovers."""

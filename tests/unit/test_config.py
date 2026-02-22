@@ -158,7 +158,7 @@ class TestResolve:
         assert resolved.output_min == DEFAULT_OUTPUT_MIN
         assert resolved.output_max == DEFAULT_OUTPUT_MAX
         assert resolved.update_interval == UPDATE_INTERVAL_DEFAULT_SECONDS
-        assert resolved.sensor_fault_mode == SensorFaultMode.SHUTDOWN
+        assert resolved.sensor_fault_mode == SensorFaultMode.HOLD
         assert resolved.iterm_startup_mode == ITermStartupMode.LAST
         assert resolved.iterm_startup_value == DEFAULT_ITERM_STARTUP_VALUE
 

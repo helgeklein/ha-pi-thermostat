@@ -94,8 +94,14 @@
             "output": {
                 "name": "Output"
             },
-            "error": {
-                "name": "Error"
+            "deviation": {
+                "name": "Deviation"
+            },
+            "current_temp": {
+                "name": "Current temperature"
+            },
+            "target_temp": {
+                "name": "Target temperature"
             },
             "p_term": {
                 "name": "Proportional term"
@@ -127,11 +133,6 @@
         "switch": {
             "enabled": {
                 "name": "Enabled"
-            }
-        },
-        "binary_sensor": {
-            "active": {
-                "name": "Active"
             }
         }
     }
