@@ -1,7 +1,7 @@
-# Smart Cover Automation for Home Assistant
+# PI Thermostat for Home Assistant
 
-[![Test status](https://github.com/helgeklein/ha-smart-cover-automation/actions/workflows/test.yml/badge.svg)](https://github.com/helgeklein/ha-smart-cover-automation/actions/workflows/test.yml)
-[![Test coverage](https://raw.githubusercontent.com/helgeklein/ha-smart-cover-automation/main/.github/badges/coverage.svg)](https://github.com/helgeklein/ha-smart-cover-automation/actions/workflows/test.yml)
+[![Test status](https://github.com/helgeklein/ha-pi-thermostat/actions/workflows/test.yml/badge.svg)](https://github.com/helgeklein/ha-pi-thermostat/actions/workflows/test.yml)
+[![Test coverage](https://raw.githubusercontent.com/helgeklein/ha-pi-thermostat/main/.github/badges/coverage.svg)](https://github.com/helgeklein/ha-pi-thermostat/actions/workflows/test.yml)
 
 A Home Assistant integration to automate the control of your smart home's window covers with a focus on quality, reliability, and flexibility.
 
@@ -58,11 +58,11 @@ The integration helps you understand what's going on in the following ways:
 
 ## Installation & Usage
 
-For installation instructions, configuration guides, and troubleshooting info please **visit the [documentation website](https://ha-smart-cover-automation.helgeklein.com/).**
+For installation instructions, configuration guides, and troubleshooting info please **visit the [documentation website](https://ha-pi-thermostat.helgeklein.com/).**
 
 ## Developer Information
 
-This repository contains the source code for the integration. For user documentation and guides, please visit the [documentation website](https://ha-smart-cover-automation.helgeklein.com/).
+This repository contains the source code for the integration. For user documentation and guides, please visit the [documentation website](https://ha-pi-thermostat.helgeklein.com/).
 
 ### Setting Up a Development Environment
 

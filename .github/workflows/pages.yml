@@ -1,5 +1,7 @@
 name: Deploy Jekyll site to Pages
 
+# TODO: Re-enable when docs are ready (remove the `if: false` from the build and deploy jobs below)
+
 on:
   # Runs on pushes targeting the default branch
   push:
@@ -24,6 +26,7 @@ concurrency:
 jobs:
   # Build job
   build:
+    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -58,6 +61,7 @@ jobs:
 
   # Deployment job
   deploy:
+    if: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

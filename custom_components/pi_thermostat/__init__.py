@@ -7,19 +7,17 @@ https://github.com/helgeklein/ha-pi-thermostat
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
 
 from homeassistant.const import Platform
 from homeassistant.loader import async_get_loaded_integration
 
-from .config import ConfKeys, get_runtime_configurable_keys
+from .config import get_runtime_configurable_keys
 from .config_flow import OptionsFlowHandler
 from .const import (
     DOMAIN,
     HA_OPTIONS,
     INTEGRATION_NAME,
-    LOGGER,
 )
 from .coordinator import DataUpdateCoordinator
 from .data import RuntimeData

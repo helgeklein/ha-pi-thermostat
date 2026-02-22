@@ -6,6 +6,37 @@ This document describes how to transform the **Smart Cover Automation** template
 
 ---
 
+## Progress
+
+| Step | Phase | Description | Status |
+|---|---|---|---|
+| 1 | 1 | Template cleanup: delete files, rename, string replacements, update metadata, clean `__init__.py` (§1) | **DONE** |
+| 2 | 2 | Strip `const.py`, define new constants (§2.1) | Not started |
+| 3 | 2 | Strip `config.py`, define ConfKeys + CONF_SPECS + ResolvedConfig (§2.2) | Not started |
+| 4 | 2 | Strip `data.py`, define CoordinatorData + RuntimeData (§2.3) | Not started |
+| 5 | 3 | Create `pi_controller.py` with PIController + PIResult (§3.1) | Not started |
+| 6 | 3 | Write unit tests for `pi_controller.py` (§7.2) | Not started |
+| 7 | 3 | Strip `ha_interface.py`, implement new methods (§3.3) | Not started |
+| 8 | 3 | Strip `coordinator.py`, implement new update loop (§3.2) | Not started |
+| 9 | 4 | Implement `entity.py` base class (§4.1) | Not started |
+| 10 | 4 | Implement `sensor.py` with RestoreEntity for i_term (§4.2, §3.4) | Not started |
+| 11 | 4 | Implement `number.py` (§4.3) | Not started |
+| 12 | 4 | Implement `switch.py` (§4.4) | Not started |
+| 13 | 4 | Implement `binary_sensor.py` (§4.5) | Not started |
+| 14 | 5 | Implement config flow + options flow (§5) | Not started |
+| 15 | 6 | Create `translations/en.json` (§6) | Not started |
+| 16 | 7 | Write remaining tests (§7) | Not started |
+| 17 | 7 | Lint + type-check + full test run | Not started |
+| 18 | 8 | Update docs/README (§8) | Not started |
+
+**Next step**: 2 — Strip `const.py` to skeleton, define new constants (Phase 2).
+
+**Notes**:
+- Phase 1 validated: lint passes. README.md body content still has cover-specific text — full rewrite deferred to Phase 8.
+- Remaining source files still contain cover-specific code from the template. They will be rewritten in Phases 2–6.
+
+---
+
 ## Phase 1: Template Cleanup — Rename, Delete, Adjust
 
 ### 1.1 Delete Domain-Specific Files

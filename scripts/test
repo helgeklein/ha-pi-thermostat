@@ -13,10 +13,10 @@ python3 -m pip install -r requirements-test.txt -c /tmp/constraints.txt --quiet
 
 # Run static type checking
 echo "Running static type checking..."
-python3 -m mypy custom_components/smart_cover_automation/
+python3 -m mypy custom_components/pi_thermostat/
 
 # Run the tests
 echo "Running tests..."
-python3 -m pytest tests/ -v --cov=custom_components.smart_cover_automation --cov-report=term-missing
+python3 -m pytest tests/ -v --cov=custom_components.pi_thermostat --cov-report=term-missing
 
 echo "Test run completed!"
