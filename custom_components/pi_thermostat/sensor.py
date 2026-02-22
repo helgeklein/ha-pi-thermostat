@@ -86,17 +86,19 @@ SENSOR_TARGET_TEMP = SensorEntityDescription(
 SENSOR_P_TERM = SensorEntityDescription(
     key=SENSOR_KEY_P_TERM,
     translation_key=SENSOR_KEY_P_TERM,
+    native_unit_of_measurement="%",
     entity_category=EntityCategory.DIAGNOSTIC,
     state_class=SensorStateClass.MEASUREMENT,
-    suggested_display_precision=2,
+    suggested_display_precision=1,
 )
 
 SENSOR_I_TERM = SensorEntityDescription(
     key=SENSOR_KEY_I_TERM,
     translation_key=SENSOR_KEY_I_TERM,
+    native_unit_of_measurement="%",
     entity_category=EntityCategory.DIAGNOSTIC,
     state_class=SensorStateClass.MEASUREMENT,
-    suggested_display_precision=2,
+    suggested_display_precision=1,
 )
 
 
