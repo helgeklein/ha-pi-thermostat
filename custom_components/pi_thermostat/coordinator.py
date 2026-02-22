@@ -13,7 +13,7 @@ The ``_async_update_data`` cycle runs on every update interval:
  5. Determine the target temperature (internal, external, or climate).
  6. Handle sensor faults (shutdown immediately or hold then shutdown).
  7. Apply any runtime tuning changes to the PI controller.
- 8. Run the PI controller to get output, error, P-term, and I-term.
+ 8. Run the PI controller to get output, deviation, P-term, and I-term.
  9. Write the output value to the configured output entity (optional).
 10. Return ``CoordinatorData`` for consumption by all entities.
 """
@@ -174,13 +174,12 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         if self._last_data is not None:
             return CoordinatorData(
                 output=self._last_data.output,
-                error=self._last_data.error,
+                deviation=self._last_data.deviation,
                 p_term=self._last_data.p_term,
                 i_term=self._last_data.i_term,
                 current_temp=self._last_data.current_temp,
                 target_temp=self._last_data.target_temp,
                 sensor_available=self._last_data.sensor_available,
-                controller_active=False,
             )
 
         return self._shutdown_result()
@@ -199,13 +198,12 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
 
         return CoordinatorData(
             output=0.0,
-            error=None,
+            deviation=None,
             p_term=None,
             i_term=None,
             current_temp=current_temp,
             target_temp=target_temp,
             sensor_available=sensor_available,
-            controller_active=False,
         )
 
     #
@@ -240,21 +238,17 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             Target temperature, or ``None`` if unavailable from an external source.
         """
 
-        from .const import (
-            TARGET_TEMP_MODE_CLIMATE,
-            TARGET_TEMP_MODE_EXTERNAL,
-            TARGET_TEMP_MODE_INTERNAL,
-        )
+        from .const import TargetTempMode
 
         mode = resolved.target_temp_mode
 
-        if mode == TARGET_TEMP_MODE_INTERNAL:
+        if mode == TargetTempMode.INTERNAL:
             return resolved.target_temp
 
-        if mode == TARGET_TEMP_MODE_EXTERNAL and resolved.target_temp_entity:
+        if mode == TargetTempMode.EXTERNAL and resolved.target_temp_entity:
             return self._ha.get_target_temperature(resolved.target_temp_entity)
 
-        if mode == TARGET_TEMP_MODE_CLIMATE and resolved.climate_entity:
+        if mode == TargetTempMode.CLIMATE and resolved.climate_entity:
             return self._ha.get_climate_target_temperature(resolved.climate_entity)
 
         # Fallback — no valid source
@@ -404,13 +398,12 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         # ── Step 10: Return CoordinatorData ─────────────────────────────
         data = CoordinatorData(
             output=result.output,
-            error=result.error,
+            deviation=result.deviation,
             p_term=result.p_term,
             i_term=result.i_term,
             current_temp=current_temp,
             target_temp=target_temp,
             sensor_available=True,
-            controller_active=result.output > 0,
         )
         self._last_data = data
         return data
@@ -452,13 +445,12 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
                 )
                 return CoordinatorData(
                     output=self._last_good_output,
-                    error=None,
+                    deviation=None,
                     p_term=None,
                     i_term=None,
                     current_temp=None,
                     target_temp=target_temp,
                     sensor_available=False,
-                    controller_active=self._last_good_output > 0,
                 )
 
             # Grace period exceeded — fall through to shutdown

@@ -3,7 +3,7 @@
 Provides read-only sensors exposing the PI controller's internal state:
 
 - **output**: PI output percentage (0-100 %).
-- **error**: Control error (target - current temperature).
+- **deviation**: Control deviation (target - current temperature).
 - **p_term**: Proportional component of the output.
 - **i_term**: Integral component (uses ``RestoreEntity`` for persistence across restarts).
 """
@@ -22,7 +22,7 @@ from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
-    SENSOR_KEY_ERROR,
+    SENSOR_KEY_DEVIATION,
     SENSOR_KEY_I_TERM,
     SENSOR_KEY_OUTPUT,
     SENSOR_KEY_P_TERM,
@@ -45,14 +45,14 @@ SENSOR_OUTPUT = SensorEntityDescription(
     key=SENSOR_KEY_OUTPUT,
     translation_key=SENSOR_KEY_OUTPUT,
     native_unit_of_measurement="%",
-    device_class=SensorDeviceClass.POWER_FACTOR,
     state_class=SensorStateClass.MEASUREMENT,
+    icon="mdi:gauge",
     suggested_display_precision=1,
 )
 
-SENSOR_ERROR = SensorEntityDescription(
-    key=SENSOR_KEY_ERROR,
-    translation_key=SENSOR_KEY_ERROR,
+SENSOR_DEVIATION = SensorEntityDescription(
+    key=SENSOR_KEY_DEVIATION,
+    translation_key=SENSOR_KEY_DEVIATION,
     native_unit_of_measurement=UnitOfTemperature.CELSIUS,
     device_class=SensorDeviceClass.TEMPERATURE,
     state_class=SensorStateClass.MEASUREMENT,
@@ -96,7 +96,7 @@ async def async_setup_entry(
     async_add_entities(
         [
             IntegrationSensor(coordinator, SENSOR_OUTPUT),
-            IntegrationSensor(coordinator, SENSOR_ERROR),
+            IntegrationSensor(coordinator, SENSOR_DEVIATION),
             IntegrationSensor(coordinator, SENSOR_P_TERM),
             ITermSensor(coordinator),
         ]

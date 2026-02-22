@@ -94,8 +94,8 @@
             "output": {
                 "name": "Output"
             },
-            "error": {
-                "name": "Error"
+            "deviation": {
+                "name": "Deviation"
             },
             "p_term": {
                 "name": "Proportional term"
@@ -127,11 +127,6 @@
         "switch": {
             "enabled": {
                 "name": "Enabled"
-            }
-        },
-        "binary_sensor": {
-            "active": {
-                "name": "Active"
             }
         }
     }

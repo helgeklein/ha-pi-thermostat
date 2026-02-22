@@ -37,12 +37,10 @@ from custom_components.pi_thermostat.const import (
     ERROR_HEAT_COOL_REQUIRES_CLIMATE,
     ERROR_NO_TEMP_SOURCE,
     INTEGRATION_NAME,
-    TARGET_TEMP_MODE_CLIMATE,
-    TARGET_TEMP_MODE_EXTERNAL,
-    TARGET_TEMP_MODE_INTERNAL,
     ITermStartupMode,
     OperatingMode,
     SensorFaultMode,
+    TargetTempMode,
 )
 
 # ---------------------------------------------------------------------------
@@ -162,7 +160,7 @@ class TestValidateStep2:
         errors = _validate_step_2(
             {
                 "temp_sensor": "sensor.temp",
-                "target_temp_mode": TARGET_TEMP_MODE_CLIMATE,
+                "target_temp_mode": TargetTempMode.CLIMATE,
             },
             has_climate=False,
         )
@@ -174,7 +172,7 @@ class TestValidateStep2:
         errors = _validate_step_2(
             {
                 "temp_sensor": "sensor.temp",
-                "target_temp_mode": TARGET_TEMP_MODE_CLIMATE,
+                "target_temp_mode": TargetTempMode.CLIMATE,
             },
             has_climate=True,
         )
@@ -186,7 +184,7 @@ class TestValidateStep2:
         errors = _validate_step_2(
             {
                 "temp_sensor": "sensor.temp",
-                "target_temp_mode": TARGET_TEMP_MODE_INTERNAL,
+                "target_temp_mode": TargetTempMode.INTERNAL,
             },
             has_climate=False,
         )
@@ -198,7 +196,7 @@ class TestValidateStep2:
         errors = _validate_step_2(
             {
                 "temp_sensor": "sensor.temp",
-                "target_temp_mode": TARGET_TEMP_MODE_EXTERNAL,
+                "target_temp_mode": TargetTempMode.EXTERNAL,
             },
             has_climate=False,
         )
@@ -208,7 +206,7 @@ class TestValidateStep2:
         """No sensor + climate target without climate yields two errors."""
 
         errors = _validate_step_2(
-            {"target_temp_mode": TARGET_TEMP_MODE_CLIMATE},
+            {"target_temp_mode": TargetTempMode.CLIMATE},
             has_climate=False,
         )
         assert "temp_sensor" in errors
@@ -362,7 +360,7 @@ class TestOptionsFlowHappyPath:
             result["flow_id"],
             user_input={
                 "temp_sensor": "sensor.temperature",
-                "target_temp_mode": TARGET_TEMP_MODE_INTERNAL,
+                "target_temp_mode": TargetTempMode.INTERNAL,
             },
         )
         assert result["type"] is FlowResultType.FORM
@@ -411,7 +409,7 @@ class TestOptionsFlowHappyPath:
             result["flow_id"],
             user_input={
                 "temp_sensor": "sensor.temp",
-                "target_temp_mode": TARGET_TEMP_MODE_INTERNAL,
+                "target_temp_mode": TargetTempMode.INTERNAL,
             },
         )
         assert result["step_id"] == "3"
@@ -476,7 +474,7 @@ class TestOptionsFlowValidation:
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
-                "target_temp_mode": TARGET_TEMP_MODE_INTERNAL,
+                "target_temp_mode": TargetTempMode.INTERNAL,
             },
         )
         assert result["type"] is FlowResultType.FORM
@@ -520,7 +518,7 @@ class TestOptionsFlowValidation:
             result["flow_id"],
             user_input={
                 "temp_sensor": "sensor.temp",
-                "target_temp_mode": TARGET_TEMP_MODE_CLIMATE,
+                "target_temp_mode": TargetTempMode.CLIMATE,
             },
         )
         # _has_climate() sees existing options still have climate_entity,
@@ -574,7 +572,7 @@ class TestOptionsFlowExistingOptions:
                 "operating_mode": OperatingMode.COOL,
                 "auto_disable_on_hvac_off": True,
                 "temp_sensor": "sensor.bedroom_temp",
-                "target_temp_mode": TARGET_TEMP_MODE_INTERNAL,
+                "target_temp_mode": TargetTempMode.INTERNAL,
                 "output_entity": "input_number.bedroom_output",
                 "sensor_fault_mode": SensorFaultMode.HOLD,
                 "iterm_startup_mode": ITermStartupMode.FIXED,
@@ -602,7 +600,7 @@ class TestOptionsFlowExistingOptions:
             result["flow_id"],
             user_input={
                 "temp_sensor": "sensor.bedroom_temp",
-                "target_temp_mode": TARGET_TEMP_MODE_INTERNAL,
+                "target_temp_mode": TargetTempMode.INTERNAL,
             },
         )
 
@@ -651,7 +649,7 @@ class TestOptionsFlowExistingOptions:
             result["flow_id"],
             user_input={
                 "temp_sensor": "sensor.temp",
-                "target_temp_mode": TARGET_TEMP_MODE_INTERNAL,
+                "target_temp_mode": TargetTempMode.INTERNAL,
             },
         )
 

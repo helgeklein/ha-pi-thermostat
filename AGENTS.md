@@ -6,7 +6,7 @@
 
 ## Test fixing instructions
 
-- When asked to fix tests:
+- When asked to fix errors in tests:
     - Only change tests, not the code they're testing.
     - If you suspect an error in code being tested, tell the user about it.
 

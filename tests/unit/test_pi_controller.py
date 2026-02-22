@@ -128,7 +128,7 @@ class TestPIResult:
     def test_frozen(self) -> None:
         """PIResult should be immutable."""
 
-        result = PIResult(output=50.0, error=2.5, p_term=45.0, i_term=5.0)
+        result = PIResult(output=50.0, deviation=2.5, p_term=45.0, i_term=5.0)
 
         with pytest.raises(AttributeError):
             result.output = 99.0  # type: ignore[misc]
@@ -136,10 +136,10 @@ class TestPIResult:
     def test_values(self) -> None:
         """PIResult stores values correctly."""
 
-        result = PIResult(output=75.0, error=3.0, p_term=60.0, i_term=15.0)
+        result = PIResult(output=75.0, deviation=3.0, p_term=60.0, i_term=15.0)
 
         assert result.output == 75.0
-        assert result.error == 3.0
+        assert result.deviation == 3.0
         assert result.p_term == 60.0
         assert result.i_term == 15.0
 
@@ -155,11 +155,11 @@ class TestHeatingMode:
     def test_cold_start_positive_output(self, heating_controller: Any) -> None:
         """When current temp is well below setpoint, output should be high."""
 
-        # 18°C current, 21°C target → 3°C error, Kp=25 → P=75
+        # 18°C current, 21°C target → 3°C deviation, Kp=25 → P=75
         result = heating_controller.update(18.0, dt=TEST_SAMPLE_TIME)
 
         assert result.output > 0
-        assert result.error == pytest.approx(3.0)
+        assert result.deviation == pytest.approx(3.0)
         assert result.p_term > 0
 
     def test_at_setpoint_low_output(self, heating_controller: Any) -> None:
@@ -172,13 +172,13 @@ class TestHeatingMode:
     def test_above_setpoint_zero_output(self, heating_controller: Any) -> None:
         """When current temp is above setpoint in heating mode, output should be 0 (clamped)."""
 
-        # 23°C > 21°C setpoint → negative error → output clamped to 0
+        # 23°C > 21°C setpoint → negative deviation → output clamped to 0
         result = heating_controller.update(23.0, dt=TEST_SAMPLE_TIME)
 
         assert result.output == pytest.approx(0.0)
 
     def test_output_ramps_with_integral(self, heating_controller: Any) -> None:
-        """Multiple iterations at constant error should increase output via integral."""
+        """Multiple iterations at constant deviation should increase output via integral."""
 
         results = []
         for _ in range(5):
@@ -187,12 +187,12 @@ class TestHeatingMode:
         # Integral should grow over iterations
         assert results[-1].i_term > results[0].i_term
 
-    def test_error_sign_heating(self, heating_controller: Any) -> None:
-        """In heating mode, error = setpoint - current (positive when cold)."""
+    def test_deviation_sign_heating(self, heating_controller: Any) -> None:
+        """In heating mode, deviation = setpoint - current (positive when cold)."""
 
         result = heating_controller.update(18.0, dt=TEST_SAMPLE_TIME)
 
-        assert result.error == pytest.approx(3.0)
+        assert result.deviation == pytest.approx(3.0)
 
 
 # ---------------------------------------------------------------------------
@@ -235,9 +235,9 @@ class TestOutputClamping:
     """Tests for output limit enforcement."""
 
     def test_output_never_exceeds_max(self, heating_controller: Any) -> None:
-        """Output should never exceed output_max even with large error."""
+        """Output should never exceed output_max even with large deviation."""
 
-        # Very cold room: 5°C, setpoint 21°C → 16°C error → P alone = 400, but max is 100
+        # Very cold room: 5°C, setpoint 21°C → 16°C deviation → P alone = 400, but max is 100
         result = heating_controller.update(5.0, dt=TEST_SAMPLE_TIME)
 
         assert result.output <= TEST_OUTPUT_MAX
@@ -262,11 +262,11 @@ class TestOutputClamping:
             setpoint=TEST_SETPOINT,
         )
 
-        # Large error → output clamped to 80
+        # Large deviation → output clamped to 80
         result = controller.update(5.0, dt=TEST_SAMPLE_TIME)
         assert result.output <= 80.0
 
-        # Negative error → output clamped to 20
+        # Negative deviation → output clamped to 20
         result = controller.update(30.0, dt=TEST_SAMPLE_TIME)
         assert result.output >= 20.0
 
@@ -387,7 +387,7 @@ class TestTuningChanges:
         assert heating_controller.integral_time_min == 60.0
 
     def test_narrower_band_increases_output(self, heating_controller: Any) -> None:
-        """Narrower proportional band → higher gain → higher output for same error."""
+        """Narrower proportional band → higher gain → higher output for same deviation."""
 
         result_wide = heating_controller.update(19.0, dt=TEST_SAMPLE_TIME)
 
@@ -433,7 +433,7 @@ class TestOutputLimitChanges:
 
         heating_controller.update_output_limits(10.0, 50.0)
 
-        # Large error → should be clamped to new max of 50
+        # Large deviation → should be clamped to new max of 50
         result = heating_controller.update(5.0, dt=TEST_SAMPLE_TIME)
 
         assert result.output <= 50.0

@@ -18,11 +18,11 @@ from custom_components.pi_thermostat.const import (
     DEFAULT_OUTPUT_MIN,
     DEFAULT_PROP_BAND,
     HA_OPTIONS,
-    TARGET_TEMP_MODE_INTERNAL,
     UPDATE_INTERVAL_DEFAULT_SECONDS,
     ITermStartupMode,
     OperatingMode,
     SensorFaultMode,
+    TargetTempMode,
 )
 
 T = TypeVar("T")
@@ -137,7 +137,7 @@ CONF_SPECS: dict[ConfKeys, _ConfSpec[Any]] = {
         converter=_Converters.to_str,
     ),
     ConfKeys.TARGET_TEMP_MODE: _ConfSpec(
-        default=TARGET_TEMP_MODE_INTERNAL,
+        default=TargetTempMode.INTERNAL,
         converter=_Converters.to_str,
     ),
     ConfKeys.TARGET_TEMP_ENTITY: _ConfSpec(
@@ -188,7 +188,7 @@ CONF_SPECS: dict[ConfKeys, _ConfSpec[Any]] = {
         runtime_configurable=True,
     ),
     ConfKeys.SENSOR_FAULT_MODE: _ConfSpec(
-        default=SensorFaultMode.SHUTDOWN,
+        default=SensorFaultMode.HOLD,
         converter=_Converters.to_str,
     ),
     ConfKeys.ITERM_STARTUP_MODE: _ConfSpec(

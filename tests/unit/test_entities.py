@@ -1,4 +1,4 @@
-"""Integration tests for entity platforms (sensor, number, switch, binary_sensor).
+"""Integration tests for entity platforms (sensor, number, switch).
 
 Tests cover:
 - Full entry setup and platform forwarding.
@@ -120,7 +120,7 @@ class TestSensorEntities:
 
         expected_entity_ids = [
             "sensor.pi_thermostat_output",
-            "sensor.pi_thermostat_error",
+            "sensor.pi_thermostat_deviation",
             "sensor.pi_thermostat_proportional_term",
             "sensor.pi_thermostat_integral_term",
         ]
@@ -139,14 +139,14 @@ class TestSensorEntities:
         # With target=22, current=20 (mocked), output should be > 0
         assert float(state.state) >= 0.0
 
-    async def test_error_sensor_value(self, hass: HomeAssistant) -> None:
-        """Error sensor reflects control error."""
+    async def test_deviation_sensor_value(self, hass: HomeAssistant) -> None:
+        """Deviation sensor reflects control deviation."""
 
         await _setup_integration(hass, _default_options(target_temp=22.0))
 
-        state = hass.states.get("sensor.pi_thermostat_error")
+        state = hass.states.get("sensor.pi_thermostat_deviation")
         assert state is not None
-        # Error = target - current = 22 - 20 = 2.0
+        # Deviation = target - current = 22 - 20 = 2.0
         assert float(state.state) == pytest.approx(2.0, abs=0.01)
 
 
@@ -218,33 +218,6 @@ class TestSwitchEntities:
 
         state = hass.states.get("switch.pi_thermostat_enabled")
         assert state is not None
-        assert state.state == "on"
-
-
-# ===========================================================================
-# Binary sensor entities
-# ===========================================================================
-
-
-class TestBinarySensorEntities:
-    """Test binary sensor entity creation and value reading."""
-
-    async def test_binary_sensor_created(self, hass: HomeAssistant) -> None:
-        """Active binary sensor entity is registered."""
-
-        await _setup_integration(hass)
-
-        state = hass.states.get("binary_sensor.pi_thermostat_active")
-        assert state is not None
-
-    async def test_active_when_heating(self, hass: HomeAssistant) -> None:
-        """Active binary sensor is on when controller output > 0."""
-
-        await _setup_integration(hass, _default_options(target_temp=25.0))
-
-        state = hass.states.get("binary_sensor.pi_thermostat_active")
-        assert state is not None
-        # With target=25 and current=20, output > 0
         assert state.state == "on"
 
 

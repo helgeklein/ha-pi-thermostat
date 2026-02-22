@@ -29,12 +29,10 @@ from .const import (
     ERROR_HEAT_COOL_REQUIRES_CLIMATE,
     ERROR_NO_TEMP_SOURCE,
     INTEGRATION_NAME,
-    TARGET_TEMP_MODE_CLIMATE,
-    TARGET_TEMP_MODE_EXTERNAL,
-    TARGET_TEMP_MODE_INTERNAL,
     ITermStartupMode,
     OperatingMode,
     SensorFaultMode,
+    TargetTempMode,
 )
 from .log import Log
 
@@ -137,15 +135,21 @@ def _build_schema_step_2(
         )
     )
 
-    # Target temperature mode
-    mode_options = [TARGET_TEMP_MODE_INTERNAL, TARGET_TEMP_MODE_EXTERNAL]
+    # Target temperature mode — default to CLIMATE when a climate entity is configured
+    mode_options = [TargetTempMode.INTERNAL, TargetTempMode.EXTERNAL]
     if has_climate:
-        mode_options.append(TARGET_TEMP_MODE_CLIMATE)
+        mode_options.append(TargetTempMode.CLIMATE)
+
+    default_mode = resolved.target_temp_mode
+    if has_climate and ConfKeys.TARGET_TEMP_MODE.value not in defaults:
+        # When a climate entity is configured and the user hasn't explicitly
+        # saved a target-temp-mode preference yet, default to CLIMATE.
+        default_mode = TargetTempMode.CLIMATE
 
     schema[
         vol.Required(
             ConfKeys.TARGET_TEMP_MODE.value,
-            default=resolved.target_temp_mode,
+            default=default_mode,
         )
     ] = selector.SelectSelector(
         selector.SelectSelectorConfig(
@@ -289,14 +293,14 @@ def _validate_step_2(
     errors: dict[str, str] = {}
 
     temp_sensor = user_input.get(ConfKeys.TEMP_SENSOR.value, "")
-    target_mode = user_input.get(ConfKeys.TARGET_TEMP_MODE.value, TARGET_TEMP_MODE_INTERNAL)
+    target_mode = user_input.get(ConfKeys.TARGET_TEMP_MODE.value, TargetTempMode.INTERNAL)
 
     # At least one temperature source must be configured
     if not temp_sensor and not has_climate:
         errors[ConfKeys.TEMP_SENSOR.value] = ERROR_NO_TEMP_SOURCE
 
     # Target temp mode 'climate' requires climate entity
-    if target_mode == TARGET_TEMP_MODE_CLIMATE and not has_climate:
+    if target_mode == TargetTempMode.CLIMATE and not has_climate:
         errors[ConfKeys.TARGET_TEMP_MODE.value] = ERROR_CLIMATE_TARGET_REQUIRES_CLIMATE
 
     return errors

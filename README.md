@@ -32,8 +32,7 @@ A Home Assistant custom integration that implements a **PI (proportional–integ
     - Number entities for proportional band, integral time, target temperature, output min/max, and update interval — all adjustable without reconfiguring.
     - Enabled switch to pause/resume the controller.
 - **Diagnostic sensors:**
-    - Output %, control error, proportional term, integral term.
-    - Binary sensor indicating whether the controller is active (output > 0 %).
+    - Output %, deviation, proportional term, integral term.
 - **Multiple instances:** Run independent thermostat controllers for different zones.
 - **Fully UI-configured:** Three-step options wizard, no YAML required.
 - **Rich language support:** UI translations available for Chinese, Dutch, English, French, German, Italian, Polish, Portuguese, Spanish, Swedish.

@@ -17,10 +17,9 @@ This guide helps resolve issues with the PI Thermostat integration.
 The integration comes with the following sensors that help you understand the controller's inner workings:
 
 - **Output:** The current PI output percentage (0–100 %).
-- **Error:** The current control error (target − actual temperature).
-- **Proportional term:** How much of the output is due to the current temperature error.
-- **Integral term:** How much of the output is due to accumulated past error.
-- **Active:** Binary sensor indicating whether the controller output is > 0 %.
+- **Deviation:** The current control deviation (target − actual temperature).
+- **Proportional term:** How much of the output is due to the current temperature deviation.
+- **Integral term:** How much of the output is due to accumulated past deviation.
 
 ### Checking the Output Entity
 
@@ -80,7 +79,7 @@ You can find the **Home Assistant Core** log at **Settings** → **Systems** →
 - **Severity:** e.g., `DEBUG`
 - **HA thread name:** e.g., `(MainThread)`
 - **Integration instance:** e.g., `[custom_components.pi_thermostat.ABC12]`
-- **Log message:** the actual log message, e.g., `PI output: 42.5%, error: 1.2K, P: 30.0%, I: 12.5%`
+- **Log message:** the actual log message, e.g., `PI output: 42.5%, deviation: 1.2K, P: 30.0%, I: 12.5%`
 
 ## Getting Help
 

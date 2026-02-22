@@ -27,7 +27,7 @@ The temperature range (in Kelvin) over which the PI output spans from 0 to 100 %
 
 ### Integral Time
 
-The integral (reset) time in minutes. Controls how quickly the integral action eliminates steady-state error. A shorter time means faster correction but more risk of oscillation.
+The integral (reset) time in minutes. Controls how quickly the integral action eliminates steady-state deviation. A shorter time means faster correction but more risk of oscillation.
 
 - **Range:** 1–600 minutes
 - **Default:** 120 minutes
@@ -66,23 +66,17 @@ How often the PI controller recalculates the output, in seconds.
 
 The current PI controller output as a percentage (0–100 %). This is the main output value that gets written to the configured output entity.
 
-### Error
+### Deviation
 
-The current control error: target temperature minus current temperature (in heating mode) or current temperature minus target temperature (in cooling mode). Measured in °C.
+The current control deviation: target temperature minus current temperature (in heating mode) or current temperature minus target temperature (in cooling mode). Measured in °C.
 
 ### Proportional Term
 
-The proportional component of the PI output. Shows how much of the output is due to the current error.
+The proportional component of the PI output. Shows how much of the output is due to the current deviation.
 
 ### Integral Term
 
-The integral component of the PI output. Shows how much of the output is due to accumulated past error. This value is persisted across restarts via Home Assistant's `RestoreEntity` mechanism.
-
-## Binary Sensor
-
-### Active
-
-**On** when the PI controller's output is greater than 0 %. Useful for dashboard indicators and automations (e.g., turn on a "heating active" indicator light).
+The integral component of the PI output. Shows how much of the output is due to accumulated past deviation. This value is persisted across restarts via Home Assistant's `RestoreEntity` mechanism.
 
 ## Next Steps
 
