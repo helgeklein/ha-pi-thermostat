@@ -22,6 +22,7 @@ from custom_components.pi_thermostat.const import (
     DOMAIN,
     ITermStartupMode,
     OperatingMode,
+    TargetTempMode,
 )
 
 # ---------------------------------------------------------------------------
@@ -149,6 +150,42 @@ class TestSensorEntities:
         assert state is not None
         # Deviation = target - current = 22 - 20 = 2.0
         assert float(state.state) == pytest.approx(2.0, abs=0.01)
+
+    async def test_target_temp_sensor_created_in_climate_mode(self, hass: HomeAssistant) -> None:
+        """Target temp sensor is created when target_temp_mode is not INTERNAL."""
+
+        await _setup_integration(
+            hass,
+            _default_options(
+                target_temp_mode=TargetTempMode.CLIMATE,
+                climate_entity="climate.living_room",
+            ),
+        )
+
+        state = hass.states.get("sensor.pi_thermostat_target_temperature")
+        assert state is not None, "target_temp sensor should exist in CLIMATE mode"
+
+    async def test_target_temp_sensor_not_created_in_internal_mode(self, hass: HomeAssistant) -> None:
+        """Target temp sensor is NOT created when target_temp_mode is INTERNAL."""
+
+        await _setup_integration(hass, _default_options())
+
+        state = hass.states.get("sensor.pi_thermostat_target_temperature")
+        assert state is None, "target_temp sensor should not exist in INTERNAL mode"
+
+    async def test_target_temp_number_not_created_in_climate_mode(self, hass: HomeAssistant) -> None:
+        """Target temp number is NOT created when target_temp_mode is CLIMATE."""
+
+        await _setup_integration(
+            hass,
+            _default_options(
+                target_temp_mode=TargetTempMode.CLIMATE,
+                climate_entity="climate.living_room",
+            ),
+        )
+
+        state = hass.states.get("number.pi_thermostat_target_temperature")
+        assert state is None, "target_temp number should not exist in CLIMATE mode"
 
 
 # ===========================================================================
