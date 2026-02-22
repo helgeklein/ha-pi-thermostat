@@ -22,7 +22,7 @@ from custom_components.pi_thermostat import (
     async_unload_entry,
 )
 from custom_components.pi_thermostat.config_flow import OptionsFlowHandler
-from custom_components.pi_thermostat.const import DOMAIN, OperatingMode
+from custom_components.pi_thermostat.const import DOMAIN, OperatingMode, TargetTempMode
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -345,3 +345,116 @@ class TestReloadEntry:
 
         mock_refresh.assert_awaited_once()
         mock_reload.assert_not_awaited()
+
+
+# ===========================================================================
+# Stale target_temp entity cleanup
+# ===========================================================================
+
+
+class TestStaleEntityCleanup:
+    """Test that switching target_temp_mode removes the stale entity variant."""
+
+    async def test_internal_mode_removes_stale_sensor(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """In INTERNAL mode, a leftover target_temp sensor entity is removed."""
+
+        from homeassistant.const import Platform
+        from homeassistant.helpers import entity_registry as er
+
+        # First, set up in CLIMATE mode so a target_temp sensor is created
+        entry = await _setup_integration(
+            hass,
+            _default_options(
+                target_temp_mode=TargetTempMode.CLIMATE,
+                climate_entity="climate.living_room",
+            ),
+        )
+
+        registry = er.async_get(hass)
+        sensor_uid = f"{entry.entry_id}_target_temp"
+
+        # Verify the sensor entity exists
+        sensor_entity_id = registry.async_get_entity_id(Platform.SENSOR, DOMAIN, sensor_uid)
+        assert sensor_entity_id is not None, "sensor should exist in CLIMATE mode"
+
+        # Verify no number entity
+        number_entity_id = registry.async_get_entity_id(Platform.NUMBER, DOMAIN, sensor_uid)
+        assert number_entity_id is None, "number should not exist in CLIMATE mode"
+
+        # Now reload in INTERNAL mode
+        with (
+            patch.object(
+                hass.config_entries,
+                "async_reload",
+                wraps=hass.config_entries.async_reload,
+            ),
+            patch(
+                "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.get_temperature",
+                return_value=20.0,
+            ),
+            patch(
+                "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.set_output",
+                new_callable=AsyncMock,
+            ),
+        ):
+            hass.config_entries.async_update_entry(
+                entry,
+                options={**entry.options, "target_temp_mode": TargetTempMode.INTERNAL, "target_temp": 20.0},
+            )
+            await hass.async_block_till_done()
+
+        # The stale sensor entity should have been removed
+        sensor_entity_id = registry.async_get_entity_id(Platform.SENSOR, DOMAIN, sensor_uid)
+        assert sensor_entity_id is None, "stale sensor should be removed after switching to INTERNAL"
+
+    async def test_climate_mode_removes_stale_number(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """In CLIMATE mode, a leftover target_temp number entity is removed."""
+
+        from homeassistant.const import Platform
+        from homeassistant.helpers import entity_registry as er
+
+        # First, set up in INTERNAL mode so a target_temp number is created
+        entry = await _setup_integration(hass, _default_options())
+
+        registry = er.async_get(hass)
+        number_uid = f"{entry.entry_id}_target_temp"
+
+        # Verify the number entity exists
+        number_entity_id = registry.async_get_entity_id(Platform.NUMBER, DOMAIN, number_uid)
+        assert number_entity_id is not None, "number should exist in INTERNAL mode"
+
+        # Now reload in CLIMATE mode
+        with (
+            patch.object(
+                hass.config_entries,
+                "async_reload",
+                wraps=hass.config_entries.async_reload,
+            ),
+            patch(
+                "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.get_temperature",
+                return_value=20.0,
+            ),
+            patch(
+                "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.set_output",
+                new_callable=AsyncMock,
+            ),
+        ):
+            hass.config_entries.async_update_entry(
+                entry,
+                options={
+                    **entry.options,
+                    "target_temp_mode": TargetTempMode.CLIMATE,
+                    "climate_entity": "climate.living_room",
+                },
+            )
+            await hass.async_block_till_done()
+
+        # The stale number entity should have been removed
+        number_entity_id = registry.async_get_entity_id(Platform.NUMBER, DOMAIN, number_uid)
+        assert number_entity_id is None, "stale number should be removed after switching to CLIMATE"

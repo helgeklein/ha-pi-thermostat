@@ -10,14 +10,17 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from homeassistant.const import Platform
+from homeassistant.helpers import entity_registry as er
 from homeassistant.loader import async_get_loaded_integration
 
-from .config import get_runtime_configurable_keys
+from .config import get_runtime_configurable_keys, resolve_entry
 from .config_flow import OptionsFlowHandler
 from .const import (
     DOMAIN,
     HA_OPTIONS,
     INTEGRATION_NAME,
+    NUMBER_KEY_TARGET_TEMP,
+    TargetTempMode,
 )
 from .coordinator import DataUpdateCoordinator
 from .data import RuntimeData
@@ -83,6 +86,12 @@ async def async_setup_entry(
         logger.debug(f"Setting up platforms: {PLATFORMS}")
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+        # Remove stale conditional entities from the entity registry.
+        # The target_temp entity is either a number (INTERNAL mode) or a sensor
+        # (EXTERNAL/CLIMATE mode), never both. Without cleanup the previously
+        # created variant lingers as unavailable/greyed-out in the UI.
+        _remove_stale_target_temp_entities(hass, entry)
+
         # Trigger initial coordinator refresh after platforms are set up
         # This ensures all entities are registered before the first state update
         logger.debug("Starting initial coordinator refresh")
@@ -102,6 +111,40 @@ async def async_setup_entry(
     else:
         logger.info(f"{INTEGRATION_NAME} integration setup completed")
         return True
+
+
+#
+# _remove_stale_target_temp_entities
+#
+def _remove_stale_target_temp_entities(
+    hass: HomeAssistant,
+    entry: IntegrationConfigEntry,
+) -> None:
+    """Remove the target-temp entity variant that is no longer active.
+
+    Depending on ``target_temp_mode``, the integration creates either a
+    writable **number** entity (INTERNAL mode) or a read-only **sensor**
+    entity (EXTERNAL / CLIMATE mode) for the target temperature.  When the
+    user switches modes, the previously-created variant would linger in the
+    entity registry as unavailable.  This helper removes it so the UI stays
+    clean.
+    """
+
+    resolved = resolve_entry(entry)
+    registry = er.async_get(hass)
+    unique_id_suffix = f"_{NUMBER_KEY_TARGET_TEMP}"
+
+    # Determine which platform's target_temp entity should NOT exist
+    if resolved.target_temp_mode == TargetTempMode.INTERNAL:
+        stale_platform = Platform.SENSOR
+    else:
+        stale_platform = Platform.NUMBER
+
+    # Look up by unique_id and remove if present
+    stale_unique_id = f"{entry.entry_id}{unique_id_suffix}"
+    stale_entry = registry.async_get_entity_id(stale_platform, DOMAIN, stale_unique_id)
+    if stale_entry is not None:
+        registry.async_remove(stale_entry)
 
 
 #
