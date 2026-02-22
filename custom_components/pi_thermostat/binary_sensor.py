@@ -1,12 +1,9 @@
 """Binary sensor platform for pi_thermostat.
 
-This module provides binary sensors that monitor various aspects of the
-PI Thermostat integration. The binary sensors provide real-time
-status information about the automation system's operation.
+Provides a single read-only binary sensor:
 
-The sensors that appear in Home Assistant are:
-- Entity: binary_sensor.pi_thermostat_status - System status monitoring
-- Entity: binary_sensor.pi_thermostat_simulation_mode - Simulation mode status
+- **active** — On when the PI controller's output is > 0 %.
+  Useful for dashboard display and automations.
 """
 
 from __future__ import annotations
@@ -14,20 +11,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from homeassistant.components.binary_sensor import (
-    BinarySensorDeviceClass,
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
-from homeassistant.const import EntityCategory
 
-from .const import (
-    BINARY_SENSOR_KEY_CLOSE_COVERS_AFTER_SUNSET,
-    BINARY_SENSOR_KEY_LOCK_ACTIVE,
-    BINARY_SENSOR_KEY_NIGHTTIME_BLOCK_OPENING,
-    BINARY_SENSOR_KEY_STATUS,
-    BINARY_SENSOR_KEY_TEMP_HOT,
-    BINARY_SENSOR_KEY_WEATHER_SUNNY,
-)
+from .const import BINARY_SENSOR_KEY_ACTIVE
 from .entity import IntegrationEntity
 
 if TYPE_CHECKING:
@@ -38,286 +26,78 @@ if TYPE_CHECKING:
     from .data import IntegrationConfigEntry
 
 
+# ---------------------------------------------------------------------------
+# Binary sensor descriptions
+# ---------------------------------------------------------------------------
+
+BINARY_SENSOR_ACTIVE = BinarySensorEntityDescription(
+    key=BINARY_SENSOR_KEY_ACTIVE,
+    translation_key=BINARY_SENSOR_KEY_ACTIVE,
+    icon="mdi:fire",
+)
+
+
+# ---------------------------------------------------------------------------
+# Platform setup
+# ---------------------------------------------------------------------------
+
+
+#
+# async_setup_entry
+#
 async def async_setup_entry(
-    hass: HomeAssistant,  # noqa: ARG001 Unused function argument: `hass`
+    hass: HomeAssistant,  # noqa: ARG001
     entry: IntegrationConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the binary sensor platform for the integration.
+    """Create all binary sensor entities for a config entry."""
 
-    This function is called by Home Assistant when the integration is loaded.
-    It creates and registers all binary sensor entities for the integration.
-
-    Args:
-        hass: The Home Assistant instance (unused but required by interface)
-        entry: The config entry containing integration configuration and runtime data
-        async_add_entities: Callback to register new entities with Home Assistant
-    """
     coordinator = entry.runtime_data.coordinator
 
-    # Create all binary sensor entities
-    entities = [
-        # Status binary sensor - indicates system problems
-        StatusBinarySensor(coordinator),
-        CloseCoversAfterSunsetBinarySensor(coordinator),
-        NighttimeBlockOpeningBinarySensor(coordinator),
-        TempHotBinarySensor(coordinator),
-        WeatherSunnyBinarySensor(coordinator),
-        LockActiveSensor(coordinator),
-    ]
+    async_add_entities(
+        [
+            ActiveBinarySensor(coordinator),
+        ]
+    )
 
-    async_add_entities(entities)
+
+# ---------------------------------------------------------------------------
+# Binary sensor entity class
+# ---------------------------------------------------------------------------
 
 
 #
-# IntegrationBinarySensor
+# ActiveBinarySensor
 #
-class IntegrationBinarySensor(IntegrationEntity, BinarySensorEntity):  # pyright: ignore[reportIncompatibleVariableOverride]
-    """Base binary sensor entity for PI Thermostat integration.
+class ActiveBinarySensor(IntegrationEntity, BinarySensorEntity):  # pyright: ignore[reportIncompatibleVariableOverride]
+    """Binary sensor that is on when the PI controller output is > 0 %.
 
-    This abstract base class provides common functionality for all binary sensor
-    entities in the integration. It handles the basic entity setup and provides
-    a foundation for specific binary sensor implementations.
-
-    The class provides:
-    - Integration with the coordinator for data updates
-    - Automatic availability tracking based on coordinator health
-    - Consistent entity naming and identification patterns
-    - Integration with Home Assistant's binary sensor platform
+    Reads ``controller_active`` from ``CoordinatorData``.
     """
 
     #
     # __init__
     #
-    def __init__(
-        self,
-        coordinator: DataUpdateCoordinator,
-        entity_description: BinarySensorEntityDescription,
-    ) -> None:
-        """Initialize the binary sensor entity.
+    def __init__(self, coordinator: DataUpdateCoordinator) -> None:
+        """Initialize the active binary sensor.
 
         Args:
-            coordinator: The DataUpdateCoordinator that manages automation logic
-                         and provides data for this sensor
-            entity_description: Configuration describing the entity's properties
-                                (name, device class, etc.)
+            coordinator: The coordinator providing data for this sensor.
         """
-        # Initialize the base entity with coordinator integration
+
         super().__init__(coordinator)
-
-        # Store the entity description that defines this sensor's characteristics
-        self.entity_description = entity_description
-
-        # Override the unique ID or HA uses the device class instead of the key.
-        # Expected resulting entity_id pattern:
-        #   binary_sensor.pi_thermostat_{translated_key}
-        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{entity_description.key}"
-
-
-#
-# StatusBinarySensor
-#
-class StatusBinarySensor(IntegrationBinarySensor):
-    """Binary sensor that reports the integration's health.
-
-    This sensor indicates whether the cover automation system has any issues.
-    The sensor's state is automatically derived from the coordinator's operational status.
-
-    State meanings:
-    - on: Problem
-    - off: OK
-    """
-
-    def __init__(self, coordinator: DataUpdateCoordinator) -> None:
-        """Initialize the sensor.
-
-        Args:
-            coordinator: Provides the data for this sensor
-        """
-        entity_description = BinarySensorEntityDescription(
-            key=BINARY_SENSOR_KEY_STATUS,
-            translation_key=BINARY_SENSOR_KEY_STATUS,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            device_class=BinarySensorDeviceClass.PROBLEM,
-        )
-        super().__init__(coordinator, entity_description)
-
-        # Store the unique ID in the coordinator for logbook use
-        coordinator.status_sensor_unique_id = self._attr_unique_id
-
-    @property
-    def is_on(self) -> bool:  # pyright: ignore
-        """Return True if the integration has problems."""
-        return not self.coordinator.last_update_success
-
-
-#
-# CloseCoversAfterSunsetBinarySensor
-#
-class CloseCoversAfterSunsetBinarySensor(IntegrationBinarySensor):
-    """Binary sensor that reports whether the evening closure feature is enabled.
-
-    State meanings:
-    - on: Evening closure is enabled (covers will close after sunset)
-    - off: Evening closure is disabled
-    """
-
-    def __init__(self, coordinator: DataUpdateCoordinator) -> None:
-        """Initialize the sensor.
-
-        Args:
-            coordinator: Provides the data for this sensor
-        """
-        entity_description = BinarySensorEntityDescription(
-            key=BINARY_SENSOR_KEY_CLOSE_COVERS_AFTER_SUNSET,
-            translation_key=BINARY_SENSOR_KEY_CLOSE_COVERS_AFTER_SUNSET,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            # No device class - allows custom state translations (Yes/No)
-            icon="mdi:weather-sunset",
-        )
-        super().__init__(coordinator, entity_description)
-
-    @property
-    def is_on(self) -> bool:  # pyright: ignore
-        """Return True if evening closure is enabled."""
-        resolved = self.coordinator._resolved_settings()
-        return resolved.close_covers_after_sunset
-
-
-#
-# NighttimeBlockOpeningBinarySensor
-#
-class NighttimeBlockOpeningBinarySensor(IntegrationBinarySensor):
-    """Binary sensor that reports whether nighttime block opening is enabled.
-
-    State meanings:
-    - on: Nighttime block opening is enabled (covers won't open at night)
-    - off: Nighttime block opening is disabled (covers can open at night)
-    """
-
-    def __init__(self, coordinator: DataUpdateCoordinator) -> None:
-        """Initialize the sensor.
-
-        Args:
-            coordinator: Provides the data for this sensor
-        """
-        entity_description = BinarySensorEntityDescription(
-            key=BINARY_SENSOR_KEY_NIGHTTIME_BLOCK_OPENING,
-            translation_key=BINARY_SENSOR_KEY_NIGHTTIME_BLOCK_OPENING,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            # No device class - allows custom state translations (Yes/No)
-            icon="mdi:weather-night",
-        )
-        super().__init__(coordinator, entity_description)
-
-    @property
-    def is_on(self) -> bool:  # pyright: ignore
-        """Return True if nighttime block opening is enabled."""
-        resolved = self.coordinator._resolved_settings()
-        return resolved.nighttime_block_opening
-
-
-#
-# TempHotBinarySensor
-#
-class TempHotBinarySensor(IntegrationBinarySensor):
-    """Binary sensor that reports whether it's a hot day.
-
-    State meanings:
-    - on: Hot day
-    - off: Not a hot day
-    """
-
-    def __init__(self, coordinator: DataUpdateCoordinator) -> None:
-        """Initialize the sensor.
-
-        Args:
-            coordinator: Provides the data for this sensor
-        """
-        entity_description = BinarySensorEntityDescription(
-            key=BINARY_SENSOR_KEY_TEMP_HOT,
-            translation_key=BINARY_SENSOR_KEY_TEMP_HOT,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            # No device class - allows custom state translations (Yes/No)
-            icon="mdi:thermometer-alert",
-        )
-        super().__init__(coordinator, entity_description)
-
-    @property
-    def is_on(self) -> bool:  # pyright: ignore
-        """Return True if it's a hot day."""
-        if self.coordinator.data and self.coordinator.data.temp_hot is not None:
-            return self.coordinator.data.temp_hot
-        else:
-            return False
-
-
-#
-# WeatherSunnyBinarySensor
-#
-class WeatherSunnyBinarySensor(IntegrationBinarySensor):
-    """Binary sensor that reports if the weather is sunny.
-
-    State meanings:
-    - on: Sunny
-    - off: Not sunny
-    """
-
-    def __init__(self, coordinator: DataUpdateCoordinator) -> None:
-        """Initialize the sensor.
-
-        Args:
-            coordinator: Provides the data for this sensor
-        """
-        entity_description = BinarySensorEntityDescription(
-            key=BINARY_SENSOR_KEY_WEATHER_SUNNY,
-            translation_key=BINARY_SENSOR_KEY_WEATHER_SUNNY,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            # No device class - allows custom state translations (Yes/No)
-            icon="mdi:weather-sunny",
-        )
-        super().__init__(coordinator, entity_description)
-
-    @property
-    def is_on(self) -> bool:  # pyright: ignore
-        """Return True if the weather is sunny."""
-        if self.coordinator.data and self.coordinator.data.weather_sunny is not None:
-            return self.coordinator.data.weather_sunny
-        else:
-            return False
-
-
-#
-# LockActiveSensor
-#
-class LockActiveSensor(IntegrationBinarySensor):
-    """Binary sensor indicating if cover lock is active."""
-
-    #
-    # __init__
-    #
-    def __init__(self, coordinator: DataUpdateCoordinator) -> None:
-        """Initialize the sensor.
-
-        Args:
-            coordinator: Provides the data for this sensor
-        """
-        entity_description = BinarySensorEntityDescription(
-            key=BINARY_SENSOR_KEY_LOCK_ACTIVE,
-            translation_key=BINARY_SENSOR_KEY_LOCK_ACTIVE,
-            device_class=BinarySensorDeviceClass.LOCK,
-            entity_category=EntityCategory.DIAGNOSTIC,
-        )
-        super().__init__(coordinator, entity_description)
+        self.entity_description = BINARY_SENSOR_ACTIVE
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{BINARY_SENSOR_ACTIVE.key}"
 
     #
     # is_on
     #
     @property
-    def is_on(self) -> bool:  # pyright: ignore
-        """Return False if lock is active.
+    # BinarySensorEntity.is_on is a cached_property; we intentionally override
+    # with a regular @property so it re-evaluates from coordinator data each access.
+    def is_on(self) -> bool | None:  # pyright: ignore[reportIncompatibleVariableOverride]
+        """Return ``True`` when the controller is actively outputting."""
 
-        That may seem counterintuitive, but in Home Assistant a lock binary sensor
-        is "on" when the lock is open (unlocked), and "off" when it is closed (locked).
-        """
-        return not self.coordinator.is_locked
+        if self.coordinator.data is None:
+            return None
+        return self.coordinator.data.controller_active

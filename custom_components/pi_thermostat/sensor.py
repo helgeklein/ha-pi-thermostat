@@ -1,25 +1,31 @@
 """Sensor platform for pi_thermostat.
 
-This module provides sensors that monitor various aspects of the
-PI Thermostat integration. The sensors provide real-time
-information about the automation system's operation.
+Provides read-only sensors exposing the PI controller's internal state:
 
-The sensors that appear in Home Assistant are:
+- **output**: PI output percentage (0-100 %).
+- **error**: Control error (target - current temperature).
+- **p_term**: Proportional component of the output.
+- **i_term**: Integral component (uses ``RestoreEntity`` for persistence across restarts).
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+    SensorStateClass,
+)
 from homeassistant.const import EntityCategory, UnitOfTemperature
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
-    SENSOR_KEY_AUTOMATION_DISABLED_TIME_RANGE,
-    SENSOR_KEY_CLOSE_COVERS_AFTER_SUNSET_DELAY,
-    SENSOR_KEY_SUN_AZIMUTH,
-    SENSOR_KEY_SUN_ELEVATION,
-    SENSOR_KEY_TEMP_CURRENT_MAX,
+    SENSOR_KEY_ERROR,
+    SENSOR_KEY_I_TERM,
+    SENSOR_KEY_OUTPUT,
+    SENSOR_KEY_P_TERM,
 )
 from .entity import IntegrationEntity
 
@@ -31,53 +37,85 @@ if TYPE_CHECKING:
     from .data import IntegrationConfigEntry
 
 
+# ---------------------------------------------------------------------------
+# Sensor descriptions
+# ---------------------------------------------------------------------------
+
+SENSOR_OUTPUT = SensorEntityDescription(
+    key=SENSOR_KEY_OUTPUT,
+    translation_key=SENSOR_KEY_OUTPUT,
+    native_unit_of_measurement="%",
+    device_class=SensorDeviceClass.POWER_FACTOR,
+    state_class=SensorStateClass.MEASUREMENT,
+    suggested_display_precision=1,
+)
+
+SENSOR_ERROR = SensorEntityDescription(
+    key=SENSOR_KEY_ERROR,
+    translation_key=SENSOR_KEY_ERROR,
+    native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+    device_class=SensorDeviceClass.TEMPERATURE,
+    state_class=SensorStateClass.MEASUREMENT,
+    suggested_display_precision=2,
+)
+
+SENSOR_P_TERM = SensorEntityDescription(
+    key=SENSOR_KEY_P_TERM,
+    translation_key=SENSOR_KEY_P_TERM,
+    entity_category=EntityCategory.DIAGNOSTIC,
+    state_class=SensorStateClass.MEASUREMENT,
+    suggested_display_precision=2,
+)
+
+SENSOR_I_TERM = SensorEntityDescription(
+    key=SENSOR_KEY_I_TERM,
+    translation_key=SENSOR_KEY_I_TERM,
+    entity_category=EntityCategory.DIAGNOSTIC,
+    state_class=SensorStateClass.MEASUREMENT,
+    suggested_display_precision=2,
+)
+
+
+# ---------------------------------------------------------------------------
+# Platform setup
+# ---------------------------------------------------------------------------
+
+
 #
 # async_setup_entry
 #
 async def async_setup_entry(
-    hass: HomeAssistant,  # noqa: ARG001 Unused function argument: `hass`
+    hass: HomeAssistant,  # noqa: ARG001
     entry: IntegrationConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the sensor platform for the integration.
+    """Create all sensor entities for a config entry."""
 
-    This function is called by Home Assistant when the integration is loaded.
-    It creates and registers all sensor entities for the integration.
-
-    Args:
-        hass: The Home Assistant instance (unused but required by interface)
-        entry: The config entry containing integration configuration and runtime data
-        async_add_entities: Callback to register new entities with Home Assistant
-    """
     coordinator = entry.runtime_data.coordinator
 
-    # Create all sensor entities
-    entities = [
-        AutomationDisabledTimeRangeSensor(coordinator),
-        CloseCoversAfterSunsetDelaySensor(coordinator),
-        SunAzimuthSensor(coordinator),
-        SunElevationSensor(coordinator),
-        TempCurrentMaxSensor(coordinator),
-    ]
+    async_add_entities(
+        [
+            IntegrationSensor(coordinator, SENSOR_OUTPUT),
+            IntegrationSensor(coordinator, SENSOR_ERROR),
+            IntegrationSensor(coordinator, SENSOR_P_TERM),
+            ITermSensor(coordinator),
+        ]
+    )
 
-    async_add_entities(entities)
+
+# ---------------------------------------------------------------------------
+# Sensor entity classes
+# ---------------------------------------------------------------------------
 
 
 #
 # IntegrationSensor
 #
 class IntegrationSensor(IntegrationEntity, SensorEntity):  # pyright: ignore[reportIncompatibleVariableOverride]
-    """Base sensor entity for PI Thermostat integration.
+    """Generic read-only sensor backed by ``CoordinatorData``.
 
-    This abstract base class provides common functionality for all sensor
-    entities in the integration. It handles the basic entity setup and provides
-    a foundation for specific sensor implementations.
-
-    The class provides:
-    - Integration with the coordinator for data updates
-    - Automatic availability tracking based on coordinator health
-    - Consistent entity naming and identification patterns
-    - Integration with Home Assistant's sensor platform
+    The sensor's value is read from the attribute of ``CoordinatorData``
+    whose name matches the entity description's *key*.
     """
 
     #
@@ -88,225 +126,92 @@ class IntegrationSensor(IntegrationEntity, SensorEntity):  # pyright: ignore[rep
         coordinator: DataUpdateCoordinator,
         entity_description: SensorEntityDescription,
     ) -> None:
-        """Initialize the sensor entity.
+        """Initialize the sensor.
 
         Args:
-            coordinator: The DataUpdateCoordinator that manages automation logic
-                         and provides data for this sensor
-            entity_description: Configuration describing the entity's properties
-                                (name, device class, etc.)
+            coordinator: The coordinator providing data for this sensor.
+            entity_description: Descriptor defining the entity's HA properties.
         """
-        # Initialize the base entity with coordinator integration
+
         super().__init__(coordinator)
-
-        # Store the entity description that defines this sensor's characteristics
         self.entity_description = entity_description
-
-        # Override the unique ID or HA uses the device class instead of the key.
-        # Expected resulting entity_id pattern:
-        #   sensor.pi_thermostat_{translated_key}
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{entity_description.key}"
 
-    # Note: Multiple inheritance from IntegrationEntity (CoordinatorEntity) and
-    # SensorEntity causes a Pylance conflict on the 'available' property.
-    # Both base classes define it differently, but they're compatible at runtime.
-    # The CoordinatorEntity's implementation provides the correct coordinator-based
-    # availability logic we want, so no override is needed.
+    #
+    # native_value
+    #
+    @property
+    def native_value(self) -> float | None:  # pyright: ignore[reportIncompatibleVariableOverride]
+        """Return the current sensor value from coordinator data."""
+
+        if self.coordinator.data is None:
+            return None
+        return getattr(self.coordinator.data, self.entity_description.key, None)
+
+
+# ---------------------------------------------------------------------------
+# I-term sensor with RestoreEntity for integral persistence
+# ---------------------------------------------------------------------------
 
 
 #
-# AutomationDisabledTimeRangeSensor
+# ITermSensor
 #
-class AutomationDisabledTimeRangeSensor(IntegrationSensor):
-    """Sensor that reports the configured automation disabled time range.
+class ITermSensor(IntegrationEntity, RestoreEntity, SensorEntity):  # pyright: ignore[reportIncompatibleVariableOverride]
+    """Integral-term sensor with state persistence across restarts.
 
-    The sensor displays:
-    - "off" when the time range feature is disabled
-    - "start-end" (e.g., "22:00-06:00") when the time range feature is enabled
+    On startup, the last known integral value is restored from HA's state
+    machine and fed back into the PI controller so that the integral term
+    survives HA restarts without resetting to zero.
     """
 
+    #
+    # __init__
+    #
     def __init__(self, coordinator: DataUpdateCoordinator) -> None:
-        """Initialize the sensor.
+        """Initialize the I-term sensor.
 
         Args:
-            coordinator: Provides the data for this sensor
+            coordinator: The coordinator providing data for this sensor.
         """
-        entity_description = SensorEntityDescription(
-            key=SENSOR_KEY_AUTOMATION_DISABLED_TIME_RANGE,
-            translation_key=SENSOR_KEY_AUTOMATION_DISABLED_TIME_RANGE,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            icon="mdi:clock-time-eight",
-        )
-        super().__init__(coordinator, entity_description)
 
+        super().__init__(coordinator)
+        self.entity_description = SENSOR_I_TERM
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{SENSOR_I_TERM.key}"
+
+    #
+    # async_added_to_hass
+    #
+    async def async_added_to_hass(self) -> None:
+        """Restore the integral term when the entity is added to HA.
+
+        Steps:
+        1. Call the parent implementation to register coordinator listeners.
+        2. Retrieve the last stored state from HA's restore-state infrastructure.
+        3. If a valid numeric state is found, pass it to the coordinator so the
+           PI controller's integral term is seeded with the previous value.
+        """
+
+        await super().async_added_to_hass()
+
+        last_state = await self.async_get_last_state()
+        if last_state is None or last_state.state in (None, "", "unknown", "unavailable"):
+            return
+
+        try:
+            restored_value = float(last_state.state)
+        except (ValueError, TypeError):
+            return
+
+        self.coordinator.restore_integral_term(restored_value)
+
+    #
+    # native_value
+    #
     @property
-    def native_value(self) -> str:  # pyright: ignore
-        """Return the automation disabled time range as a formatted string.
+    def native_value(self) -> float | None:  # pyright: ignore[reportIncompatibleVariableOverride]
+        """Return the current integral term from coordinator data."""
 
-        Returns:
-            Translation key "off" if the feature is disabled, or "HH:MM-HH:MM" format if enabled.
-        """
-        resolved = self.coordinator._resolved_settings()
-
-        if not resolved.automation_disabled_time_range:
-            # Return translation key that will be translated to "Off" in UI
-            return "off"
-
-        # Format times as HH:MM
-        start_time = resolved.automation_disabled_time_range_start
-        end_time = resolved.automation_disabled_time_range_end
-
-        start_str = f"{start_time.hour:02d}:{start_time.minute:02d}"
-        end_str = f"{end_time.hour:02d}:{end_time.minute:02d}"
-
-        return f"{start_str}-{end_str}"
-
-
-#
-# CloseCoversAfterSunsetDelaySensor
-#
-class CloseCoversAfterSunsetDelaySensor(IntegrationSensor):
-    """Sensor that reports the configured delay for closing covers after sunset.
-
-    The sensor displays the delay in minutes.
-    """
-
-    def __init__(self, coordinator: DataUpdateCoordinator) -> None:
-        """Initialize the sensor.
-
-        Args:
-            coordinator: Provides the data for this sensor
-        """
-
-        entity_description = SensorEntityDescription(
-            key=SENSOR_KEY_CLOSE_COVERS_AFTER_SUNSET_DELAY,
-            translation_key=SENSOR_KEY_CLOSE_COVERS_AFTER_SUNSET_DELAY,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            icon="mdi:timer-outline",
-            native_unit_of_measurement="min",
-        )
-        super().__init__(coordinator, entity_description)
-
-    @property
-    def native_value(self) -> int:  # pyright: ignore
-        """Return the configured delay for closing covers after sunset.
-
-        Returns:
-            Integer representing the delay in minutes.
-        """
-
-        resolved = self.coordinator._resolved_settings()
-
-        # Convert seconds to minutes
-        return resolved.close_covers_after_sunset_delay // 60
-
-
-#
-# SunAzimuthSensor
-#
-class SunAzimuthSensor(IntegrationSensor):
-    """Sensor that reports the current sun azimuth angle."""
-
-    def __init__(self, coordinator: DataUpdateCoordinator) -> None:
-        """Initialize the sensor.
-
-        Args:
-            coordinator: Provides the data for this sensor
-        """
-        entity_description = SensorEntityDescription(
-            key=SENSOR_KEY_SUN_AZIMUTH,
-            translation_key=SENSOR_KEY_SUN_AZIMUTH,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            # No suitable device class exists for angles - using icon instead
-            # We're not setting state_class (SensorStateClass) to avoid cluttering long-term statistics
-            icon="mdi:sun-compass",
-            native_unit_of_measurement="°",
-        )
-        super().__init__(coordinator, entity_description)
-
-    @property
-    def native_value(self) -> float | None:  # pyright: ignore
-        """Return the current sun azimuth angle in degrees.
-
-        Returns:
-            Float representing the sun's azimuth angle (0° to 360°),
-            or None if sun position data is unavailable.
-        """
-        if self.coordinator.data:
-            return self.coordinator.data.sun_azimuth
-        else:
+        if self.coordinator.data is None:
             return None
-
-
-#
-# SunElevationSensor
-#
-class SunElevationSensor(IntegrationSensor):
-    """Sensor that reports the current sun elevation angle."""
-
-    def __init__(self, coordinator: DataUpdateCoordinator) -> None:
-        """Initialize the sensor.
-
-        Args:
-            coordinator: Provides the data for this sensor
-        """
-        entity_description = SensorEntityDescription(
-            key=SENSOR_KEY_SUN_ELEVATION,
-            translation_key=SENSOR_KEY_SUN_ELEVATION,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            # No suitable device class exists for angles - using icon instead
-            # We're not setting state_class (SensorStateClass) to avoid cluttering long-term statistics
-            icon="mdi:sun-angle-outline",
-            native_unit_of_measurement="°",
-        )
-        super().__init__(coordinator, entity_description)
-
-    @property
-    def native_value(self) -> float | None:  # pyright: ignore
-        """Return the current sun elevation angle in degrees.
-
-        Returns:
-            Float representing the sun's elevation angle (min. -90° at nadir to max. +90° at zenith),
-            or None if sun position data is unavailable.
-        """
-        if self.coordinator.data:
-            return self.coordinator.data.sun_elevation
-        else:
-            return None
-
-
-#
-# TempCurrentMaxSensor
-#
-class TempCurrentMaxSensor(IntegrationSensor):
-    """Sensor that reports the current maximum temperature."""
-
-    def __init__(self, coordinator: DataUpdateCoordinator) -> None:
-        """Initialize the sensor.
-
-        Args:
-            coordinator: Provides the data for this sensor
-        """
-        entity_description = SensorEntityDescription(
-            key=SENSOR_KEY_TEMP_CURRENT_MAX,
-            translation_key=SENSOR_KEY_TEMP_CURRENT_MAX,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            device_class=SensorDeviceClass.TEMPERATURE,
-            # We're not setting state_class (SensorStateClass) to avoid cluttering long-term statistics
-            icon="mdi:thermometer-chevron-up",
-            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        )
-        super().__init__(coordinator, entity_description)
-
-    @property
-    def native_value(self) -> float | None:  # pyright: ignore
-        """Return the current maximum temperature.
-
-        Returns:
-            Float representing the current maximum temperature in degrees Celsius,
-            or None if that is unavailable.
-        """
-        if self.coordinator.data:
-            return self.coordinator.data.temp_current_max
-        else:
-            return None
+        return self.coordinator.data.i_term

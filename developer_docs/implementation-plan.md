@@ -18,24 +18,24 @@ This document describes how to transform the **Smart Cover Automation** template
 | 6 | 3 | Write unit tests for `pi_controller.py` (§7.2) | **DONE** |
 | 7 | 3 | Strip `ha_interface.py`, implement new methods (§3.3) | **DONE** |
 | 8 | 3 | Strip `coordinator.py`, implement new update loop (§3.2) | **DONE** |
-| 9 | 4 | Implement `entity.py` base class (§4.1) | Not started |
-| 10 | 4 | Implement `sensor.py` with RestoreEntity for i_term (§4.2, §3.4) | Not started |
-| 11 | 4 | Implement `number.py` (§4.3) | Not started |
-| 12 | 4 | Implement `switch.py` (§4.4) | Not started |
-| 13 | 4 | Implement `binary_sensor.py` (§4.5) | Not started |
+| 9 | 4 | Verify `entity.py` base class (§4.1) | **DONE** |
+| 10 | 4 | Implement `sensor.py` with RestoreEntity for i_term (§4.2, §3.4) | **DONE** |
+| 11 | 4 | Implement `number.py` (§4.3) | **DONE** |
+| 12 | 4 | Implement `switch.py` (§4.4) | **DONE** |
+| 13 | 4 | Implement `binary_sensor.py` (§4.5) | **DONE** |
 | 14 | 5 | Implement config flow + options flow (§5) | Not started |
 | 15 | 6 | Create `translations/en.json` (§6) | Not started |
 | 16 | 7 | Write remaining tests (§7) | Not started |
 | 17 | 7 | Lint + type-check + full test run | Not started |
 | 18 | 8 | Update docs/README (§8) | Not started |
 
-**Next step**: 9 — Implement `entity.py` base class (Phase 4).
+**Next step**: 14 — Implement config flow + options flow (Phase 5).
 
 **Notes**:
 - Phase 1 validated: lint passes. README.md body content still has cover-specific text — full rewrite deferred to Phase 8.
 - Phase 2 validated: lint passes. `const.py`, `config.py`, `data.py` rewritten with PI thermostat types.
 - Phase 3 validated: lint passes, 40 unit tests pass. `pi_controller.py` (new), `ha_interface.py`, `coordinator.py` rewritten.
-- Remaining source files still contain cover-specific code from the template. They will be rewritten in Phases 4–6.
+- Phase 4 validated: lint passes, 40 unit tests pass. `entity.py` unchanged (already correct). `sensor.py`, `number.py`, `switch.py`, `binary_sensor.py` rewritten with PI thermostat entities.
 
 ---
 
