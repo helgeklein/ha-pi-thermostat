@@ -195,7 +195,7 @@ class ITermStartupMode(StrEnum):
 # Safety
 # ---------------------------------------------------------------------------
 
-SENSOR_FAULT_GRACE_PERIOD_SECONDS: Final[int] = 300  # 5 min before shutdown in HOLD mode
+SENSOR_FAULT_GRACE_PERIOD_SECONDS: Final[int] = 1800  # 30 min before shutdown in HOLD mode
 
 # ---------------------------------------------------------------------------
 # Options flow error translation keys

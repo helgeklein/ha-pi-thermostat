@@ -20,14 +20,13 @@ A Home Assistant custom integration that implements a **PI (proportional–integ
     - In auto mode, the heating/cooling direction is read from a climate entity's HVAC action.
     - Optional auto-disable when the climate entity's HVAC mode is "off".
 - **Output control:**
-    - Write the PI output (0–100 %) to an `input_number` or `number` entity.
     - Use the output value in automations to control valves, heaters, fans, etc.
 - **Sensor fault handling:**
     - **Shutdown immediately:** Set output to 0 % when the temperature sensor becomes unavailable.
-    - **Hold last output:** Maintain the last output for a 5-minute grace period, then shut down.
-- **I-term persistence across restarts:**
-    - Configurable startup modes: **last persisted**, **fixed value**, or **zero**.
+    - **Hold last output:** Maintain the last output for a 30-minute grace period, then shut down.
+- **I-term persistence across restarts and upgrades:**
     - The integral term is saved via Home Assistant's `RestoreEntity` mechanism.
+    - Configurable startup modes: **last persisted**, **fixed value**, or **zero**.
 - **Runtime-configurable entities:**
     - Number entities for proportional band, integral time, target temperature, output min/max, and update interval — all adjustable without reconfiguring.
     - Enabled switch to pause/resume the controller.
@@ -35,7 +34,6 @@ A Home Assistant custom integration that implements a **PI (proportional–integ
     - Output %, deviation, proportional term, integral term.
 - **Multiple instances:** Run independent thermostat controllers for different zones.
 - **Fully UI-configured:** Three-step options wizard, no YAML required.
-- **Rich language support:** UI translations available for Chinese, Dutch, English, French, German, Italian, Polish, Portuguese, Spanish, Swedish.
 
 ## Configuration
 

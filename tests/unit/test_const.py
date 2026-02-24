@@ -90,9 +90,9 @@ class TestDefaults:
         assert DEFAULT_OUTPUT_MAX == 100.0
 
     def test_grace_period(self) -> None:
-        """Sensor fault grace period is 300 seconds (5 min)."""
+        """Sensor fault grace period is 1800 seconds (30 min)."""
 
-        assert SENSOR_FAULT_GRACE_PERIOD_SECONDS == 300
+        assert SENSOR_FAULT_GRACE_PERIOD_SECONDS == 1800
 
     def test_iterm_startup_value(self) -> None:
         """Default I-term startup value is 0%."""
