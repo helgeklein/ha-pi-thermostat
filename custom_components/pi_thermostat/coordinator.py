@@ -505,7 +505,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             # HOLD mode but no prior good output (e.g. first cycle after restart).
             # Return unknown result so entity states are not changed from their
             # restored values — avoids sending a spurious 0 % on restart.
-            self._logger.warning("Sensor unavailable — no prior output available, waiting for sensor")
+            self._logger.info("Sensor unavailable — no prior output available, waiting for sensor")
             return self._unknown_result(
                 target_temp=target_temp,
                 sensor_available=False,
