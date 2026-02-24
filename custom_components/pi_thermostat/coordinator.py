@@ -182,7 +182,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
                 sensor_available=self._last_data.sensor_available,
             )
 
-        return self._shutdown_result()
+        return self._unknown_result()
 
     #
     # _shutdown_result
@@ -198,6 +198,33 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
 
         return CoordinatorData(
             output=0.0,
+            deviation=None,
+            p_term=None,
+            i_term=None,
+            current_temp=current_temp,
+            target_temp=target_temp,
+            sensor_available=sensor_available,
+        )
+
+    #
+    # _unknown_result
+    #
+    @staticmethod
+    def _unknown_result(
+        *,
+        current_temp: float | None = None,
+        target_temp: float | None = None,
+        sensor_available: bool = True,
+    ) -> CoordinatorData:
+        """Return a CoordinatorData with output = None (no known-good value yet).
+
+        Used when the coordinator cannot determine a valid output and should
+        not change whatever value entities already have (e.g. their restored
+        state after a restart).
+        """
+
+        return CoordinatorData(
+            output=None,
             deviation=None,
             p_term=None,
             i_term=None,
@@ -475,8 +502,14 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             self._logger.warning("Sensor unavailable — grace period exceeded, shutting down output")
 
         elif fault_mode == SensorFaultMode.HOLD:
-            # HOLD mode but no prior good output (e.g. first cycle after restart)
-            self._logger.warning("Sensor unavailable — no prior output available, shutting down output")
+            # HOLD mode but no prior good output (e.g. first cycle after restart).
+            # Return unknown result so entity states are not changed from their
+            # restored values — avoids sending a spurious 0 % on restart.
+            self._logger.warning("Sensor unavailable — no prior output available, waiting for sensor")
+            return self._unknown_result(
+                target_temp=target_temp,
+                sensor_available=False,
+            )
 
         else:
             self._logger.warning("Sensor unavailable — shutting down output (shutdown mode)")
