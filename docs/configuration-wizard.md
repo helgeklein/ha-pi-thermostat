@@ -69,7 +69,7 @@ Only used when the target temperature mode is "External entity". Select the enti
 Behavior when the temperature sensor becomes unavailable:
 
 - **Shutdown immediately:** Set output to 0 % right away. Safest option for most scenarios.
-- **Hold last output:** Maintain the last calculated output for a 5-minute grace period, then shut down. Useful for short sensor dropouts.
+- **Hold last output:** Maintain the last calculated output for a 30-minute grace period, then shut down. Useful for short sensor dropouts.
 
 ### Output Startup Mode
 
