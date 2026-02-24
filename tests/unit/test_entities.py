@@ -67,15 +67,9 @@ async def _setup_integration(
     entry.add_to_hass(hass)
 
     # Patch HA interface methods so the coordinator can run without real entities
-    with (
-        patch(
-            "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.get_temperature",
-            return_value=20.0,
-        ),
-        patch(
-            "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.set_output",
-            new_callable=AsyncMock,
-        ),
+    with patch(
+        "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.get_temperature",
+        return_value=20.0,
     ):
         result = await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()

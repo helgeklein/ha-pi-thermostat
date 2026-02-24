@@ -39,15 +39,13 @@
             },
             "3": {
                 "title": "PI Thermostat - Step 3 of 3",
-                "description": "Configure the **output entity**, **sensor fault**, and **startup** settings.",
+                "description": "Configure **sensor fault** and **startup** settings.",
                 "data": {
-                    "output_entity": "Output entity",
                     "sensor_fault_mode": "Sensor fault mode",
                     "iterm_startup_mode": "Output startup mode",
                     "iterm_startup_value": "Output startup value"
                 },
                 "data_description": {
-                    "output_entity": "Optional. Entity to write the PI controller output to (input_number or number entity).",
                     "sensor_fault_mode": "Behavior when the temperature sensor becomes unavailable.",
                     "iterm_startup_mode": "How the output is initialized when the integration starts.",
                     "iterm_startup_value": "Output percentage to use on startup. Used as the initial value when mode is 'Fixed value', or as the fallback when mode is 'Last persisted' and no previous value exists."

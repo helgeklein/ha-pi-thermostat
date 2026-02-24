@@ -154,7 +154,6 @@ class TestResolve:
         assert resolved.auto_disable_on_hvac_off is True
         assert resolved.proportional_band == DEFAULT_PROP_BAND
         assert resolved.integral_time == DEFAULT_INT_TIME
-        assert resolved.output_entity == ""
         assert resolved.output_min == DEFAULT_OUTPUT_MIN
         assert resolved.output_max == DEFAULT_OUTPUT_MAX
         assert resolved.update_interval == UPDATE_INTERVAL_DEFAULT_SECONDS
@@ -344,6 +343,5 @@ class TestRuntimeConfigurableKeys:
         assert "climate_entity" not in keys
         assert "temp_sensor" not in keys
         assert "operating_mode" not in keys
-        assert "output_entity" not in keys
         assert "sensor_fault_mode" not in keys
         assert "iterm_startup_mode" not in keys

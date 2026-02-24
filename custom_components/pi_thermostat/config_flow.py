@@ -6,7 +6,7 @@ user-configurable fields. All real configuration happens in the options flow.
 The options flow has three steps:
   1. Climate Entity & Operating Mode
   2. Temperature Sensors & Target
-  3. Output & Sensor Fault Mode
+  3. Sensor Fault & Startup Mode
 
 PI tuning parameters and update interval are adjusted at runtime via number
 entities, not the options flow.
@@ -54,9 +54,6 @@ DOCS_URL: str = "https://ha-pi-thermostat.helgeklein.com/"
 # ---------------------------------------------------------------------------
 # Entity selector domains
 # ---------------------------------------------------------------------------
-
-DOMAINS_OUTPUT_ENTITY: list[str] = ["input_number", Platform.NUMBER]
-
 
 # ===========================================================================
 # Schema builders
@@ -173,7 +170,7 @@ def _build_schema_step_2(
 # _build_schema_step_3
 #
 def _build_schema_step_3(defaults: dict[str, Any]) -> vol.Schema:
-    """Build the voluptuous schema for step 3: Output & Sensor Fault Mode.
+    """Build the voluptuous schema for step 3: Sensor Fault & Startup Mode.
 
     Args:
         defaults: Current/default values keyed by ConfKeys string values.
@@ -184,11 +181,6 @@ def _build_schema_step_3(defaults: dict[str, Any]) -> vol.Schema:
 
     resolved = resolve(defaults)
     schema: dict[vol.Marker, Any] = {}
-
-    # Output entity (optional — input_number or number)
-    schema[vol.Optional(ConfKeys.OUTPUT_ENTITY.value)] = selector.EntitySelector(
-        selector.EntitySelectorConfig(domain=DOMAINS_OUTPUT_ENTITY)
-    )
 
     # Sensor fault mode
     schema[
@@ -377,7 +369,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     Three-step wizard:
       1. Climate Entity & Operating Mode
       2. Temperature Sensors & Target
-      3. Output & Sensor Fault Mode
+      3. Sensor Fault & Startup Mode
     """
 
     #
@@ -514,7 +506,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     # async_step_3
     #
     async def async_step_3(self, user_input: dict[str, Any] | None = None) -> config_entries.ConfigFlowResult:
-        """Step 3: Output & Sensor Fault Mode."""
+        """Step 3: Sensor Fault & Startup Mode."""
 
         defaults = self._merged_defaults()
         schema = _build_schema_step_3(defaults)

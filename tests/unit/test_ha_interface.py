@@ -11,17 +11,12 @@ Tests cover:
     get_target_temperature, get_climate_target_temperature.
 - Public API climate attributes:
   - get_climate_hvac_action, get_climate_hvac_mode.
-- Public API output:
-  - set_output for input_number, number, unsupported domain, service failure.
 - Public API availability:
   - is_entity_available: available, unavailable, unknown, missing.
 """
 
 from __future__ import annotations
 
-from typing import Any
-
-import pytest
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 
@@ -372,73 +367,6 @@ class TestGetClimateHvacMode:
         iface = _make_interface(hass)
 
         assert iface.get_climate_hvac_mode("climate.nonexistent") is None
-
-
-# ===========================================================================
-# Public API — set_output
-# ===========================================================================
-
-
-class TestSetOutput:
-    """Test set_output service calls."""
-
-    async def test_input_number(self, hass: HomeAssistant) -> None:
-        """Calls input_number.set_value for input_number entities."""
-
-        iface = _make_interface(hass)
-        calls: list[dict] = []
-
-        async def mock_set_value(call: Any) -> None:
-            calls.append(dict(call.data))
-
-        hass.services.async_register("input_number", "set_value", mock_set_value)
-
-        await iface.set_output("input_number.output", 42.5)
-
-        assert len(calls) == 1
-        assert calls[0]["entity_id"] == "input_number.output"
-        assert calls[0]["value"] == 42.5
-
-    async def test_number_domain(self, hass: HomeAssistant) -> None:
-        """Calls number.set_value for number entities."""
-
-        iface = _make_interface(hass)
-        calls: list[dict] = []
-
-        async def mock_set_value(call: Any) -> None:
-            calls.append(dict(call.data))
-
-        hass.services.async_register("number", "set_value", mock_set_value)
-
-        await iface.set_output("number.output", 75.0)
-
-        assert len(calls) == 1
-        assert calls[0]["entity_id"] == "number.output"
-        assert calls[0]["value"] == 75.0
-
-    async def test_unsupported_domain(self, hass: HomeAssistant) -> None:
-        """Logs warning and returns for unsupported domain."""
-
-        iface = _make_interface(hass)
-
-        # Should not raise — just logs a warning and returns
-        await iface.set_output("sensor.output", 50.0)
-
-    async def test_service_call_failure(self, hass: HomeAssistant) -> None:
-        """Raises ServiceCallError when service call fails."""
-
-        iface = _make_interface(hass)
-
-        async def failing_service(call: Any) -> None:
-            raise RuntimeError("connection lost")
-
-        hass.services.async_register("input_number", "set_value", failing_service)
-
-        with pytest.raises(ServiceCallError) as exc_info:
-            await iface.set_output("input_number.output", 50.0)
-
-        assert exc_info.value.entity_id == "input_number.output"
-        assert "connection lost" in exc_info.value.error
 
 
 # ===========================================================================
