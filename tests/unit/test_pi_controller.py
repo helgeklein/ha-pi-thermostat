@@ -343,6 +343,34 @@ class TestModeSwitching:
 
         assert result.output > 0
 
+    def test_integral_resets_on_mode_switch(self, heating_controller: Any) -> None:
+        """Switching mode should reset the integral term to zero."""
+
+        # Build up integral in heating mode
+        for _ in range(5):
+            heating_controller.update(19.0, dt=TEST_SAMPLE_TIME)
+
+        assert heating_controller.get_integral_term() > 0
+
+        # Switch to cooling — integral must be cleared
+        heating_controller.set_cooling(True)
+
+        assert heating_controller.get_integral_term() == pytest.approx(0.0)
+
+    def test_integral_resets_on_switch_back(self, cooling_controller: Any) -> None:
+        """Switching from cooling back to heating should also reset integral."""
+
+        # Build up integral in cooling mode
+        for _ in range(5):
+            cooling_controller.update(25.0, dt=TEST_SAMPLE_TIME)
+
+        assert cooling_controller.get_integral_term() != pytest.approx(0.0)
+
+        # Switch to heating — integral must be cleared
+        cooling_controller.set_cooling(False)
+
+        assert cooling_controller.get_integral_term() == pytest.approx(0.0)
+
 
 # ---------------------------------------------------------------------------
 # Setpoint changes

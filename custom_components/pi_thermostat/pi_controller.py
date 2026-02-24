@@ -161,6 +161,7 @@ class PIController:
 
         if is_cooling != self._is_cooling:
             self._is_cooling = is_cooling
+            self._pid.reset()
             self._apply_sign()
 
     # -------------------------------------------------------------------

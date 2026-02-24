@@ -12,5 +12,5 @@
     "requirements": [
         "simple-pid==2.0.1"
     ],
-    "version": "0.8.1"
+    "version": "0.9.0"
 }
