@@ -270,11 +270,10 @@ class TestBuildSchemaStep3:
         assert isinstance(schema, vol.Schema)
 
     def test_contains_expected_keys(self) -> None:
-        """Schema has output_entity, sensor_fault_mode, iterm_startup_mode/value."""
+        """Schema has sensor_fault_mode, iterm_startup_mode/value."""
 
         schema = _build_schema_step_3({})
         key_names = {str(k) for k in schema.schema}
-        assert "output_entity" in key_names
         assert "sensor_fault_mode" in key_names
         assert "iterm_startup_mode" in key_names
         assert "iterm_startup_value" in key_names
@@ -370,7 +369,6 @@ class TestOptionsFlowHappyPath:
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
-                "output_entity": "input_number.output",
                 "sensor_fault_mode": SensorFaultMode.SHUTDOWN,
                 "iterm_startup_mode": ITermStartupMode.LAST,
                 "iterm_startup_value": 0.0,
@@ -383,7 +381,6 @@ class TestOptionsFlowHappyPath:
         assert saved["climate_entity"] == "climate.living_room"
         assert saved["operating_mode"] == OperatingMode.HEAT_COOL
         assert saved["temp_sensor"] == "sensor.temperature"
-        assert saved["output_entity"] == "input_number.output"
         assert saved["sensor_fault_mode"] == SensorFaultMode.SHUTDOWN
         assert saved["iterm_startup_mode"] == ITermStartupMode.LAST
 
@@ -573,7 +570,6 @@ class TestOptionsFlowExistingOptions:
                 "auto_disable_on_hvac_off": True,
                 "temp_sensor": "sensor.bedroom_temp",
                 "target_temp_mode": TargetTempMode.INTERNAL,
-                "output_entity": "input_number.bedroom_output",
                 "sensor_fault_mode": SensorFaultMode.HOLD,
                 "iterm_startup_mode": ITermStartupMode.FIXED,
                 "iterm_startup_value": 50.0,
@@ -608,7 +604,6 @@ class TestOptionsFlowExistingOptions:
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
-                "output_entity": "input_number.bedroom_output",
                 "sensor_fault_mode": SensorFaultMode.HOLD,
                 "iterm_startup_mode": ITermStartupMode.FIXED,
                 "iterm_startup_value": 50.0,
@@ -628,7 +623,7 @@ class TestOptionsFlowExistingOptions:
 
         entry = _mock_config_entry(
             options={
-                "output_entity": "input_number.old",
+                "sensor_fault_mode": SensorFaultMode.HOLD,
             }
         )
         entry.add_to_hass(hass)
@@ -653,7 +648,7 @@ class TestOptionsFlowExistingOptions:
             },
         )
 
-        # Step 3: omit output_entity — existing value is preserved via merge
+        # Step 3: submit new values — existing sensor_fault_mode is overwritten
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
@@ -665,5 +660,5 @@ class TestOptionsFlowExistingOptions:
         assert result["type"] is FlowResultType.CREATE_ENTRY
 
         saved = result["data"]
-        # Old output_entity is preserved from existing options
-        assert saved["output_entity"] == "input_number.old"
+        # Step 3 overwrites existing sensor_fault_mode
+        assert saved["sensor_fault_mode"] == SensorFaultMode.SHUTDOWN

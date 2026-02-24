@@ -319,51 +319,6 @@ class HomeAssistantInterface:
         return str(state_obj.state)
 
     # ------------------------------------------------------------------
-    # Public API — output
-    # ------------------------------------------------------------------
-
-    #
-    # set_output
-    #
-    async def set_output(self, entity_id: str, value: float) -> None:
-        """Write the PI output value to an entity via service call.
-
-        Supports ``input_number`` and ``number`` entities. The appropriate
-        service is selected based on the entity's domain.
-
-        Args:
-            entity_id: Entity ID to write to.
-            value: Output value to set.
-
-        Raises:
-            ServiceCallError: If the service call fails.
-        """
-
-        domain = entity_id.split(".")[0]
-
-        service_map: dict[str, tuple[str, str]] = {
-            "input_number": ("input_number", "set_value"),
-            "number": ("number", "set_value"),
-        }
-
-        mapping = service_map.get(domain)
-        if mapping is None:
-            self._logger.warning(
-                "Unsupported output entity domain '%s' for entity %s",
-                domain,
-                entity_id,
-            )
-            return
-
-        svc_domain, svc_name = mapping
-        service_data: dict[str, Any] = {"entity_id": entity_id, "value": value}
-
-        try:
-            await self._hass.services.async_call(svc_domain, svc_name, service_data, blocking=True)
-        except Exception as err:  # noqa: BLE001
-            raise ServiceCallError(f"{svc_domain}.{svc_name}", entity_id, str(err)) from err
-
-    # ------------------------------------------------------------------
     # Public API — availability
     # ------------------------------------------------------------------
 

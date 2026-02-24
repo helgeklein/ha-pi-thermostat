@@ -64,7 +64,7 @@ How often the PI controller recalculates the output, in seconds.
 
 ### Output
 
-The current PI controller output as a percentage (0–100 %). This is the main output value that gets written to the configured output entity.
+The current PI controller output as a percentage (0–100 %). This is the main output value. Use it in automations to control physical actuators like valves, heaters, or fans.
 
 ### Deviation
 

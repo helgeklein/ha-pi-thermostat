@@ -51,5 +51,5 @@ You have separate heating and cooling systems for the same zone (e.g., radiator 
 
 1. Set up one instance in **Heat only** mode for the radiator valve.
 2. Set up a second instance in **Cool only** mode for the fan.
-3. Each instance writes to its own output entity, which drives the respective actuator via automations.
+3. Each instance exposes its own output sensor, which drives the respective actuator via automations.
 

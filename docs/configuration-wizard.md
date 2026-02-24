@@ -62,13 +62,7 @@ Where to read the target (setpoint) temperature from:
 
 Only used when the target temperature mode is "External entity". Select the entity to read the target temperature from.
 
-## Step 3: Output & Sensor Fault Mode
-
-### Output Entity (Optional)
-
-Select an `input_number` or `number` entity to write the PI controller's output to. This entity receives a value between 0 and 100 (percent) on every update cycle. Use this entity in automations to control physical actuators like valves, heaters, or fans.
-
-If no output entity is configured, the output is still available as a sensor on the device page.
+## Step 3: Sensor Fault & Startup Mode
 
 ### Sensor Fault Mode
 

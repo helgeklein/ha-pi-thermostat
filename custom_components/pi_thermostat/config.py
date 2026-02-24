@@ -71,7 +71,6 @@ class ConfKeys(StrEnum):
     AUTO_DISABLE_ON_HVAC_OFF = "auto_disable_on_hvac_off"
     PROPORTIONAL_BAND = "proportional_band"
     INTEGRAL_TIME = "integral_time"
-    OUTPUT_ENTITY = "output_entity"
     OUTPUT_MIN = "output_min"
     OUTPUT_MAX = "output_max"
     UPDATE_INTERVAL = "update_interval"
@@ -168,10 +167,6 @@ CONF_SPECS: dict[ConfKeys, _ConfSpec[Any]] = {
         converter=_Converters.to_float,
         runtime_configurable=True,
     ),
-    ConfKeys.OUTPUT_ENTITY: _ConfSpec(
-        default="",
-        converter=_Converters.to_str,
-    ),
     ConfKeys.OUTPUT_MIN: _ConfSpec(
         default=DEFAULT_OUTPUT_MIN,
         converter=_Converters.to_float,
@@ -248,7 +243,6 @@ class ResolvedConfig:
     auto_disable_on_hvac_off: bool
     proportional_band: float
     integral_time: float
-    output_entity: str
     output_min: float
     output_max: float
     update_interval: int

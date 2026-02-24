@@ -234,31 +234,6 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         )
 
     #
-    # _async_write_output
-    #
-    async def _async_write_output(self, resolved: ResolvedConfig, output: float) -> None:
-        """Write the output value to the configured output entity.
-
-        Logs a warning on failure but never raises.
-
-        Args:
-            resolved: Current resolved configuration.
-            output: Output value to write.
-        """
-
-        if not resolved.output_entity:
-            return
-
-        try:
-            await self._ha.set_output(resolved.output_entity, output)
-        except Exception:  # noqa: BLE001
-            self._logger.warning(
-                "Failed to write output %s to %s",
-                output,
-                resolved.output_entity,
-            )
-
-    #
     # _read_current_temp
     #
     def _read_current_temp(self, resolved: ResolvedConfig) -> float | None:
@@ -405,7 +380,6 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             hvac_mode = self._ha.get_climate_hvac_mode(resolved.climate_entity)
             if hvac_mode == HVACMode.OFF:
                 self._logger.debug("Auto-disabled: climate entity hvac_mode is off")
-                await self._async_write_output(resolved, 0.0)
                 return self._shutdown_result()
 
         # ── Step 3: Determine heating / cooling direction ───────────────
@@ -437,10 +411,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         # Track last good output for HOLD fault mode
         self._last_good_output = result.output
 
-        # ── Step 9: Write output to entity (optional) ───────────────────
-        await self._async_write_output(resolved, result.output)
-
-        # ── Step 10: Return CoordinatorData ─────────────────────────────
+        # ── Step 9: Return CoordinatorData ──────────────────────────────
         data = CoordinatorData(
             output=result.output,
             deviation=result.deviation,
@@ -514,7 +485,6 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         else:
             self._logger.warning("Sensor unavailable — shutting down output (shutdown mode)")
 
-        await self._async_write_output(resolved, 0.0)
         return self._shutdown_result(
             target_temp=target_temp,
             sensor_available=False,

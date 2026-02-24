@@ -21,10 +21,6 @@ The integration comes with the following sensors that help you understand the co
 - **Proportional term:** How much of the output is due to the current temperature deviation.
 - **Integral term:** How much of the output is due to accumulated past deviation.
 
-### Checking the Output Entity
-
-If you have configured an output entity (`input_number` or `number`), you can observe it directly in the Home Assistant UI. Its value should update on every controller cycle (default: every 60 seconds).
-
 ## Common Issues
 
 ### Output Stays at 0 %
