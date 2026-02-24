@@ -107,7 +107,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
 
         # Sensor-fault tracking for HOLD mode
         self._fault_cycles: int = 0
-        self._last_good_output: float = 0.0
+        self._last_good_output: float | None = None
 
         # Last coordinator result — used to preserve state when paused
         self._last_data: CoordinatorData | None = None
@@ -182,7 +182,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
                 sensor_available=self._last_data.sensor_available,
             )
 
-        return self._shutdown_result()
+        return self._unknown_result()
 
     #
     # _shutdown_result
@@ -205,6 +205,58 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             target_temp=target_temp,
             sensor_available=sensor_available,
         )
+
+    #
+    # _unknown_result
+    #
+    @staticmethod
+    def _unknown_result(
+        *,
+        current_temp: float | None = None,
+        target_temp: float | None = None,
+        sensor_available: bool = True,
+    ) -> CoordinatorData:
+        """Return a CoordinatorData with output = None (no known-good value yet).
+
+        Used when the coordinator cannot determine a valid output and should
+        not change whatever value entities already have (e.g. their restored
+        state after a restart).
+        """
+
+        return CoordinatorData(
+            output=None,
+            deviation=None,
+            p_term=None,
+            i_term=None,
+            current_temp=current_temp,
+            target_temp=target_temp,
+            sensor_available=sensor_available,
+        )
+
+    #
+    # _async_write_output
+    #
+    async def _async_write_output(self, resolved: ResolvedConfig, output: float) -> None:
+        """Write the output value to the configured output entity.
+
+        Logs a warning on failure but never raises.
+
+        Args:
+            resolved: Current resolved configuration.
+            output: Output value to write.
+        """
+
+        if not resolved.output_entity:
+            return
+
+        try:
+            await self._ha.set_output(resolved.output_entity, output)
+        except Exception:  # noqa: BLE001
+            self._logger.warning(
+                "Failed to write output %s to %s",
+                output,
+                resolved.output_entity,
+            )
 
     #
     # _read_current_temp
@@ -353,6 +405,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             hvac_mode = self._ha.get_climate_hvac_mode(resolved.climate_entity)
             if hvac_mode == HVACMode.OFF:
                 self._logger.debug("Auto-disabled: climate entity hvac_mode is off")
+                await self._async_write_output(resolved, 0.0)
                 return self._shutdown_result()
 
         # ── Step 3: Determine heating / cooling direction ───────────────
@@ -370,7 +423,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
 
         # ── Step 6: Handle sensor faults ────────────────────────────────
         if current_temp is None:
-            return self._handle_sensor_fault(resolved, target_temp)
+            return await self._async_handle_sensor_fault(resolved, target_temp)
 
         # Sensor is OK — reset fault counter
         self._fault_cycles = 0
@@ -385,15 +438,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         self._last_good_output = result.output
 
         # ── Step 9: Write output to entity (optional) ───────────────────
-        if resolved.output_entity:
-            try:
-                await self._ha.set_output(resolved.output_entity, result.output)
-            except Exception:  # noqa: BLE001
-                self._logger.warning(
-                    "Failed to write output %s to %s",
-                    result.output,
-                    resolved.output_entity,
-                )
+        await self._async_write_output(resolved, result.output)
 
         # ── Step 10: Return CoordinatorData ─────────────────────────────
         data = CoordinatorData(
@@ -409,9 +454,9 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         return data
 
     #
-    # _handle_sensor_fault
+    # _async_handle_sensor_fault
     #
-    def _handle_sensor_fault(
+    async def _async_handle_sensor_fault(
         self,
         resolved: ResolvedConfig,
         target_temp: float | None,
@@ -428,7 +473,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
 
         fault_mode = resolved.sensor_fault_mode
 
-        if fault_mode == SensorFaultMode.HOLD:
+        if fault_mode == SensorFaultMode.HOLD and self._last_good_output is not None:
             grace_cycles = max(
                 1,
                 SENSOR_FAULT_GRACE_PERIOD_SECONDS // max(resolved.update_interval, 1),
@@ -456,9 +501,20 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             # Grace period exceeded — fall through to shutdown
             self._logger.warning("Sensor unavailable — grace period exceeded, shutting down output")
 
+        elif fault_mode == SensorFaultMode.HOLD:
+            # HOLD mode but no prior good output (e.g. first cycle after restart).
+            # Return unknown result so entity states are not changed from their
+            # restored values — avoids sending a spurious 0 % on restart.
+            self._logger.info("Sensor unavailable — no prior output available, waiting for sensor")
+            return self._unknown_result(
+                target_temp=target_temp,
+                sensor_available=False,
+            )
+
         else:
             self._logger.warning("Sensor unavailable — shutting down output (shutdown mode)")
 
+        await self._async_write_output(resolved, 0.0)
         return self._shutdown_result(
             target_temp=target_temp,
             sensor_available=False,

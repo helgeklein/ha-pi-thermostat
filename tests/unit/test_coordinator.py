@@ -243,8 +243,8 @@ class TestPausedResult:
         data = await coordinator._async_update_data()
 
         assert isinstance(data, CoordinatorData)
-        # No temp reading should have been attempted
-        assert data.output == 0.0
+        # No temp reading should have been attempted — output stays unknown
+        assert data.output is None
 
     async def test_paused_preserves_last_state(self, hass: HomeAssistant) -> None:
         """Pausing after a cycle preserves the last output."""
@@ -273,7 +273,7 @@ class TestPausedResult:
         assert paused_data.i_term == first_data.i_term
 
     async def test_paused_without_previous_data(self, hass: HomeAssistant) -> None:
-        """Pausing without previous data returns shutdown result."""
+        """Pausing without previous data returns unknown result (output=None)."""
 
         entry = _make_entry(hass, _default_options(enabled=False))
         coordinator = DataUpdateCoordinator(hass, entry)
@@ -281,7 +281,7 @@ class TestPausedResult:
         assert coordinator._last_data is None
         data = await coordinator._async_update_data()
 
-        assert data.output == 0.0
+        assert data.output is None
 
 
 class TestAutoDisable:
@@ -300,10 +300,36 @@ class TestAutoDisable:
         )
         coordinator = DataUpdateCoordinator(hass, entry)
 
-        with patch.object(coordinator._ha, "get_climate_hvac_mode", return_value=HVACMode.OFF):
+        with (
+            patch.object(coordinator._ha, "get_climate_hvac_mode", return_value=HVACMode.OFF),
+            patch.object(coordinator._ha, "set_output", new_callable=AsyncMock),
+        ):
             data = await coordinator._async_update_data()
 
         assert data.output == 0.0
+
+    async def test_auto_disable_writes_zero_to_output_entity(self, hass: HomeAssistant) -> None:
+        """Auto-disable writes 0 to the output entity."""
+
+        entry = _make_entry(
+            hass,
+            _default_options(
+                climate_entity="climate.living_room",
+                auto_disable_on_hvac_off=True,
+                output_entity="input_number.output",
+                target_temp=22.0,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        mock_set_output = AsyncMock()
+        with (
+            patch.object(coordinator._ha, "get_climate_hvac_mode", return_value=HVACMode.OFF),
+            patch.object(coordinator._ha, "set_output", mock_set_output),
+        ):
+            await coordinator._async_update_data()
+
+        mock_set_output.assert_called_once_with("input_number.output", 0.0)
 
     async def test_no_auto_disable_when_heating(self, hass: HomeAssistant) -> None:
         """Normal cycle when climate HVAC mode is heat."""
@@ -367,11 +393,36 @@ class TestSensorFault:
         )
         coordinator = DataUpdateCoordinator(hass, entry)
 
-        with patch.object(coordinator._ha, "get_temperature", return_value=None):
+        with (
+            patch.object(coordinator._ha, "get_temperature", return_value=None),
+            patch.object(coordinator._ha, "set_output", new_callable=AsyncMock),
+        ):
             data = await coordinator._async_update_data()
 
         assert data.output == 0.0
         assert data.sensor_available is False
+
+    async def test_shutdown_mode_writes_zero_to_output_entity(self, hass: HomeAssistant) -> None:
+        """Shutdown mode writes 0 to the output entity."""
+
+        entry = _make_entry(
+            hass,
+            _default_options(
+                sensor_fault_mode=SensorFaultMode.SHUTDOWN,
+                output_entity="input_number.output",
+                target_temp=22.0,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        mock_set_output = AsyncMock()
+        with (
+            patch.object(coordinator._ha, "get_temperature", return_value=None),
+            patch.object(coordinator._ha, "set_output", mock_set_output),
+        ):
+            await coordinator._async_update_data()
+
+        mock_set_output.assert_called_once_with("input_number.output", 0.0)
 
     async def test_hold_mode_within_grace(self, hass: HomeAssistant) -> None:
         """Hold mode keeps last output within grace period."""
@@ -432,9 +483,69 @@ class TestSensorFault:
                 assert data.sensor_available is False
 
             # One more cycle — should shut down
-            data = await coordinator._async_update_data()
+            with patch.object(coordinator._ha, "set_output", new_callable=AsyncMock):
+                data = await coordinator._async_update_data()
 
         assert data.output == 0.0
+        assert data.sensor_available is False
+
+    async def test_hold_mode_grace_exceeded_writes_zero(self, hass: HomeAssistant) -> None:
+        """Hold mode writes 0 to output entity when grace period exceeds."""
+
+        entry = _make_entry(
+            hass,
+            _default_options(
+                sensor_fault_mode=SensorFaultMode.HOLD,
+                output_entity="input_number.output",
+                target_temp=25.0,
+                update_interval=60,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        # Run a normal cycle first
+        with (
+            patch.object(coordinator._ha, "get_temperature", return_value=20.0),
+            patch.object(coordinator._ha, "set_output", new_callable=AsyncMock),
+        ):
+            await coordinator._async_update_data()
+
+        grace_cycles = max(1, SENSOR_FAULT_GRACE_PERIOD_SECONDS // 60)
+
+        with patch.object(coordinator._ha, "get_temperature", return_value=None):
+            for _ in range(grace_cycles):
+                await coordinator._async_update_data()
+
+            mock_set_output = AsyncMock()
+            with patch.object(coordinator._ha, "set_output", mock_set_output):
+                await coordinator._async_update_data()
+
+        mock_set_output.assert_called_once_with("input_number.output", 0.0)
+
+    async def test_hold_mode_no_prior_output_returns_unknown(self, hass: HomeAssistant) -> None:
+        """Hold mode returns unknown result when no prior good output exists.
+
+        On the first cycle after restart the sensor may be temporarily
+        unavailable.  With no prior good output to hold, the coordinator
+        must not emit output=0 (which would overwrite the entity's
+        restored state and trigger a spurious bus write).  Instead it
+        returns output=None so entity states remain unchanged.
+        """
+
+        entry = _make_entry(
+            hass,
+            _default_options(
+                sensor_fault_mode=SensorFaultMode.HOLD,
+                target_temp=25.0,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        # Sensor unavailable on the very first cycle — no prior output
+        with patch.object(coordinator._ha, "get_temperature", return_value=None):
+            data = await coordinator._async_update_data()
+
+        assert data.output is None
         assert data.sensor_available is False
 
     async def test_fault_counter_resets_on_recovery(self, hass: HomeAssistant) -> None:

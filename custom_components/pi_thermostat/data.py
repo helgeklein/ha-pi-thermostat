@@ -41,7 +41,7 @@ class CoordinatorData:
         sensor_available: Whether the temperature sensor is available.
     """
 
-    output: float
+    output: float | None = None
     deviation: float | None = None
     p_term: float | None = None
     i_term: float | None = None
