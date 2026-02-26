@@ -1,0 +1,5 @@
+Blue dark: 2c72adff
+Blue light: 4cb7dbff
+
+Orange dark: ef5f2dff
+Orange light: ef9028ff
