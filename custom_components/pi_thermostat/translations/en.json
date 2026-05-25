@@ -95,6 +95,14 @@
             "deviation": {
                 "name": "Deviation"
             },
+            "current_mode": {
+                "name": "Current mode",
+                "state": {
+                    "heating": "Heating",
+                    "cooling": "Cooling",
+                    "off": "Off"
+                }
+            },
             "current_temp": {
                 "name": "Current temperature"
             },

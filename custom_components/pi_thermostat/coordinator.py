@@ -175,6 +175,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             return CoordinatorData(
                 output=self._last_data.output,
                 deviation=self._last_data.deviation,
+                current_mode=self._last_data.current_mode,
                 p_term=self._last_data.p_term,
                 i_term=self._last_data.i_term,
                 current_temp=self._last_data.current_temp,
@@ -182,7 +183,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
                 sensor_available=self._last_data.sensor_available,
             )
 
-        return self._unknown_result()
+        return self._unknown_result(current_mode="off")
 
     #
     # _shutdown_result
@@ -199,6 +200,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         return CoordinatorData(
             output=0.0,
             deviation=None,
+            current_mode="off",
             p_term=None,
             i_term=None,
             current_temp=current_temp,
@@ -215,6 +217,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         current_temp: float | None = None,
         target_temp: float | None = None,
         sensor_available: bool = True,
+        current_mode: str | None = None,
     ) -> CoordinatorData:
         """Return a CoordinatorData with output = None (no known-good value yet).
 
@@ -226,12 +229,24 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         return CoordinatorData(
             output=None,
             deviation=None,
+            current_mode=current_mode,
             p_term=None,
             i_term=None,
             current_temp=current_temp,
             target_temp=target_temp,
             sensor_available=sensor_available,
         )
+
+    #
+    # _current_mode
+    #
+    @staticmethod
+    def _current_mode(is_cooling: bool) -> str:
+        """Return the controller mode string for the resolved direction."""
+
+        if is_cooling:
+            return "cooling"
+        return "heating"
 
     #
     # _read_current_temp
@@ -393,6 +408,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         # ── Step 3: Determine heating / cooling direction ───────────────
         is_cooling = self._determine_cooling(resolved)
         self._pi.set_cooling(is_cooling)
+        current_mode = self._current_mode(is_cooling)
 
         # ── Step 4: Read current temperature ────────────────────────────
         current_temp = self._read_current_temp(resolved)
@@ -423,6 +439,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         data = CoordinatorData(
             output=result.output,
             deviation=result.deviation,
+            current_mode=current_mode,
             p_term=result.p_term,
             i_term=result.i_term,
             current_temp=current_temp,
@@ -470,6 +487,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
                 return CoordinatorData(
                     output=self._last_good_output,
                     deviation=None,
+                    current_mode=self._last_data.current_mode if self._last_data is not None else None,
                     p_term=None,
                     i_term=None,
                     current_temp=None,

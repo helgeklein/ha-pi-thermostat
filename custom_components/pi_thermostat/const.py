@@ -104,6 +104,7 @@ DEFAULT_OUTPUT_MAX: Final[float] = 100.0  # Maximum output %
 
 SENSOR_KEY_OUTPUT: Final[str] = "output"  # PI output percentage
 SENSOR_KEY_DEVIATION: Final[str] = "deviation"  # Current deviation (target − actual)
+SENSOR_KEY_CURRENT_MODE: Final[str] = "current_mode"  # Current controller mode
 SENSOR_KEY_CURRENT_TEMP: Final[str] = "current_temp"  # Current temperature reading
 SENSOR_KEY_TARGET_TEMP: Final[str] = "target_temp"  # Target temperature (read-only)
 SENSOR_KEY_P_TERM: Final[str] = "p_term"  # Proportional component

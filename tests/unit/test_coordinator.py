@@ -128,6 +128,7 @@ class TestNormalCycle:
         assert data.current_temp == 20.0
         assert data.target_temp == 22.0
         assert data.sensor_available is True
+        assert data.current_mode == "heating"
         assert data.output >= 0.0  # Should be positive (needs heating)
         assert data.deviation == pytest.approx(2.0)  # 22 - 20
 
@@ -148,6 +149,7 @@ class TestNormalCycle:
 
         assert data.current_temp == 22.0
         assert data.target_temp == 20.0
+        assert data.current_mode == "cooling"
         assert data.output >= 0.0  # Should be positive (needs cooling)
 
     async def test_at_target_temp(self, hass: HomeAssistant) -> None:

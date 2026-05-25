@@ -116,6 +116,7 @@ class TestSensorEntities:
         expected_entity_ids = [
             "sensor.pi_thermostat_output",
             "sensor.pi_thermostat_deviation",
+            "sensor.pi_thermostat_current_mode",
             "sensor.pi_thermostat_current_temperature",
             "sensor.pi_thermostat_proportional_term",
             "sensor.pi_thermostat_integral_term",
@@ -144,6 +145,24 @@ class TestSensorEntities:
         assert state is not None
         # Deviation = target - current = 22 - 20 = 2.0
         assert float(state.state) == pytest.approx(2.0, abs=0.01)
+
+    async def test_current_mode_sensor_value_heating(self, hass: HomeAssistant) -> None:
+        """Current mode sensor reflects heating mode."""
+
+        await _setup_integration(hass, _default_options(operating_mode=OperatingMode.HEAT))
+
+        state = hass.states.get("sensor.pi_thermostat_current_mode")
+        assert state is not None
+        assert state.state == "heating"
+
+    async def test_current_mode_sensor_value_cooling(self, hass: HomeAssistant) -> None:
+        """Current mode sensor reflects cooling mode."""
+
+        await _setup_integration(hass, _default_options(operating_mode=OperatingMode.COOL))
+
+        state = hass.states.get("sensor.pi_thermostat_current_mode")
+        assert state is not None
+        assert state.state == "cooling"
 
     async def test_target_temp_sensor_created_in_climate_mode(self, hass: HomeAssistant) -> None:
         """Target temp sensor is created when target_temp_mode is not INTERNAL."""

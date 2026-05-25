@@ -24,6 +24,7 @@ from custom_components.pi_thermostat.const import (
     NUMBER_KEY_TARGET_TEMP,
     NUMBER_KEY_UPDATE_INTERVAL,
     SENSOR_FAULT_GRACE_PERIOD_SECONDS,
+    SENSOR_KEY_CURRENT_MODE,
     SENSOR_KEY_CURRENT_TEMP,
     SENSOR_KEY_DEVIATION,
     SENSOR_KEY_I_TERM,
@@ -114,6 +115,7 @@ class TestEntityKeys:
         keys = [
             SENSOR_KEY_OUTPUT,
             SENSOR_KEY_DEVIATION,
+            SENSOR_KEY_CURRENT_MODE,
             SENSOR_KEY_CURRENT_TEMP,
             SENSOR_KEY_TARGET_TEMP,
             SENSOR_KEY_P_TERM,

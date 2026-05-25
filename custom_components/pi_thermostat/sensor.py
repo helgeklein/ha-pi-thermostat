@@ -4,6 +4,7 @@ Provides read-only sensors exposing the PI controller's internal state:
 
 - **output**: PI output percentage (0-100 %).
 - **deviation**: Control deviation (target - current temperature).
+- **current_mode**: Current controller mode (heating, cooling, off).
 - **current_temp**: Current temperature reading.
 - **target_temp**: Target temperature (read-only; only when target_temp_mode is not internal).
 - **p_term**: Proportional component of the output.
@@ -25,6 +26,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .config import resolve_entry
 from .const import (
+    SENSOR_KEY_CURRENT_MODE,
     SENSOR_KEY_CURRENT_TEMP,
     SENSOR_KEY_DEVIATION,
     SENSOR_KEY_I_TERM,
@@ -63,6 +65,14 @@ SENSOR_DEVIATION = SensorEntityDescription(
     device_class=SensorDeviceClass.TEMPERATURE,
     state_class=SensorStateClass.MEASUREMENT,
     suggested_display_precision=2,
+)
+
+SENSOR_CURRENT_MODE = SensorEntityDescription(
+    key=SENSOR_KEY_CURRENT_MODE,
+    translation_key=SENSOR_KEY_CURRENT_MODE,
+    device_class=SensorDeviceClass.ENUM,
+    options=["heating", "cooling", "off"],
+    icon="mdi:hvac",
 )
 
 SENSOR_CURRENT_TEMP = SensorEntityDescription(
@@ -123,6 +133,7 @@ async def async_setup_entry(
     entities: list[IntegrationSensor | ITermSensor] = [
         IntegrationSensor(coordinator, SENSOR_OUTPUT),
         IntegrationSensor(coordinator, SENSOR_DEVIATION),
+        IntegrationSensor(coordinator, SENSOR_CURRENT_MODE),
         IntegrationSensor(coordinator, SENSOR_CURRENT_TEMP),
         IntegrationSensor(coordinator, SENSOR_P_TERM),
         ITermSensor(coordinator),
@@ -174,7 +185,7 @@ class IntegrationSensor(IntegrationEntity, SensorEntity):  # pyright: ignore[rep
     # native_value
     #
     @property
-    def native_value(self) -> float | None:  # pyright: ignore[reportIncompatibleVariableOverride]
+    def native_value(self) -> str | float | None:  # pyright: ignore[reportIncompatibleVariableOverride]
         """Return the current sensor value from coordinator data."""
 
         if self.coordinator.data is None:

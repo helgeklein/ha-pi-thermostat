@@ -34,6 +34,7 @@ class CoordinatorData:
     Attributes:
         output: PI output percentage (0–100).
         deviation: Target − current temperature (or current − target in cool mode).
+        current_mode: Current controller mode (e.g. heating, cooling, off).
         p_term: Proportional component of the PI output.
         i_term: Integral component of the PI output.
         current_temp: Current temperature reading from the sensor.
@@ -43,6 +44,7 @@ class CoordinatorData:
 
     output: float | None = None
     deviation: float | None = None
+    current_mode: str | None = None
     p_term: float | None = None
     i_term: float | None = None
     current_temp: float | None = None
