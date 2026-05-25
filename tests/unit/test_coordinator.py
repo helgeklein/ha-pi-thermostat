@@ -542,7 +542,7 @@ class TestDetermineCooling:
             assert coordinator._determine_cooling(resolved) is False
 
     async def test_heat_cool_defaults_to_heating(self, hass: HomeAssistant) -> None:
-        """Heat+cool defaults to heating when action is unknown."""
+        """Heat+cool defaults to heating when action and mode are unknown."""
 
         entry = _make_entry(
             hass,
@@ -562,8 +562,38 @@ class TestDetermineCooling:
             )
         )
 
-        with patch.object(coordinator._ha, "get_climate_hvac_action", return_value=None):
+        with (
+            patch.object(coordinator._ha, "get_climate_hvac_action", return_value=None),
+            patch.object(coordinator._ha, "get_climate_hvac_mode", return_value=None),
+        ):
             assert coordinator._determine_cooling(resolved) is False
+
+    async def test_heat_cool_uses_hvac_mode_when_action_is_idle(self, hass: HomeAssistant) -> None:
+        """Heat+cool uses climate mode when hvac_action is idle."""
+
+        entry = _make_entry(
+            hass,
+            _default_options(
+                operating_mode=OperatingMode.HEAT_COOL,
+                climate_entity="climate.room",
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        from custom_components.pi_thermostat.config import resolve
+
+        resolved = resolve(
+            _default_options(
+                operating_mode=OperatingMode.HEAT_COOL,
+                climate_entity="climate.room",
+            )
+        )
+
+        with (
+            patch.object(coordinator._ha, "get_climate_hvac_action", return_value=HVACAction.IDLE),
+            patch.object(coordinator._ha, "get_climate_hvac_mode", return_value=HVACMode.COOL),
+        ):
+            assert coordinator._determine_cooling(resolved) is True
 
 
 class TestTuningChanges:

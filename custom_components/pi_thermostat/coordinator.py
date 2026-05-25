@@ -339,8 +339,16 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             action = self._ha.get_climate_hvac_action(resolved.climate_entity)
             if action == HVACAction.COOLING:
                 return True
+            if action == HVACAction.HEATING:
+                return False
 
-        # Default to heating when action is unknown / idle
+            hvac_mode = self._ha.get_climate_hvac_mode(resolved.climate_entity)
+            if hvac_mode == HVACMode.COOL:
+                return True
+            if hvac_mode == HVACMode.HEAT:
+                return False
+
+        # Fall back to heating when neither action nor mode resolves direction.
         return False
 
     # ------------------------------------------------------------------
