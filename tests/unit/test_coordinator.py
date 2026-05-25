@@ -467,6 +467,55 @@ class TestTargetTemp:
 
         assert data.target_temp == 23.0
 
+    async def test_external_target_unavailable_returns_unknown(self, hass: HomeAssistant) -> None:
+        """External target mode follows HOLD behavior when target is unavailable."""
+
+        entry = _make_entry(
+            hass,
+            _default_options(
+                target_temp_mode="external",
+                target_temp_entity="input_number.setpoint",
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with (
+            patch.object(coordinator._ha, "get_temperature", return_value=20.0),
+            patch.object(coordinator._ha, "get_target_temperature", return_value=None),
+        ):
+            data = await coordinator._async_update_data()
+
+        assert data.current_temp == 20.0
+        assert data.target_temp is None
+        assert data.current_mode is None
+        assert data.output is None
+        assert data.sensor_available is True
+
+    async def test_external_target_unavailable_shutdown_mode(self, hass: HomeAssistant) -> None:
+        """External target mode uses shutdown behavior when configured."""
+
+        entry = _make_entry(
+            hass,
+            _default_options(
+                target_temp_mode="external",
+                target_temp_entity="input_number.setpoint",
+                sensor_fault_mode=SensorFaultMode.SHUTDOWN,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with (
+            patch.object(coordinator._ha, "get_temperature", return_value=20.0),
+            patch.object(coordinator._ha, "get_target_temperature", return_value=None),
+        ):
+            data = await coordinator._async_update_data()
+
+        assert data.current_temp == 20.0
+        assert data.target_temp is None
+        assert data.current_mode == "off"
+        assert data.output == 0.0
+        assert data.sensor_available is True
+
     async def test_climate_target(self, hass: HomeAssistant) -> None:
         """Climate target mode reads from climate entity's setpoint."""
 
@@ -489,6 +538,33 @@ class TestTargetTemp:
             data = await coordinator._async_update_data()
 
         assert data.target_temp == 24.0
+
+    async def test_climate_target_unavailable_returns_unknown(self, hass: HomeAssistant) -> None:
+        """Climate target mode follows HOLD behavior when target is unavailable."""
+
+        entry = _make_entry(
+            hass,
+            _default_options(
+                target_temp_mode="climate",
+                climate_entity="climate.living_room",
+                operating_mode=OperatingMode.HEAT,
+                auto_disable_on_hvac_off=False,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with (
+            patch.object(coordinator._ha, "get_temperature", return_value=20.0),
+            patch.object(coordinator._ha, "get_climate_target_temperature", return_value=None),
+            patch.object(coordinator._ha, "get_climate_hvac_action", return_value=HVACAction.HEATING),
+        ):
+            data = await coordinator._async_update_data()
+
+        assert data.current_temp == 20.0
+        assert data.target_temp is None
+        assert data.current_mode is None
+        assert data.output is None
+        assert data.sensor_available is True
 
 
 class TestDetermineCooling:

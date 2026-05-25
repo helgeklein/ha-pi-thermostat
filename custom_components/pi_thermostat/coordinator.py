@@ -38,6 +38,7 @@ from .const import (
     SENSOR_FAULT_GRACE_PERIOD_SECONDS,
     OperatingMode,
     SensorFaultMode,
+    TargetTempMode,
 )
 from .data import CoordinatorData
 from .ha_interface import HomeAssistantInterface
@@ -416,12 +417,27 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         # ── Step 5: Determine target temperature ────────────────────────
         target_temp = self._read_target_temp(resolved)
 
-        if target_temp is not None:
-            self._pi.set_target(target_temp)
-
         # ── Step 6: Handle sensor faults ────────────────────────────────
         if current_temp is None:
-            return await self._async_handle_sensor_fault(resolved, target_temp)
+            return self._handle_fault_mode(
+                resolved,
+                current_temp=None,
+                target_temp=target_temp,
+                sensor_available=False,
+                reason="Sensor",
+            )
+
+        if target_temp is None and resolved.target_temp_mode != TargetTempMode.INTERNAL:
+            return self._handle_fault_mode(
+                resolved,
+                current_temp=current_temp,
+                target_temp=None,
+                sensor_available=True,
+                reason="Target temperature",
+            )
+
+        if target_temp is not None:
+            self._pi.set_target(target_temp)
 
         # Sensor is OK — reset fault counter
         self._fault_cycles = 0
@@ -450,18 +466,25 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         return data
 
     #
-    # _async_handle_sensor_fault
+    # _handle_fault_mode
     #
-    async def _async_handle_sensor_fault(
+    def _handle_fault_mode(
         self,
         resolved: ResolvedConfig,
+        *,
+        current_temp: float | None,
         target_temp: float | None,
+        sensor_available: bool,
+        reason: str,
     ) -> CoordinatorData:
-        """Handle a sensor fault (current temperature unavailable).
+        """Apply the configured fault policy for a missing controller input.
 
         Args:
             resolved: Current resolved configuration.
+            current_temp: Current measured temperature, if available.
             target_temp: Current target temperature (may be ``None``).
+            sensor_available: Whether the temperature sensor is available.
+            reason: Short label used in log messages.
 
         Returns:
             ``CoordinatorData`` with either held output or shutdown (output=0).
@@ -479,7 +502,8 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
 
             if self._fault_cycles <= grace_cycles:
                 self._logger.warning(
-                    "Sensor unavailable (cycle %s/%s) — holding last output %s",
+                    "%s unavailable (cycle %s/%s) — holding last output %s",
+                    reason,
                     self._fault_cycles,
                     grace_cycles,
                     self._last_good_output,
@@ -490,28 +514,30 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
                     current_mode=self._last_data.current_mode if self._last_data is not None else None,
                     p_term=None,
                     i_term=None,
-                    current_temp=None,
+                    current_temp=current_temp,
                     target_temp=target_temp,
-                    sensor_available=False,
+                    sensor_available=sensor_available,
                 )
 
             # Grace period exceeded — fall through to shutdown
-            self._logger.warning("Sensor unavailable — grace period exceeded, shutting down output")
+            self._logger.warning("%s unavailable — grace period exceeded, shutting down output", reason)
 
         elif fault_mode == SensorFaultMode.HOLD:
             # HOLD mode but no prior good output (e.g. first cycle after restart).
             # Return unknown result so entity states are not changed from their
             # restored values — avoids sending a spurious 0 % on restart.
-            self._logger.info("Sensor unavailable — no prior output available, waiting for sensor")
+            self._logger.info("%s unavailable — no prior output available, waiting", reason)
             return self._unknown_result(
+                current_temp=current_temp,
                 target_temp=target_temp,
-                sensor_available=False,
+                sensor_available=sensor_available,
             )
 
         else:
-            self._logger.warning("Sensor unavailable — shutting down output (shutdown mode)")
+            self._logger.warning("%s unavailable — shutting down output (shutdown mode)", reason)
 
         return self._shutdown_result(
+            current_temp=current_temp,
             target_temp=target_temp,
-            sensor_available=False,
+            sensor_available=sensor_available,
         )
