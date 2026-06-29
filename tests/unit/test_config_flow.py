@@ -2,9 +2,9 @@
 
 Tests cover:
 - Config flow: welcome form → create entry with defaults.
-- Options flow 3-step wizard:
-  - Happy path: all steps → create entry.
-  - Validation errors on step 1 and step 2.
+- Options flow wizard:
+    - Happy path for PI and CCA paths.
+    - Validation errors on PI and CCA steps.
   - Suggested values from existing options.
 - Validation helpers: _validate_step_1, _validate_step_2.
 - Schema builders: _build_schema_step_1, _build_schema_step_2, _build_schema_step_3.
@@ -17,10 +17,12 @@ Requires the ``hass`` fixture from pytest-homeassistant-custom-component.
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import patch
 
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import selector
 
 from custom_components.pi_thermostat.config_flow import (
     DOCS_URL,
@@ -28,15 +30,23 @@ from custom_components.pi_thermostat.config_flow import (
     _build_schema_step_1,
     _build_schema_step_2,
     _build_schema_step_3,
+    _build_schema_step_cca_sources,
+    _build_schema_step_mode,
     _validate_step_1,
     _validate_step_2,
+    _validate_step_cca_sources,
 )
 from custom_components.pi_thermostat.const import (
     DOMAIN,
+    ERROR_CCA_COOLING_ENABLE_REQUIRED,
+    ERROR_CCA_WEATHER_REQUIRED,
+    ERROR_CCA_WEATHER_UNSUPPORTED,
     ERROR_CLIMATE_TARGET_REQUIRES_CLIMATE,
     ERROR_HEAT_COOL_REQUIRES_CLIMATE,
     ERROR_NO_TEMP_SOURCE,
     INTEGRATION_NAME,
+    CCAForecastUnavailableMode,
+    ControlMode,
     ITermStartupMode,
     OperatingMode,
     SensorFaultMode,
@@ -214,8 +224,80 @@ class TestValidateStep2:
 
 
 # ===========================================================================
+# _validate_step_cca_sources (unit)
+# ===========================================================================
+
+
+class TestValidateCCASources:
+    """Unit tests for _validate_step_cca_sources."""
+
+    async def test_requires_entities(self, hass: HomeAssistant) -> None:
+        """Both required entities must be configured."""
+
+        errors = await _validate_step_cca_sources(hass, {})
+        assert errors == {
+            "cca_cooling_enable_entity": ERROR_CCA_COOLING_ENABLE_REQUIRED,
+            "cca_weather_entity": ERROR_CCA_WEATHER_REQUIRED,
+        }
+
+    async def test_weather_support_checked(self, hass: HomeAssistant) -> None:
+        """Weather entity must support daily forecasts."""
+
+        from homeassistant.exceptions import HomeAssistantError
+
+        with patch(
+            "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.async_validate_daily_forecast_support",
+            side_effect=HomeAssistantError("unsupported"),
+        ):
+            errors = await _validate_step_cca_sources(
+                hass,
+                {
+                    "cca_cooling_enable_entity": "binary_sensor.cooling",
+                    "cca_weather_entity": "weather.home",
+                },
+            )
+
+        assert errors == {"cca_weather_entity": ERROR_CCA_WEATHER_UNSUPPORTED}
+
+
+# ===========================================================================
 # Schema builders (unit)
 # ===========================================================================
+
+
+class TestBuildSchemaStepMode:
+    """Tests for _build_schema_step_mode."""
+
+    def test_contains_control_mode(self) -> None:
+        """Schema has the control_mode selector."""
+
+        schema = _build_schema_step_mode({})
+        key_names = {str(k) for k in schema.schema}
+        assert "control_mode" in key_names
+
+
+class TestBuildSchemaCCASources:
+    """Tests for _build_schema_step_cca_sources."""
+
+    def test_contains_expected_keys(self) -> None:
+        """Schema includes the required CCA data-source fields."""
+
+        schema = _build_schema_step_cca_sources({})
+        key_names = {str(k) for k in schema.schema}
+        assert "cca_cooling_enable_entity" in key_names
+        assert "cca_cooling_enable_on" in key_names
+        assert "cca_weather_entity" in key_names
+        assert "cca_forecast_horizon_days" in key_names
+        assert "cca_forecast_unavailable_mode" in key_names
+
+    def test_cooling_enable_selector_is_binary_only(self) -> None:
+        """Cooling-enable selector is restricted to binary-capable domains."""
+
+        schema = _build_schema_step_cca_sources({})
+        selector_rule = next(rule for key, rule in schema.schema.items() if str(key) == "cca_cooling_enable_entity")
+
+        assert isinstance(selector_rule, selector.EntitySelector)
+        assert selector_rule.config["domain"] == ["binary_sensor", "input_boolean", "switch"]
 
 
 class TestBuildSchemaStep1:
@@ -329,20 +411,27 @@ class TestConfigFlow:
 
 
 class TestOptionsFlowHappyPath:
-    """Test the options flow happy path (3-step wizard)."""
+    """Test the options flow happy path."""
 
-    async def test_full_wizard(self, hass: HomeAssistant) -> None:
-        """Complete the 3-step wizard with valid inputs."""
+    async def test_full_pi_wizard(self, hass: HomeAssistant) -> None:
+        """Complete the PI-mode wizard with valid inputs."""
 
         entry = _mock_config_entry()
         entry.add_to_hass(hass)
 
-        # Step 1: init
         result = await hass.config_entries.options.async_init(entry.entry_id)
         assert result["type"] is FlowResultType.FORM
         assert result["step_id"] == "init"
 
-        # Submit step 1
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={
+                "control_mode": ControlMode.PI,
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "2"
+
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
@@ -352,9 +441,8 @@ class TestOptionsFlowHappyPath:
             },
         )
         assert result["type"] is FlowResultType.FORM
-        assert result["step_id"] == "2"
+        assert result["step_id"] == "3"
 
-        # Submit step 2
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
@@ -363,9 +451,8 @@ class TestOptionsFlowHappyPath:
             },
         )
         assert result["type"] is FlowResultType.FORM
-        assert result["step_id"] == "3"
+        assert result["step_id"] == "4"
 
-        # Submit step 3
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
@@ -378,20 +465,28 @@ class TestOptionsFlowHappyPath:
 
         # Verify saved options
         saved = result["data"]
+        assert saved["control_mode"] == ControlMode.PI
         assert saved["climate_entity"] == "climate.living_room"
         assert saved["operating_mode"] == OperatingMode.HEAT_COOL
         assert saved["temp_sensor"] == "sensor.temperature"
         assert saved["sensor_fault_mode"] == SensorFaultMode.SHUTDOWN
         assert saved["iterm_startup_mode"] == ITermStartupMode.LAST
 
-    async def test_minimal_wizard(self, hass: HomeAssistant) -> None:
-        """Complete the wizard with minimal inputs (no climate, no output)."""
+    async def test_minimal_pi_wizard(self, hass: HomeAssistant) -> None:
+        """Complete the PI wizard with minimal inputs."""
 
         entry = _mock_config_entry()
         entry.add_to_hass(hass)
 
-        # Step 1: heat-only, no climate
         result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={
+                "control_mode": ControlMode.PI,
+            },
+        )
+        assert result["step_id"] == "2"
+
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
@@ -399,9 +494,8 @@ class TestOptionsFlowHappyPath:
                 "auto_disable_on_hvac_off": False,
             },
         )
-        assert result["step_id"] == "2"
+        assert result["step_id"] == "3"
 
-        # Step 2: sensor, internal target
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
@@ -409,9 +503,8 @@ class TestOptionsFlowHappyPath:
                 "target_temp_mode": TargetTempMode.INTERNAL,
             },
         )
-        assert result["step_id"] == "3"
+        assert result["step_id"] == "4"
 
-        # Step 3: minimal
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
@@ -422,10 +515,39 @@ class TestOptionsFlowHappyPath:
         )
         assert result["type"] is FlowResultType.CREATE_ENTRY
 
-        saved = result["data"]
-        assert saved["operating_mode"] == OperatingMode.HEAT
-        assert saved["temp_sensor"] == "sensor.temp"
-        assert saved["sensor_fault_mode"] == SensorFaultMode.HOLD
+    async def test_cca_wizard(self, hass: HomeAssistant) -> None:
+        """Complete the CCA-mode wizard."""
+
+        entry = _mock_config_entry()
+        entry.add_to_hass(hass)
+
+        with patch(
+            "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.async_validate_daily_forecast_support",
+            return_value=None,
+        ):
+            result = await hass.config_entries.options.async_init(entry.entry_id)
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"],
+                user_input={"control_mode": ControlMode.CCA},
+            )
+
+            assert result["step_id"] == "cca_sources"
+
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"],
+                user_input={
+                    "cca_cooling_enable_entity": "binary_sensor.cooling",
+                    "cca_cooling_enable_on": True,
+                    "cca_weather_entity": "weather.home",
+                    "cca_forecast_horizon_days": 3,
+                    "cca_forecast_unavailable_mode": CCAForecastUnavailableMode.HOLD,
+                },
+            )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"]["control_mode"] == ControlMode.CCA
+        assert result["data"]["cca_cooling_enable_on"] is True
+        assert result["data"]["cca_weather_entity"] == "weather.home"
 
 
 class TestOptionsFlowValidation:
@@ -440,6 +562,12 @@ class TestOptionsFlowValidation:
         result = await hass.config_entries.options.async_init(entry.entry_id)
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
+            user_input={"control_mode": ControlMode.PI},
+        )
+        assert result["step_id"] == "2"
+
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
             user_input={
                 "operating_mode": OperatingMode.HEAT_COOL,
                 "auto_disable_on_hvac_off": True,
@@ -447,7 +575,7 @@ class TestOptionsFlowValidation:
         )
         # Should stay on step 1 with error
         assert result["type"] is FlowResultType.FORM
-        assert result["step_id"] == "init"
+        assert result["step_id"] == "2"
         assert result["errors"] is not None
         assert result["errors"]["operating_mode"] == ERROR_HEAT_COOL_REQUIRES_CLIMATE
 
@@ -457,8 +585,12 @@ class TestOptionsFlowValidation:
         entry = _mock_config_entry()
         entry.add_to_hass(hass)
 
-        # Pass step 1 with heat-only (no climate)
         result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={"control_mode": ControlMode.PI},
+        )
+
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
@@ -467,7 +599,6 @@ class TestOptionsFlowValidation:
             },
         )
 
-        # Step 2: no sensor, no climate
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
@@ -475,7 +606,7 @@ class TestOptionsFlowValidation:
             },
         )
         assert result["type"] is FlowResultType.FORM
-        assert result["step_id"] == "2"
+        assert result["step_id"] == "3"
         assert result["errors"] is not None
         assert result["errors"]["temp_sensor"] == ERROR_NO_TEMP_SOURCE
 
@@ -496,8 +627,12 @@ class TestOptionsFlowValidation:
         )
         entry.add_to_hass(hass)
 
-        # Step 1: remove climate by not including it
         result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={"control_mode": ControlMode.PI},
+        )
+
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
@@ -519,11 +654,11 @@ class TestOptionsFlowValidation:
             },
         )
         # _has_climate() sees existing options still have climate_entity,
-        # so no validation error. The flow proceeds to step 3.
+        # so no validation error. The flow proceeds to step 4.
         # This is expected behavior: existing climate entity hasn't been
         # removed from options yet (only cleared in step 1's input).
         assert result["type"] is FlowResultType.FORM
-        assert result["step_id"] == "3"
+        assert result["step_id"] == "4"
 
     async def test_step1_error_then_fix(self, hass: HomeAssistant) -> None:
         """Step 1 error can be corrected and wizard continues."""
@@ -532,6 +667,10 @@ class TestOptionsFlowValidation:
         entry.add_to_hass(hass)
 
         result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={"control_mode": ControlMode.PI},
+        )
 
         # Submit invalid (heat_cool without climate)
         result = await hass.config_entries.options.async_configure(
@@ -541,7 +680,7 @@ class TestOptionsFlowValidation:
                 "auto_disable_on_hvac_off": True,
             },
         )
-        assert result["step_id"] == "init"
+        assert result["step_id"] == "2"
         assert result["errors"]
 
         # Fix: add climate
@@ -554,7 +693,7 @@ class TestOptionsFlowValidation:
             },
         )
         assert result["type"] is FlowResultType.FORM
-        assert result["step_id"] == "2"
+        assert result["step_id"] == "3"
 
 
 class TestOptionsFlowExistingOptions:
@@ -581,6 +720,12 @@ class TestOptionsFlowExistingOptions:
         result = await hass.config_entries.options.async_init(entry.entry_id)
         assert result["step_id"] == "init"
 
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={"control_mode": ControlMode.PI},
+        )
+        assert result["step_id"] == "2"
+
         # Keep same values
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
@@ -599,8 +744,8 @@ class TestOptionsFlowExistingOptions:
                 "target_temp_mode": TargetTempMode.INTERNAL,
             },
         )
+        assert result["step_id"] == "4"
 
-        # Step 3
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
@@ -612,6 +757,7 @@ class TestOptionsFlowExistingOptions:
         assert result["type"] is FlowResultType.CREATE_ENTRY
 
         saved = result["data"]
+        assert saved["control_mode"] == ControlMode.PI
         assert saved["climate_entity"] == "climate.bedroom"
         assert saved["operating_mode"] == OperatingMode.COOL
         assert saved["sensor_fault_mode"] == SensorFaultMode.HOLD
@@ -632,6 +778,11 @@ class TestOptionsFlowExistingOptions:
         result = await hass.config_entries.options.async_init(entry.entry_id)
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
+            user_input={"control_mode": ControlMode.PI},
+        )
+
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
             user_input={
                 "climate_entity": "climate.room",
                 "operating_mode": OperatingMode.HEAT,
@@ -647,8 +798,8 @@ class TestOptionsFlowExistingOptions:
                 "target_temp_mode": TargetTempMode.INTERNAL,
             },
         )
+        assert result["step_id"] == "4"
 
-        # Step 3: submit new values — existing sensor_fault_mode is overwritten
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
@@ -660,5 +811,6 @@ class TestOptionsFlowExistingOptions:
         assert result["type"] is FlowResultType.CREATE_ENTRY
 
         saved = result["data"]
+        assert saved["control_mode"] == ControlMode.PI
         # Step 3 overwrites existing sensor_fault_mode
         assert saved["sensor_fault_mode"] == SensorFaultMode.SHUTDOWN

@@ -7,6 +7,17 @@ string values match expectations for serialization/translation lookups.
 from __future__ import annotations
 
 from custom_components.pi_thermostat.const import (
+    DEFAULT_CCA_CHARGE_GAIN,
+    DEFAULT_CCA_CHARGE_TARGET_SCALE,
+    DEFAULT_CCA_DISCHARGE_GAIN,
+    DEFAULT_CCA_FORECAST_HORIZON_DAYS,
+    DEFAULT_CCA_HOT_DAY_THRESHOLD,
+    DEFAULT_CCA_MANUAL_OUTPUT,
+    DEFAULT_CCA_OUTPUT_MAX,
+    DEFAULT_CCA_OUTPUT_MIN,
+    DEFAULT_CCA_OUTPUT_STEP_LIMIT,
+    DEFAULT_CCA_UPDATE_INTERVAL_HOURS,
+    DEFAULT_CCA_WARM_NIGHT_THRESHOLD,
     DEFAULT_INT_TIME,
     DEFAULT_ITERM_STARTUP_VALUE,
     DEFAULT_OUTPUT_MAX,
@@ -33,6 +44,8 @@ from custom_components.pi_thermostat.const import (
     SENSOR_KEY_TARGET_TEMP,
     SWITCH_KEY_ENABLED,
     UPDATE_INTERVAL_DEFAULT_SECONDS,
+    CCAForecastUnavailableMode,
+    ControlMode,
     ITermStartupMode,
     OperatingMode,
     SensorFaultMode,
@@ -99,6 +112,21 @@ class TestDefaults:
         """Default I-term startup value is 0%."""
 
         assert DEFAULT_ITERM_STARTUP_VALUE == 0.0
+
+    def test_cca_defaults(self) -> None:
+        """CCA defaults match the implementation plan."""
+
+        assert DEFAULT_CCA_FORECAST_HORIZON_DAYS == 3
+        assert DEFAULT_CCA_UPDATE_INTERVAL_HOURS == 6
+        assert DEFAULT_CCA_MANUAL_OUTPUT == 0.0
+        assert DEFAULT_CCA_HOT_DAY_THRESHOLD == 26.0
+        assert DEFAULT_CCA_WARM_NIGHT_THRESHOLD == 18.0
+        assert DEFAULT_CCA_OUTPUT_MIN == 0.0
+        assert DEFAULT_CCA_OUTPUT_MAX == 60.0
+        assert DEFAULT_CCA_CHARGE_GAIN == 25.0
+        assert DEFAULT_CCA_DISCHARGE_GAIN == 20.0
+        assert DEFAULT_CCA_OUTPUT_STEP_LIMIT == 10.0
+        assert DEFAULT_CCA_CHARGE_TARGET_SCALE == 100.0
 
 
 # ---------------------------------------------------------------------------
@@ -175,6 +203,36 @@ class TestOperatingMode:
 
         for mode in OperatingMode:
             assert isinstance(mode, str)
+
+
+class TestControlMode:
+    """Test ControlMode enum."""
+
+    def test_members(self) -> None:
+        """Has exactly 2 members."""
+
+        assert len(ControlMode) == 2
+
+    def test_values(self) -> None:
+        """Enum values are stable strings."""
+
+        assert ControlMode.PI == "pi"
+        assert ControlMode.CCA == "cca"
+
+
+class TestCCAForecastUnavailableMode:
+    """Test CCAForecastUnavailableMode enum."""
+
+    def test_members(self) -> None:
+        """Has exactly 2 members."""
+
+        assert len(CCAForecastUnavailableMode) == 2
+
+    def test_values(self) -> None:
+        """Enum values are stable strings."""
+
+        assert CCAForecastUnavailableMode.HOLD == "hold"
+        assert CCAForecastUnavailableMode.SHUTDOWN == "shutdown"
 
 
 class TestSensorFaultMode:

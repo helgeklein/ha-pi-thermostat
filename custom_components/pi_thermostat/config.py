@@ -12,6 +12,18 @@ from enum import StrEnum
 from typing import Any, Callable, Generic, Mapping, TypeVar
 
 from custom_components.pi_thermostat.const import (
+    DEFAULT_CCA_CHARGE_GAIN,
+    DEFAULT_CCA_CHARGE_TARGET_SCALE,
+    DEFAULT_CCA_COOLING_ENABLE_ON,
+    DEFAULT_CCA_DISCHARGE_GAIN,
+    DEFAULT_CCA_FORECAST_HORIZON_DAYS,
+    DEFAULT_CCA_HOT_DAY_THRESHOLD,
+    DEFAULT_CCA_MANUAL_OUTPUT,
+    DEFAULT_CCA_OUTPUT_MAX,
+    DEFAULT_CCA_OUTPUT_MIN,
+    DEFAULT_CCA_OUTPUT_STEP_LIMIT,
+    DEFAULT_CCA_UPDATE_INTERVAL_HOURS,
+    DEFAULT_CCA_WARM_NIGHT_THRESHOLD,
     DEFAULT_INT_TIME,
     DEFAULT_ITERM_STARTUP_VALUE,
     DEFAULT_OUTPUT_MAX,
@@ -19,6 +31,8 @@ from custom_components.pi_thermostat.const import (
     DEFAULT_PROP_BAND,
     HA_OPTIONS,
     UPDATE_INTERVAL_DEFAULT_SECONDS,
+    CCAForecastUnavailableMode,
+    ControlMode,
     ITermStartupMode,
     OperatingMode,
     SensorFaultMode,
@@ -77,6 +91,23 @@ class ConfKeys(StrEnum):
     SENSOR_FAULT_MODE = "sensor_fault_mode"
     ITERM_STARTUP_MODE = "iterm_startup_mode"
     ITERM_STARTUP_VALUE = "iterm_startup_value"
+    CONTROL_MODE = "control_mode"
+    CCA_COOLING_ENABLE_ENTITY = "cca_cooling_enable_entity"
+    CCA_COOLING_ENABLE_ON = "cca_cooling_enable_on"
+    CCA_WEATHER_ENTITY = "cca_weather_entity"
+    CCA_FORECAST_HORIZON_DAYS = "cca_forecast_horizon_days"
+    CCA_FORECAST_UNAVAILABLE_MODE = "cca_forecast_unavailable_mode"
+    CCA_UPDATE_INTERVAL_HOURS = "cca_update_interval_hours"
+    CCA_MANUAL_OVERRIDE_ENABLED = "cca_manual_override_enabled"
+    CCA_MANUAL_OUTPUT = "cca_manual_output"
+    CCA_HOT_DAY_THRESHOLD = "cca_hot_day_threshold"
+    CCA_WARM_NIGHT_THRESHOLD = "cca_warm_night_threshold"
+    CCA_OUTPUT_MIN = "cca_output_min"
+    CCA_OUTPUT_MAX = "cca_output_max"
+    CCA_CHARGE_GAIN = "cca_charge_gain"
+    CCA_DISCHARGE_GAIN = "cca_discharge_gain"
+    CCA_OUTPUT_STEP_LIMIT = "cca_output_step_limit"
+    CCA_CHARGE_TARGET_SCALE = "cca_charge_target_scale"
 
 
 class _Converters:
@@ -117,6 +148,15 @@ class _Converters:
         """Convert to str."""
 
         return str(v)
+
+    @staticmethod
+    def to_cca_forecast_unavailable_mode(v: Any) -> str:
+        """Validate supported CCA forecast fallback values."""
+
+        normalized = str(v).strip()
+        if normalized in {CCAForecastUnavailableMode.HOLD, CCAForecastUnavailableMode.SHUTDOWN}:
+            return normalized
+        raise ValueError(f"Unsupported CCA forecast fallback mode: {v}")
 
 
 # Central registry of settings with defaults and coercion (type conversion).
@@ -194,6 +234,84 @@ CONF_SPECS: dict[ConfKeys, _ConfSpec[Any]] = {
         default=DEFAULT_ITERM_STARTUP_VALUE,
         converter=_Converters.to_float,
     ),
+    ConfKeys.CONTROL_MODE: _ConfSpec(
+        default=ControlMode.PI,
+        converter=_Converters.to_str,
+    ),
+    ConfKeys.CCA_COOLING_ENABLE_ENTITY: _ConfSpec(
+        default="",
+        converter=_Converters.to_str,
+    ),
+    ConfKeys.CCA_COOLING_ENABLE_ON: _ConfSpec(
+        default=DEFAULT_CCA_COOLING_ENABLE_ON,
+        converter=_Converters.to_bool,
+    ),
+    ConfKeys.CCA_WEATHER_ENTITY: _ConfSpec(
+        default="",
+        converter=_Converters.to_str,
+    ),
+    ConfKeys.CCA_FORECAST_HORIZON_DAYS: _ConfSpec(
+        default=DEFAULT_CCA_FORECAST_HORIZON_DAYS,
+        converter=_Converters.to_int,
+    ),
+    ConfKeys.CCA_FORECAST_UNAVAILABLE_MODE: _ConfSpec(
+        default=CCAForecastUnavailableMode.HOLD,
+        converter=_Converters.to_cca_forecast_unavailable_mode,
+    ),
+    ConfKeys.CCA_UPDATE_INTERVAL_HOURS: _ConfSpec(
+        default=DEFAULT_CCA_UPDATE_INTERVAL_HOURS,
+        converter=_Converters.to_int,
+    ),
+    ConfKeys.CCA_MANUAL_OVERRIDE_ENABLED: _ConfSpec(
+        default=False,
+        converter=_Converters.to_bool,
+        runtime_configurable=True,
+    ),
+    ConfKeys.CCA_MANUAL_OUTPUT: _ConfSpec(
+        default=DEFAULT_CCA_MANUAL_OUTPUT,
+        converter=_Converters.to_float,
+        runtime_configurable=True,
+    ),
+    ConfKeys.CCA_HOT_DAY_THRESHOLD: _ConfSpec(
+        default=DEFAULT_CCA_HOT_DAY_THRESHOLD,
+        converter=_Converters.to_float,
+        runtime_configurable=True,
+    ),
+    ConfKeys.CCA_WARM_NIGHT_THRESHOLD: _ConfSpec(
+        default=DEFAULT_CCA_WARM_NIGHT_THRESHOLD,
+        converter=_Converters.to_float,
+        runtime_configurable=True,
+    ),
+    ConfKeys.CCA_OUTPUT_MIN: _ConfSpec(
+        default=DEFAULT_CCA_OUTPUT_MIN,
+        converter=_Converters.to_float,
+        runtime_configurable=True,
+    ),
+    ConfKeys.CCA_OUTPUT_MAX: _ConfSpec(
+        default=DEFAULT_CCA_OUTPUT_MAX,
+        converter=_Converters.to_float,
+        runtime_configurable=True,
+    ),
+    ConfKeys.CCA_CHARGE_GAIN: _ConfSpec(
+        default=DEFAULT_CCA_CHARGE_GAIN,
+        converter=_Converters.to_float,
+        runtime_configurable=True,
+    ),
+    ConfKeys.CCA_DISCHARGE_GAIN: _ConfSpec(
+        default=DEFAULT_CCA_DISCHARGE_GAIN,
+        converter=_Converters.to_float,
+        runtime_configurable=True,
+    ),
+    ConfKeys.CCA_OUTPUT_STEP_LIMIT: _ConfSpec(
+        default=DEFAULT_CCA_OUTPUT_STEP_LIMIT,
+        converter=_Converters.to_float,
+        runtime_configurable=True,
+    ),
+    ConfKeys.CCA_CHARGE_TARGET_SCALE: _ConfSpec(
+        default=DEFAULT_CCA_CHARGE_TARGET_SCALE,
+        converter=_Converters.to_float,
+        runtime_configurable=True,
+    ),
 }
 
 # Public API of this module (keep helper class internal)
@@ -249,6 +367,23 @@ class ResolvedConfig:
     sensor_fault_mode: str
     iterm_startup_mode: str
     iterm_startup_value: float
+    control_mode: str
+    cca_cooling_enable_entity: str
+    cca_cooling_enable_on: bool
+    cca_weather_entity: str
+    cca_forecast_horizon_days: int
+    cca_forecast_unavailable_mode: str
+    cca_update_interval_hours: int
+    cca_manual_override_enabled: bool
+    cca_manual_output: float
+    cca_hot_day_threshold: float
+    cca_warm_night_threshold: float
+    cca_output_min: float
+    cca_output_max: float
+    cca_charge_gain: float
+    cca_discharge_gain: float
+    cca_output_step_limit: float
+    cca_charge_target_scale: float
 
     #
     # get
@@ -287,6 +422,8 @@ def resolve(options: Mapping[str, Any] | None) -> ResolvedConfig:
         try:
             return spec.converter(raw)
         except Exception:
+            if key is ConfKeys.CCA_FORECAST_UNAVAILABLE_MODE and key.value in options:
+                raise
             # Fallback safely to default if coercion fails
             return spec.converter(spec.default)
 

@@ -26,6 +26,11 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .config import resolve_entry
 from .const import (
+    SENSOR_KEY_CCA_CHARGE_ESTIMATE,
+    SENSOR_KEY_CCA_CHARGE_TARGET,
+    SENSOR_KEY_CCA_HEAT_SCORE,
+    SENSOR_KEY_CCA_OVERRIDE_ACTIVE,
+    SENSOR_KEY_CCA_STATUS,
     SENSOR_KEY_CURRENT_MODE,
     SENSOR_KEY_CURRENT_TEMP,
     SENSOR_KEY_DEVIATION,
@@ -33,6 +38,7 @@ from .const import (
     SENSOR_KEY_OUTPUT,
     SENSOR_KEY_P_TERM,
     SENSOR_KEY_TARGET_TEMP,
+    ControlMode,
     TargetTempMode,
 )
 from .entity import IntegrationEntity
@@ -111,6 +117,56 @@ SENSOR_I_TERM = SensorEntityDescription(
     suggested_display_precision=1,
 )
 
+SENSOR_CCA_HEAT_SCORE = SensorEntityDescription(
+    key=SENSOR_KEY_CCA_HEAT_SCORE,
+    translation_key=SENSOR_KEY_CCA_HEAT_SCORE,
+    native_unit_of_measurement="%",
+    entity_category=EntityCategory.DIAGNOSTIC,
+    state_class=SensorStateClass.MEASUREMENT,
+    suggested_display_precision=1,
+)
+
+SENSOR_CCA_CHARGE_ESTIMATE = SensorEntityDescription(
+    key=SENSOR_KEY_CCA_CHARGE_ESTIMATE,
+    translation_key=SENSOR_KEY_CCA_CHARGE_ESTIMATE,
+    native_unit_of_measurement="%",
+    entity_category=EntityCategory.DIAGNOSTIC,
+    state_class=SensorStateClass.MEASUREMENT,
+    suggested_display_precision=1,
+)
+
+SENSOR_CCA_CHARGE_TARGET = SensorEntityDescription(
+    key=SENSOR_KEY_CCA_CHARGE_TARGET,
+    translation_key=SENSOR_KEY_CCA_CHARGE_TARGET,
+    native_unit_of_measurement="%",
+    entity_category=EntityCategory.DIAGNOSTIC,
+    state_class=SensorStateClass.MEASUREMENT,
+    suggested_display_precision=1,
+)
+
+SENSOR_CCA_OVERRIDE_ACTIVE = SensorEntityDescription(
+    key=SENSOR_KEY_CCA_OVERRIDE_ACTIVE,
+    translation_key=SENSOR_KEY_CCA_OVERRIDE_ACTIVE,
+    device_class=SensorDeviceClass.ENUM,
+    options=["off", "on"],
+    entity_category=EntityCategory.DIAGNOSTIC,
+)
+
+SENSOR_CCA_STATUS = SensorEntityDescription(
+    key=SENSOR_KEY_CCA_STATUS,
+    translation_key=SENSOR_KEY_CCA_STATUS,
+    device_class=SensorDeviceClass.ENUM,
+    options=[
+        "idle",
+        "inactive",
+        "forecast_hold",
+        "forecast_unavailable",
+        "active",
+        "manual_override",
+    ],
+    entity_category=EntityCategory.DIAGNOSTIC,
+)
+
 
 # ---------------------------------------------------------------------------
 # Platform setup
@@ -132,17 +188,31 @@ async def async_setup_entry(
 
     entities: list[IntegrationSensor | ITermSensor] = [
         IntegrationSensor(coordinator, SENSOR_OUTPUT),
-        IntegrationSensor(coordinator, SENSOR_DEVIATION),
         IntegrationSensor(coordinator, SENSOR_CURRENT_MODE),
-        IntegrationSensor(coordinator, SENSOR_CURRENT_TEMP),
-        IntegrationSensor(coordinator, SENSOR_P_TERM),
-        ITermSensor(coordinator),
     ]
 
-    # Show target temperature as a read-only sensor when the setpoint
-    # comes from an external or climate entity (not user-configurable).
-    if resolved.target_temp_mode != TargetTempMode.INTERNAL:
-        entities.append(IntegrationSensor(coordinator, SENSOR_TARGET_TEMP))
+    if resolved.control_mode == ControlMode.PI:
+        entities.extend(
+            [
+                IntegrationSensor(coordinator, SENSOR_DEVIATION),
+                IntegrationSensor(coordinator, SENSOR_CURRENT_TEMP),
+                IntegrationSensor(coordinator, SENSOR_P_TERM),
+                ITermSensor(coordinator),
+            ]
+        )
+
+        if resolved.target_temp_mode != TargetTempMode.INTERNAL:
+            entities.append(IntegrationSensor(coordinator, SENSOR_TARGET_TEMP))
+    else:
+        entities.extend(
+            [
+                IntegrationSensor(coordinator, SENSOR_CCA_HEAT_SCORE),
+                IntegrationSensor(coordinator, SENSOR_CCA_CHARGE_ESTIMATE),
+                IntegrationSensor(coordinator, SENSOR_CCA_CHARGE_TARGET),
+                IntegrationSensor(coordinator, SENSOR_CCA_OVERRIDE_ACTIVE),
+                IntegrationSensor(coordinator, SENSOR_CCA_STATUS),
+            ]
+        )
 
     async_add_entities(entities)
 

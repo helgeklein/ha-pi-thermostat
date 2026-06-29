@@ -50,6 +50,11 @@ class CoordinatorData:
     current_temp: float | None = None
     target_temp: float | None = None
     sensor_available: bool = True
+    cca_heat_score: float | None = None
+    cca_charge_estimate: float | None = None
+    cca_charge_target: float | None = None
+    cca_override_active: str | None = None
+    cca_status: str | None = None
 
 
 #

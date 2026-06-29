@@ -407,3 +407,108 @@ class TestIsEntityAvailable:
         iface = _make_interface(hass)
 
         assert iface.is_entity_available("sensor.nonexistent") is False
+
+
+# ===========================================================================
+# Public API — get_entity_on_state
+# ===========================================================================
+
+
+class TestGetEntityOnState:
+    """Test get_entity_on_state."""
+
+    async def test_true_state(self, hass: HomeAssistant) -> None:
+        """Returns True for an explicit on-state."""
+
+        hass.states.async_set("binary_sensor.cooling", "on")
+        iface = _make_interface(hass)
+
+        assert iface.get_entity_on_state("binary_sensor.cooling") is True
+
+    async def test_false_state(self, hass: HomeAssistant) -> None:
+        """Returns False for an explicit off-state."""
+
+        hass.states.async_set("binary_sensor.cooling", "off")
+        iface = _make_interface(hass)
+
+        assert iface.get_entity_on_state("binary_sensor.cooling") is False
+
+    async def test_numeric_state(self, hass: HomeAssistant) -> None:
+        """Non-zero numeric states are treated as True."""
+
+        hass.states.async_set("sensor.cooling_request", "1")
+        iface = _make_interface(hass)
+
+        assert iface.get_entity_on_state("sensor.cooling_request") is True
+
+    async def test_unavailable_state(self, hass: HomeAssistant) -> None:
+        """Unavailable states return None."""
+
+        hass.states.async_set("binary_sensor.cooling", STATE_UNAVAILABLE)
+        iface = _make_interface(hass)
+
+        assert iface.get_entity_on_state("binary_sensor.cooling") is None
+
+    async def test_missing_entity(self, hass: HomeAssistant) -> None:
+        """Missing entities return None."""
+
+        iface = _make_interface(hass)
+
+        assert iface.get_entity_on_state("binary_sensor.cooling") is None
+
+    async def test_unsupported_text_state(self, hass: HomeAssistant) -> None:
+        """Unsupported text states return None."""
+
+        hass.states.async_set("binary_sensor.cooling", "cooling")
+        iface = _make_interface(hass)
+
+        assert iface.get_entity_on_state("binary_sensor.cooling") is None
+
+
+# ===========================================================================
+# Public API — is_entity_on
+# ===========================================================================
+
+
+class TestIsEntityOn:
+    """Test is_entity_on."""
+
+    async def test_true_state(self, hass: HomeAssistant) -> None:
+        """Returns True for an explicit on-state."""
+
+        hass.states.async_set("binary_sensor.cooling", "on")
+        iface = _make_interface(hass)
+
+        assert iface.is_entity_on("binary_sensor.cooling") is True
+
+    async def test_false_state(self, hass: HomeAssistant) -> None:
+        """Returns False for an explicit off-state."""
+
+        hass.states.async_set("binary_sensor.cooling", "off")
+        iface = _make_interface(hass)
+
+        assert iface.is_entity_on("binary_sensor.cooling") is False
+
+    async def test_numeric_state(self, hass: HomeAssistant) -> None:
+        """Non-zero numeric states are treated as True."""
+
+        hass.states.async_set("sensor.cooling_request", "1")
+        iface = _make_interface(hass)
+
+        assert iface.is_entity_on("sensor.cooling_request") is True
+
+    async def test_unavailable_state(self, hass: HomeAssistant) -> None:
+        """Unavailable states are treated as False."""
+
+        hass.states.async_set("binary_sensor.cooling", STATE_UNAVAILABLE)
+        iface = _make_interface(hass)
+
+        assert iface.is_entity_on("binary_sensor.cooling") is False
+
+    async def test_unsupported_text_state(self, hass: HomeAssistant) -> None:
+        """Unsupported text states are rejected as False."""
+
+        hass.states.async_set("binary_sensor.cooling", "cooling")
+        iface = _make_interface(hass)
+
+        assert iface.is_entity_on("binary_sensor.cooling") is False

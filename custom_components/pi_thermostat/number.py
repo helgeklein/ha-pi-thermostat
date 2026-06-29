@@ -29,12 +29,22 @@ from homeassistant.const import EntityCategory, UnitOfTemperature, UnitOfTime
 
 from .config import ConfKeys, resolve_entry
 from .const import (
+    NUMBER_KEY_CCA_CHARGE_GAIN,
+    NUMBER_KEY_CCA_CHARGE_TARGET_SCALE,
+    NUMBER_KEY_CCA_DISCHARGE_GAIN,
+    NUMBER_KEY_CCA_HOT_DAY_THRESHOLD,
+    NUMBER_KEY_CCA_MANUAL_OUTPUT,
+    NUMBER_KEY_CCA_OUTPUT_MAX,
+    NUMBER_KEY_CCA_OUTPUT_MIN,
+    NUMBER_KEY_CCA_OUTPUT_STEP_LIMIT,
+    NUMBER_KEY_CCA_WARM_NIGHT_THRESHOLD,
     NUMBER_KEY_INT_TIME,
     NUMBER_KEY_OUTPUT_MAX,
     NUMBER_KEY_OUTPUT_MIN,
     NUMBER_KEY_PROP_BAND,
     NUMBER_KEY_TARGET_TEMP,
     NUMBER_KEY_UPDATE_INTERVAL,
+    ControlMode,
     TargetTempMode,
 )
 from .entity import IntegrationEntity
@@ -123,6 +133,107 @@ NUMBER_UPDATE_INTERVAL = NumberEntityDescription(
     native_unit_of_measurement=UnitOfTime.SECONDS,
 )
 
+NUMBER_CCA_MANUAL_OUTPUT = NumberEntityDescription(
+    key=NUMBER_KEY_CCA_MANUAL_OUTPUT,
+    translation_key=NUMBER_KEY_CCA_MANUAL_OUTPUT,
+    entity_category=None,
+    native_min_value=0.0,
+    native_max_value=100.0,
+    native_step=1.0,
+    mode=NumberMode.BOX,
+    native_unit_of_measurement="%",
+)
+
+NUMBER_CCA_HOT_DAY_THRESHOLD = NumberEntityDescription(
+    key=NUMBER_KEY_CCA_HOT_DAY_THRESHOLD,
+    translation_key=NUMBER_KEY_CCA_HOT_DAY_THRESHOLD,
+    entity_category=EntityCategory.CONFIG,
+    device_class=NumberDeviceClass.TEMPERATURE,
+    native_min_value=10.0,
+    native_max_value=45.0,
+    native_step=0.5,
+    mode=NumberMode.BOX,
+    native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+)
+
+NUMBER_CCA_WARM_NIGHT_THRESHOLD = NumberEntityDescription(
+    key=NUMBER_KEY_CCA_WARM_NIGHT_THRESHOLD,
+    translation_key=NUMBER_KEY_CCA_WARM_NIGHT_THRESHOLD,
+    entity_category=EntityCategory.CONFIG,
+    device_class=NumberDeviceClass.TEMPERATURE,
+    native_min_value=0.0,
+    native_max_value=35.0,
+    native_step=0.5,
+    mode=NumberMode.BOX,
+    native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+)
+
+NUMBER_CCA_OUTPUT_MIN = NumberEntityDescription(
+    key=NUMBER_KEY_CCA_OUTPUT_MIN,
+    translation_key=NUMBER_KEY_CCA_OUTPUT_MIN,
+    entity_category=EntityCategory.CONFIG,
+    native_min_value=0.0,
+    native_max_value=100.0,
+    native_step=1.0,
+    mode=NumberMode.BOX,
+    native_unit_of_measurement="%",
+)
+
+NUMBER_CCA_OUTPUT_MAX = NumberEntityDescription(
+    key=NUMBER_KEY_CCA_OUTPUT_MAX,
+    translation_key=NUMBER_KEY_CCA_OUTPUT_MAX,
+    entity_category=EntityCategory.CONFIG,
+    native_min_value=0.0,
+    native_max_value=100.0,
+    native_step=1.0,
+    mode=NumberMode.BOX,
+    native_unit_of_measurement="%",
+)
+
+NUMBER_CCA_CHARGE_GAIN = NumberEntityDescription(
+    key=NUMBER_KEY_CCA_CHARGE_GAIN,
+    translation_key=NUMBER_KEY_CCA_CHARGE_GAIN,
+    entity_category=EntityCategory.CONFIG,
+    native_min_value=0.0,
+    native_max_value=100.0,
+    native_step=1.0,
+    mode=NumberMode.BOX,
+    native_unit_of_measurement="%",
+)
+
+NUMBER_CCA_DISCHARGE_GAIN = NumberEntityDescription(
+    key=NUMBER_KEY_CCA_DISCHARGE_GAIN,
+    translation_key=NUMBER_KEY_CCA_DISCHARGE_GAIN,
+    entity_category=EntityCategory.CONFIG,
+    native_min_value=0.0,
+    native_max_value=100.0,
+    native_step=1.0,
+    mode=NumberMode.BOX,
+    native_unit_of_measurement="%",
+)
+
+NUMBER_CCA_OUTPUT_STEP_LIMIT = NumberEntityDescription(
+    key=NUMBER_KEY_CCA_OUTPUT_STEP_LIMIT,
+    translation_key=NUMBER_KEY_CCA_OUTPUT_STEP_LIMIT,
+    entity_category=EntityCategory.CONFIG,
+    native_min_value=1.0,
+    native_max_value=100.0,
+    native_step=1.0,
+    mode=NumberMode.BOX,
+    native_unit_of_measurement="%",
+)
+
+NUMBER_CCA_CHARGE_TARGET_SCALE = NumberEntityDescription(
+    key=NUMBER_KEY_CCA_CHARGE_TARGET_SCALE,
+    translation_key=NUMBER_KEY_CCA_CHARGE_TARGET_SCALE,
+    entity_category=EntityCategory.CONFIG,
+    native_min_value=0.0,
+    native_max_value=200.0,
+    native_step=1.0,
+    mode=NumberMode.BOX,
+    native_unit_of_measurement="%",
+)
+
 # Map each description to the ConfKeys enum member it controls
 _NUMBERS_ALWAYS: list[tuple[NumberEntityDescription, ConfKeys]] = [
     (NUMBER_PROP_BAND, ConfKeys.PROPORTIONAL_BAND),
@@ -137,6 +248,18 @@ _NUMBER_TARGET_TEMP: tuple[NumberEntityDescription, ConfKeys] = (
     NUMBER_TARGET_TEMP,
     ConfKeys.TARGET_TEMP,
 )
+
+_NUMBERS_CCA: list[tuple[NumberEntityDescription, ConfKeys]] = [
+    (NUMBER_CCA_MANUAL_OUTPUT, ConfKeys.CCA_MANUAL_OUTPUT),
+    (NUMBER_CCA_HOT_DAY_THRESHOLD, ConfKeys.CCA_HOT_DAY_THRESHOLD),
+    (NUMBER_CCA_WARM_NIGHT_THRESHOLD, ConfKeys.CCA_WARM_NIGHT_THRESHOLD),
+    (NUMBER_CCA_OUTPUT_MIN, ConfKeys.CCA_OUTPUT_MIN),
+    (NUMBER_CCA_OUTPUT_MAX, ConfKeys.CCA_OUTPUT_MAX),
+    (NUMBER_CCA_CHARGE_GAIN, ConfKeys.CCA_CHARGE_GAIN),
+    (NUMBER_CCA_DISCHARGE_GAIN, ConfKeys.CCA_DISCHARGE_GAIN),
+    (NUMBER_CCA_OUTPUT_STEP_LIMIT, ConfKeys.CCA_OUTPUT_STEP_LIMIT),
+    (NUMBER_CCA_CHARGE_TARGET_SCALE, ConfKeys.CCA_CHARGE_TARGET_SCALE),
+]
 
 
 # ---------------------------------------------------------------------------
@@ -163,11 +286,16 @@ async def async_setup_entry(
     coordinator = entry.runtime_data.coordinator
     resolved = resolve_entry(entry)
 
-    entities: list[IntegrationNumber] = [IntegrationNumber(coordinator, desc, conf_key) for desc, conf_key in _NUMBERS_ALWAYS]
+    entities: list[IntegrationNumber] = []
 
-    if resolved.target_temp_mode == TargetTempMode.INTERNAL:
-        desc, conf_key = _NUMBER_TARGET_TEMP
-        entities.append(IntegrationNumber(coordinator, desc, conf_key))
+    if resolved.control_mode == ControlMode.PI:
+        entities.extend(IntegrationNumber(coordinator, desc, conf_key) for desc, conf_key in _NUMBERS_ALWAYS)
+
+        if resolved.target_temp_mode == TargetTempMode.INTERNAL:
+            desc, conf_key = _NUMBER_TARGET_TEMP
+            entities.append(IntegrationNumber(coordinator, desc, conf_key))
+    else:
+        entities.extend(IntegrationNumber(coordinator, desc, conf_key) for desc, conf_key in _NUMBERS_CCA)
 
     async_add_entities(entities)
 

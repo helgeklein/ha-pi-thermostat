@@ -10,7 +10,17 @@
     "options": {
         "step": {
             "init": {
-                "title": "PI Thermostat - Step 1 of 3",
+                "title": "PI Thermostat - Step 1",
+                "description": "Select the **controller mode**.",
+                "data": {
+                    "control_mode": "Controller mode"
+                },
+                "data_description": {
+                    "control_mode": "Choose whether this integration instance should use the PI controller or the CCA controller."
+                }
+            },
+            "2": {
+                "title": "PI Thermostat - Step 2 of 4",
                 "description": "Configure the **climate entity** and **operating mode**.",
                 "data": {
                     "climate_entity": "Climate entity",
@@ -23,8 +33,8 @@
                     "auto_disable_on_hvac_off": "When enabled and a climate entity is configured, output is set to 0% whenever the climate entity's HVAC mode is off."
                 }
             },
-            "2": {
-                "title": "PI Thermostat - Step 2 of 3",
+            "3": {
+                "title": "PI Thermostat - Step 3 of 4",
                 "description": "Configure **temperature sensors** and **target temperature mode**.",
                 "data": {
                     "temp_sensor": "Temperature sensor",
@@ -37,8 +47,8 @@
                     "target_temp_entity": "Entity to read the target temperature from (only used when mode is 'External entity')."
                 }
             },
-            "3": {
-                "title": "PI Thermostat - Step 3 of 3",
+            "4": {
+                "title": "PI Thermostat - Step 4 of 4",
                 "description": "Configure **sensor fault** and **startup** settings.",
                 "data": {
                     "sensor_fault_mode": "Sensor fault mode",
@@ -50,15 +60,42 @@
                     "iterm_startup_mode": "How the output is initialized when the integration starts.",
                     "iterm_startup_value": "Output percentage to use on startup. Used as the initial value when mode is 'Fixed value', or as the fallback when mode is 'Last persisted' and no previous value exists."
                 }
+            },
+            "cca_sources": {
+                "title": "PI Thermostat - Step 2 of 2",
+                "description": "Configure the **CCA data sources**.",
+                "data": {
+                    "cca_cooling_enable_entity": "Cooling enable entity",
+                    "cca_cooling_enable_on": "Cooling when entity is on",
+                    "cca_weather_entity": "Weather entity",
+                    "cca_forecast_horizon_days": "Forecast horizon",
+                    "cca_forecast_unavailable_mode": "Forecast unavailable behavior"
+                },
+                "data_description": {
+                    "cca_cooling_enable_entity": "Entity that indicates whether cooling is active or allowed.",
+                    "cca_cooling_enable_on": "Enable this when the selected entity being on means cooling is active or allowed. Disable it when the selected entity being off means cooling is active or allowed.",
+                    "cca_weather_entity": "Weather entity used to read the daily forecast.",
+                    "cca_forecast_horizon_days": "How many forecast days should be considered.",
+                    "cca_forecast_unavailable_mode": "What the controller should do when daily forecast data is unavailable."
+                }
             }
         },
         "error": {
             "no_temp_source": "At least one temperature source is required: configure a temperature sensor or a climate entity.",
             "heat_cool_requires_climate": "The 'Heat + Cool' operating mode requires a climate entity to determine heating vs. cooling direction.",
-            "climate_target_requires_climate": "The 'From climate entity' target temperature mode requires a climate entity."
+            "climate_target_requires_climate": "The 'From climate entity' target temperature mode requires a climate entity.",
+            "cca_cooling_enable_required": "Configure an entity that tells the integration whether cooling is active or allowed.",
+            "cca_weather_required": "Configure a weather entity for daily forecasts.",
+            "cca_weather_unsupported": "The selected weather entity does not support daily forecasts."
         }
     },
     "selector": {
+        "control_mode": {
+            "options": {
+                "pi": "PI controller",
+                "cca": "CCA controller"
+            }
+        },
         "operating_mode": {
             "options": {
                 "heat_cool": "Heat + Cool (auto)",
@@ -84,6 +121,12 @@
                 "last": "Last persisted",
                 "fixed": "Fixed value",
                 "zero": "Zero"
+            }
+        },
+        "cca_forecast_unavailable_mode": {
+            "options": {
+                "hold": "Hold last automatic output",
+                "shutdown": "Shutdown controller output"
             }
         }
     },
@@ -114,6 +157,33 @@
             },
             "i_term": {
                 "name": "Integral term"
+            },
+            "cca_heat_score": {
+                "name": "CCA heat score"
+            },
+            "cca_charge_estimate": {
+                "name": "CCA charge estimate"
+            },
+            "cca_charge_target": {
+                "name": "CCA charge target"
+            },
+            "cca_override_active": {
+                "name": "CCA override active",
+                "state": {
+                    "off": "Off",
+                    "on": "On"
+                }
+            },
+            "cca_status": {
+                "name": "CCA status",
+                "state": {
+                    "idle": "Idle",
+                    "inactive": "Inactive",
+                    "forecast_hold": "Holding forecast output",
+                    "forecast_unavailable": "Forecast unavailable",
+                    "active": "Active",
+                    "manual_override": "Manual override"
+                }
             }
         },
         "number": {
@@ -134,11 +204,41 @@
             },
             "update_interval": {
                 "name": "Update interval"
+            },
+            "cca_manual_output": {
+                "name": "CCA manual output"
+            },
+            "cca_hot_day_threshold": {
+                "name": "CCA hot day threshold"
+            },
+            "cca_warm_night_threshold": {
+                "name": "CCA warm night threshold"
+            },
+            "cca_output_min": {
+                "name": "CCA output minimum"
+            },
+            "cca_output_max": {
+                "name": "CCA output maximum"
+            },
+            "cca_charge_gain": {
+                "name": "CCA charge gain"
+            },
+            "cca_discharge_gain": {
+                "name": "CCA discharge gain"
+            },
+            "cca_output_step_limit": {
+                "name": "CCA output step limit"
+            },
+            "cca_charge_target_scale": {
+                "name": "CCA charge target scale"
             }
         },
         "switch": {
             "enabled": {
                 "name": "Enabled"
+            },
+            "cca_manual_override_enabled": {
+                "name": "CCA manual override"
             }
         }
     }
