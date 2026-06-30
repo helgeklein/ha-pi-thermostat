@@ -159,23 +159,23 @@
                 "name": "Integral term"
             },
             "cca_heat_score": {
-                "name": "CCA heat score"
+                "name": "Heat score"
             },
             "cca_charge_estimate": {
-                "name": "CCA charge estimate"
+                "name": "Charge estimate"
             },
             "cca_charge_target": {
-                "name": "CCA charge target"
+                "name": "Charge target"
             },
             "cca_override_active": {
-                "name": "CCA override active",
+                "name": "Override active",
                 "state": {
                     "off": "Off",
                     "on": "On"
                 }
             },
             "cca_status": {
-                "name": "CCA status",
+                "name": "Status",
                 "state": {
                     "idle": "Idle",
                     "inactive": "Inactive",
@@ -206,31 +206,31 @@
                 "name": "Update interval"
             },
             "cca_manual_output": {
-                "name": "CCA manual output"
+                "name": "Manual output"
             },
             "cca_hot_day_threshold": {
-                "name": "CCA hot day threshold"
+                "name": "Hot day threshold"
             },
             "cca_warm_night_threshold": {
-                "name": "CCA warm night threshold"
+                "name": "Warm night threshold"
             },
             "cca_output_min": {
-                "name": "CCA output minimum"
+                "name": "Output minimum"
             },
             "cca_output_max": {
-                "name": "CCA output maximum"
+                "name": "Output maximum"
             },
             "cca_charge_gain": {
-                "name": "CCA charge gain"
+                "name": "Charge gain"
             },
             "cca_discharge_gain": {
-                "name": "CCA discharge gain"
+                "name": "Discharge gain"
             },
             "cca_output_step_limit": {
-                "name": "CCA output step limit"
+                "name": "Output step limit"
             },
             "cca_charge_target_scale": {
-                "name": "CCA charge target scale"
+                "name": "Charge target scale"
             }
         },
         "switch": {
@@ -238,7 +238,7 @@
                 "name": "Enabled"
             },
             "cca_manual_override_enabled": {
-                "name": "CCA manual override"
+                "name": "Manual override"
             }
         }
     }

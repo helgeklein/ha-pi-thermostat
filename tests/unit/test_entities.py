@@ -322,11 +322,11 @@ class TestSensorEntities:
         expected_entity_ids = [
             "sensor.pi_thermostat_output",
             "sensor.pi_thermostat_current_mode",
-            "sensor.pi_thermostat_cca_heat_score",
-            "sensor.pi_thermostat_cca_charge_estimate",
-            "sensor.pi_thermostat_cca_charge_target",
-            "sensor.pi_thermostat_cca_override_active",
-            "sensor.pi_thermostat_cca_status",
+            "sensor.pi_thermostat_heat_score",
+            "sensor.pi_thermostat_charge_estimate",
+            "sensor.pi_thermostat_charge_target",
+            "sensor.pi_thermostat_override_active",
+            "sensor.pi_thermostat_status",
         ]
 
         for entity_id in expected_entity_ids:
@@ -386,15 +386,15 @@ class TestNumberEntities:
         await _setup_cca_integration(hass)
 
         expected_entity_ids = [
-            "number.pi_thermostat_cca_manual_output",
-            "number.pi_thermostat_cca_hot_day_threshold",
-            "number.pi_thermostat_cca_warm_night_threshold",
-            "number.pi_thermostat_cca_output_minimum",
-            "number.pi_thermostat_cca_output_maximum",
-            "number.pi_thermostat_cca_charge_gain",
-            "number.pi_thermostat_cca_discharge_gain",
-            "number.pi_thermostat_cca_output_step_limit",
-            "number.pi_thermostat_cca_charge_target_scale",
+            "number.pi_thermostat_manual_output",
+            "number.pi_thermostat_hot_day_threshold",
+            "number.pi_thermostat_warm_night_threshold",
+            "number.pi_thermostat_output_minimum",
+            "number.pi_thermostat_output_maximum",
+            "number.pi_thermostat_charge_gain",
+            "number.pi_thermostat_discharge_gain",
+            "number.pi_thermostat_output_step_limit",
+            "number.pi_thermostat_charge_target_scale",
         ]
 
         for entity_id in expected_entity_ids:
@@ -433,7 +433,7 @@ class TestSwitchEntities:
 
         await _setup_cca_integration(hass)
 
-        state = hass.states.get("switch.pi_thermostat_cca_manual_override")
+        state = hass.states.get("switch.pi_thermostat_manual_override")
         assert state is not None
 
 
