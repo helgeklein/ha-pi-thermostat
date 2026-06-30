@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.components.climate.const import HVACAction, HVACMode
@@ -26,6 +26,8 @@ from custom_components.pi_thermostat.const import (
     DOMAIN,
     SENSOR_FAULT_GRACE_PERIOD_SECONDS,
     UPDATE_INTERVAL_DEFAULT_SECONDS,
+    CCAForecastUnavailableMode,
+    ControlMode,
     OperatingMode,
     SensorFaultMode,
 )
@@ -69,6 +71,19 @@ def _default_options(**overrides: Any) -> dict[str, Any]:
     return base
 
 
+def _default_cca_options(**overrides: Any) -> dict[str, Any]:
+    """Return a minimal valid CCA options dict with overrides."""
+
+    base: dict[str, Any] = {
+        "enabled": True,
+        "control_mode": ControlMode.CCA,
+        "cca_cooling_enable_entity": "binary_sensor.cooling_enabled",
+        "cca_weather_entity": "weather.home",
+    }
+    base.update(overrides)
+    return base
+
+
 # ---------------------------------------------------------------------------
 # Test classes
 # ---------------------------------------------------------------------------
@@ -103,6 +118,34 @@ class TestCoordinatorInit:
         # Should not raise
         coordinator.restore_integral_term(42.5)
         assert coordinator._pi.get_integral_term() == pytest.approx(42.5, abs=0.1)
+
+    async def test_restores_cca_state_from_storage(self, hass: HomeAssistant) -> None:
+        """CCA mode restores persisted state from storage."""
+
+        entry = _make_entry(hass, _default_cca_options())
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with patch.object(
+            coordinator._cca_store,
+            "async_load",
+            AsyncMock(
+                return_value={
+                    "charge_estimate": 12.5,
+                    "last_auto_output": 8.0,
+                    "last_heat_score": 55.0,
+                    "last_update_iso": "2026-07-01T00:00:00+00:00",
+                    "status": "active",
+                }
+            ),
+        ):
+            await coordinator.async_restore_cca_state()
+
+        state = coordinator.get_cca_state()
+        assert state.charge_estimate == 12.5
+        assert state.last_auto_output == 8.0
+        assert state.last_heat_score == 55.0
+        assert state.last_update_iso == "2026-07-01T00:00:00+00:00"
+        assert state.status == "active"
 
 
 class TestNormalCycle:
@@ -175,6 +218,151 @@ class TestNormalCycle:
             data = await coordinator._async_update_data()
 
         assert coordinator._last_data is data
+
+
+class TestCCACycle:
+    """Test the CCA control path."""
+
+    async def test_cca_update_interval(self, hass: HomeAssistant) -> None:
+        """CCA mode uses the slower hour-based update interval."""
+
+        entry = _make_entry(hass, _default_cca_options(cca_update_interval_hours=6))
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        assert coordinator.update_interval == timedelta(hours=6)
+
+    async def test_cca_disabled_cooling_returns_off(self, hass: HomeAssistant) -> None:
+        """CCA returns 0 output while cooling is not permitted."""
+
+        entry = _make_entry(hass, _default_cca_options())
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with patch.object(coordinator._ha, "get_entity_on_state", return_value=False):
+            data = await coordinator._async_update_data()
+
+        assert data.output == 0.0
+        assert data.current_mode == "off"
+        assert data.cca_status == "inactive"
+
+    async def test_cca_inverted_cooling_enable_allows_cooling_when_entity_is_off(self, hass: HomeAssistant) -> None:
+        """CCA can interpret an off-state as cooling enabled when configured."""
+
+        entry = _make_entry(hass, _default_cca_options(cca_cooling_enable_on=False))
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=False),
+            patch.object(
+                coordinator._ha,
+                "async_get_daily_forecasts",
+                AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 35.0, "templow": 24.0}]),
+            ),
+        ):
+            data = await coordinator._async_update_data()
+
+        assert data.output > 0.0
+        assert data.current_mode == "cooling"
+        assert data.cca_status == "active"
+
+    async def test_cca_inverted_cooling_enable_stays_off_when_entity_is_unavailable(self, hass: HomeAssistant) -> None:
+        """CCA does not treat an unreadable gate signal as cooling enabled."""
+
+        entry = _make_entry(hass, _default_cca_options(cca_cooling_enable_on=False))
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with patch.object(coordinator._ha, "get_entity_on_state", return_value=None):
+            data = await coordinator._async_update_data()
+
+        assert data.output == 0.0
+        assert data.current_mode == "off"
+        assert data.cca_status == "inactive"
+
+    async def test_cca_manual_override_replaces_auto_output(self, hass: HomeAssistant) -> None:
+        """CCA manual override replaces the automatic output value."""
+
+        entry = _make_entry(
+            hass,
+            _default_cca_options(
+                cca_manual_override_enabled=True,
+                cca_manual_output=42.0,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(
+                coordinator._ha,
+                "async_get_daily_forecasts",
+                AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 32.0, "templow": 22.0}]),
+            ),
+        ):
+            data = await coordinator._async_update_data()
+
+        assert data.output == 42.0
+        assert data.current_mode == "cooling"
+        assert data.cca_override_active == "on"
+        assert data.cca_status == "manual_override"
+
+    async def test_cca_forecast_hold_keeps_last_auto_output(self, hass: HomeAssistant) -> None:
+        """CCA hold mode keeps the last automatic output when forecast retrieval fails."""
+
+        entry = _make_entry(
+            hass,
+            _default_cca_options(
+                cca_forecast_unavailable_mode=CCAForecastUnavailableMode.HOLD,
+                cca_charge_target_scale=200.0,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(
+                coordinator._ha,
+                "async_get_daily_forecasts",
+                AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 35.0, "templow": 24.0}]),
+            ),
+        ):
+            first_data = await coordinator._async_update_data()
+
+        assert first_data.output > 0.0
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(
+                coordinator._ha,
+                "async_get_daily_forecasts",
+                AsyncMock(side_effect=RuntimeError("forecast down")),
+            ),
+        ):
+            second_data = await coordinator._async_update_data()
+
+        assert second_data.output == first_data.output
+        assert second_data.cca_status == "forecast_hold"
+
+    async def test_cca_cycle_persists_state_to_storage(self, hass: HomeAssistant) -> None:
+        """CCA mode persists the computed state after each update."""
+
+        entry = _make_entry(hass, _default_cca_options())
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(
+                coordinator._ha,
+                "async_get_daily_forecasts",
+                AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 32.0, "templow": 22.0}]),
+            ),
+            patch.object(coordinator._cca_store, "async_save", AsyncMock()) as mock_save,
+        ):
+            await coordinator._async_update_data()
+
+        mock_save.assert_awaited_once()
+        saved_payload = mock_save.await_args.args[0]
+        assert saved_payload["status"] == "active"
+        assert "charge_estimate" in saved_payload
+        assert "last_auto_output" in saved_payload
 
 
 class TestPausedResult:

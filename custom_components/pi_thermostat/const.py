@@ -99,6 +99,25 @@ DEFAULT_OUTPUT_MIN: Final[float] = 0.0  # Minimum output %
 DEFAULT_OUTPUT_MAX: Final[float] = 100.0  # Maximum output %
 
 # ---------------------------------------------------------------------------
+# CCA defaults
+# ---------------------------------------------------------------------------
+
+DEFAULT_CCA_FORECAST_HORIZON_DAYS: Final[int] = 3
+DEFAULT_CCA_COOLING_ENABLE_ON: Final[bool] = True
+DEFAULT_CCA_UPDATE_INTERVAL_HOURS: Final[int] = 6
+DEFAULT_CCA_MANUAL_OUTPUT: Final[float] = 0.0
+DEFAULT_CCA_HOT_DAY_THRESHOLD: Final[float] = 26.0
+DEFAULT_CCA_WARM_NIGHT_THRESHOLD: Final[float] = 18.0
+DEFAULT_CCA_OUTPUT_MIN: Final[float] = 0.0
+DEFAULT_CCA_OUTPUT_MAX: Final[float] = 60.0
+DEFAULT_CCA_CHARGE_GAIN: Final[float] = 25.0
+DEFAULT_CCA_DISCHARGE_GAIN: Final[float] = 20.0
+DEFAULT_CCA_OUTPUT_STEP_LIMIT: Final[float] = 10.0
+DEFAULT_CCA_CHARGE_TARGET_SCALE: Final[float] = 100.0
+CCA_STATE_STORAGE_VERSION: Final[int] = 1
+CCA_STATE_STORAGE_KEY_PREFIX: Final[str] = "cca_state"
+
+# ---------------------------------------------------------------------------
 # Entity keys — sensors (read-only, from coordinator data)
 # ---------------------------------------------------------------------------
 
@@ -120,12 +139,33 @@ NUMBER_KEY_TARGET_TEMP: Final[str] = "target_temp"
 NUMBER_KEY_OUTPUT_MIN: Final[str] = "output_min"
 NUMBER_KEY_OUTPUT_MAX: Final[str] = "output_max"
 NUMBER_KEY_UPDATE_INTERVAL: Final[str] = "update_interval"
+NUMBER_KEY_CCA_MANUAL_OUTPUT: Final[str] = "cca_manual_output"
+NUMBER_KEY_CCA_HOT_DAY_THRESHOLD: Final[str] = "cca_hot_day_threshold"
+NUMBER_KEY_CCA_WARM_NIGHT_THRESHOLD: Final[str] = "cca_warm_night_threshold"
+NUMBER_KEY_CCA_OUTPUT_MIN: Final[str] = "cca_output_min"
+NUMBER_KEY_CCA_OUTPUT_MAX: Final[str] = "cca_output_max"
+NUMBER_KEY_CCA_CHARGE_GAIN: Final[str] = "cca_charge_gain"
+NUMBER_KEY_CCA_DISCHARGE_GAIN: Final[str] = "cca_discharge_gain"
+NUMBER_KEY_CCA_OUTPUT_STEP_LIMIT: Final[str] = "cca_output_step_limit"
+NUMBER_KEY_CCA_CHARGE_TARGET_SCALE: Final[str] = "cca_charge_target_scale"
 
 # ---------------------------------------------------------------------------
 # Entity keys — switches
 # ---------------------------------------------------------------------------
 
 SWITCH_KEY_ENABLED: Final[str] = "enabled"
+SWITCH_KEY_CCA_MANUAL_OVERRIDE_ENABLED: Final[str] = "cca_manual_override_enabled"
+
+# ---------------------------------------------------------------------------
+# Entity keys - CCA sensors
+# ---------------------------------------------------------------------------
+
+SENSOR_KEY_CCA_HEAT_SCORE: Final[str] = "cca_heat_score"
+SENSOR_KEY_CCA_CHARGE_ESTIMATE: Final[str] = "cca_charge_estimate"
+SENSOR_KEY_CCA_CHARGE_TARGET: Final[str] = "cca_charge_target"
+SENSOR_KEY_CCA_OVERRIDE_ACTIVE: Final[str] = "cca_override_active"
+SENSOR_KEY_CCA_STATUS: Final[str] = "cca_status"
+SENSOR_KEY_CCA_STATE_STORE: Final[str] = "cca_state_store"
 
 # ---------------------------------------------------------------------------
 # Operating mode enum
@@ -141,6 +181,36 @@ class OperatingMode(StrEnum):
     HEAT_COOL = HVACMode.HEAT_COOL  # Auto: read mode from a climate entity
     HEAT = HVACMode.HEAT  # Heating only
     COOL = HVACMode.COOL  # Cooling only
+
+
+# ---------------------------------------------------------------------------
+# Control mode enum
+# ---------------------------------------------------------------------------
+
+
+#
+# ControlMode
+#
+class ControlMode(StrEnum):
+    """Which control strategy this integration instance should use."""
+
+    PI = "pi"
+    CCA = "cca"
+
+
+# ---------------------------------------------------------------------------
+# CCA forecast unavailable behavior enum
+# ---------------------------------------------------------------------------
+
+
+#
+# CCAForecastUnavailableMode
+#
+class CCAForecastUnavailableMode(StrEnum):
+    """Fallback behavior when daily forecast data is unavailable."""
+
+    HOLD = "hold"
+    SHUTDOWN = "shutdown"
 
 
 # ---------------------------------------------------------------------------
@@ -205,6 +275,9 @@ SENSOR_FAULT_GRACE_PERIOD_SECONDS: Final[int] = 1800  # 30 min before shutdown i
 ERROR_NO_TEMP_SOURCE: Final[str] = "no_temp_source"
 ERROR_HEAT_COOL_REQUIRES_CLIMATE: Final[str] = "heat_cool_requires_climate"
 ERROR_CLIMATE_TARGET_REQUIRES_CLIMATE: Final[str] = "climate_target_requires_climate"
+ERROR_CCA_COOLING_ENABLE_REQUIRED: Final[str] = "cca_cooling_enable_required"
+ERROR_CCA_WEATHER_REQUIRED: Final[str] = "cca_weather_required"
+ERROR_CCA_WEATHER_UNSUPPORTED: Final[str] = "cca_weather_unsupported"
 
 # ---------------------------------------------------------------------------
 # Module initialization

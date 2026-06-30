@@ -3,13 +3,11 @@
 The config flow is minimal: it creates an entry with default settings and no
 user-configurable fields. All real configuration happens in the options flow.
 
-The options flow has three steps:
-  1. Climate Entity & Operating Mode
-  2. Temperature Sensors & Target
-  3. Sensor Fault & Startup Mode
+The options flow begins with controller-mode selection, then continues with the
+PI or CCA configuration steps required for that mode.
 
-PI tuning parameters and update interval are adjusted at runtime via number
-entities, not the options flow.
+PI tuning parameters are adjusted at runtime via number entities rather than
+the options flow.
 """
 
 from __future__ import annotations
@@ -20,15 +18,21 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import Platform
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import selector
 
 from .config import ConfKeys, resolve
 from .const import (
     DOMAIN,
+    ERROR_CCA_COOLING_ENABLE_REQUIRED,
+    ERROR_CCA_WEATHER_REQUIRED,
+    ERROR_CCA_WEATHER_UNSUPPORTED,
     ERROR_CLIMATE_TARGET_REQUIRES_CLIMATE,
     ERROR_HEAT_COOL_REQUIRES_CLIMATE,
     ERROR_NO_TEMP_SOURCE,
     INTEGRATION_NAME,
+    CCAForecastUnavailableMode,
+    ControlMode,
     ITermStartupMode,
     OperatingMode,
     SensorFaultMode,
@@ -44,6 +48,8 @@ SELECTOR_KEY_OPERATING_MODE: str = "operating_mode"
 SELECTOR_KEY_TARGET_TEMP_MODE: str = "target_temp_mode"
 SELECTOR_KEY_SENSOR_FAULT_MODE: str = "sensor_fault_mode"
 SELECTOR_KEY_ITERM_STARTUP_MODE: str = "iterm_startup_mode"
+SELECTOR_KEY_CONTROL_MODE: str = "control_mode"
+SELECTOR_KEY_CCA_FORECAST_UNAVAILABLE_MODE: str = "cca_forecast_unavailable_mode"
 
 # ---------------------------------------------------------------------------
 # Documentation URL shown in the config flow welcome page
@@ -55,9 +61,40 @@ DOCS_URL: str = "https://ha-pi-thermostat.helgeklein.com/"
 # Entity selector domains
 # ---------------------------------------------------------------------------
 
+CCA_ENABLE_ENTITY_DOMAINS: tuple[str, ...] = (
+    "binary_sensor",
+    "input_boolean",
+    "switch",
+)
+
 # ===========================================================================
 # Schema builders
 # ===========================================================================
+
+
+#
+# _build_schema_step_mode
+#
+def _build_schema_step_mode(defaults: dict[str, Any]) -> vol.Schema:
+    """Build the schema for controller-mode selection."""
+
+    resolved = resolve(defaults)
+    schema: dict[vol.Marker, Any] = {}
+
+    schema[
+        vol.Required(
+            ConfKeys.CONTROL_MODE.value,
+            default=resolved.control_mode,
+        )
+    ] = selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[m.value for m in ControlMode],
+            translation_key=SELECTOR_KEY_CONTROL_MODE,
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+    return vol.Schema(schema)
 
 
 #
@@ -229,6 +266,66 @@ def _build_schema_step_3(defaults: dict[str, Any]) -> vol.Schema:
     return vol.Schema(schema)
 
 
+#
+# _build_schema_step_cca_sources
+#
+def _build_schema_step_cca_sources(defaults: dict[str, Any]) -> vol.Schema:
+    """Build the schema for CCA data-source configuration."""
+
+    resolved = resolve(defaults)
+    schema: dict[vol.Marker, Any] = {}
+
+    schema[
+        vol.Required(
+            ConfKeys.CCA_COOLING_ENABLE_ENTITY.value,
+            default=resolved.cca_cooling_enable_entity,
+        )
+    ] = selector.EntitySelector(selector.EntitySelectorConfig(domain=list(CCA_ENABLE_ENTITY_DOMAINS)))
+
+    schema[
+        vol.Required(
+            ConfKeys.CCA_COOLING_ENABLE_ON.value,
+            default=resolved.cca_cooling_enable_on,
+        )
+    ] = selector.BooleanSelector()
+
+    schema[
+        vol.Required(
+            ConfKeys.CCA_WEATHER_ENTITY.value,
+            default=resolved.cca_weather_entity,
+        )
+    ] = selector.EntitySelector(selector.EntitySelectorConfig(domain=Platform.WEATHER))
+
+    schema[
+        vol.Required(
+            ConfKeys.CCA_FORECAST_HORIZON_DAYS.value,
+            default=resolved.cca_forecast_horizon_days,
+        )
+    ] = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=1.0,
+            max=7.0,
+            step=1.0,
+            mode=selector.NumberSelectorMode.BOX,
+        )
+    )
+
+    schema[
+        vol.Required(
+            ConfKeys.CCA_FORECAST_UNAVAILABLE_MODE.value,
+            default=resolved.cca_forecast_unavailable_mode,
+        )
+    ] = selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[m.value for m in CCAForecastUnavailableMode],
+            translation_key=SELECTOR_KEY_CCA_FORECAST_UNAVAILABLE_MODE,
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+    return vol.Schema(schema)
+
+
 # ===========================================================================
 # Validation helpers
 # ===========================================================================
@@ -294,6 +391,40 @@ def _validate_step_2(
     # Target temp mode 'climate' requires climate entity
     if target_mode == TargetTempMode.CLIMATE and not has_climate:
         errors[ConfKeys.TARGET_TEMP_MODE.value] = ERROR_CLIMATE_TARGET_REQUIRES_CLIMATE
+
+    return errors
+
+
+#
+# _validate_step_cca_sources
+#
+async def _validate_step_cca_sources(
+    hass: Any,
+    user_input: dict[str, Any],
+) -> dict[str, str]:
+    """Validate the CCA data-source step."""
+
+    errors: dict[str, str] = {}
+
+    cooling_enable_entity = user_input.get(ConfKeys.CCA_COOLING_ENABLE_ENTITY.value, "")
+    weather_entity = user_input.get(ConfKeys.CCA_WEATHER_ENTITY.value, "")
+
+    if not cooling_enable_entity:
+        errors[ConfKeys.CCA_COOLING_ENABLE_ENTITY.value] = ERROR_CCA_COOLING_ENABLE_REQUIRED
+
+    if not weather_entity:
+        errors[ConfKeys.CCA_WEATHER_ENTITY.value] = ERROR_CCA_WEATHER_REQUIRED
+        return errors
+
+    from .ha_interface import HomeAssistantInterface
+    from .log import Log
+
+    ha_interface = HomeAssistantInterface(hass, Log())
+
+    try:
+        await ha_interface.async_validate_daily_forecast_support(weather_entity)
+    except HomeAssistantError:
+        errors[ConfKeys.CCA_WEATHER_ENTITY.value] = ERROR_CCA_WEATHER_UNSUPPORTED
 
     return errors
 
@@ -366,10 +497,9 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle post-setup configuration for the PI Thermostat integration.
 
-    Three-step wizard:
-      1. Climate Entity & Operating Mode
-      2. Temperature Sensors & Target
-      3. Sensor Fault & Startup Mode
+    Mode-aware wizard:
+        - PI path: mode -> climate -> temperature -> fault/startup
+        - CCA path: mode -> data sources
     """
 
     #
@@ -411,6 +541,19 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         return bool(climate)
 
     #
+    # _control_mode
+    #
+    def _control_mode(self) -> str:
+        """Return the selected control mode from flow data or saved settings."""
+
+        return str(
+            self._config_data.get(
+                ConfKeys.CONTROL_MODE.value,
+                self._current_settings().get(ConfKeys.CONTROL_MODE.value, ControlMode.PI),
+            )
+        )
+
+    #
     # _merged_defaults
     #
     def _merged_defaults(self) -> dict[str, Any]:
@@ -448,49 +591,43 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     # async_step_init
     #
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> config_entries.ConfigFlowResult:
-        """Step 1: Climate Entity & Operating Mode."""
+        """Step 1: controller mode."""
 
         defaults = self._merged_defaults()
 
-        schema = _build_schema_step_1(defaults)
+        schema = _build_schema_step_mode(defaults)
 
         if user_input is None:
             return self.async_show_form(
                 step_id="init",
                 data_schema=self.add_suggested_values_to_schema(schema, defaults),
-            )
-
-        # Validate
-        errors = _validate_step_1(user_input)
-        if errors:
-            return self.async_show_form(
-                step_id="init",
-                data_schema=self.add_suggested_values_to_schema(schema, user_input),
-                errors=errors,
+                last_step=False,
             )
 
         self._logger.debug(f"Options flow step 1 input: {user_input}")
         self._config_data.update(user_input)
+        if self._control_mode() == ControlMode.CCA:
+            return await self.async_step_cca_sources()
         return await self.async_step_2()
 
     #
     # async_step_2
     #
     async def async_step_2(self, user_input: dict[str, Any] | None = None) -> config_entries.ConfigFlowResult:
-        """Step 2: Temperature Sensors & Target."""
+        """Step 2: Climate Entity & Operating Mode."""
 
-        has_climate = self._has_climate()
         defaults = self._merged_defaults()
-        schema = _build_schema_step_2(defaults, has_climate)
+        schema = _build_schema_step_1(defaults)
 
         if user_input is None:
             return self.async_show_form(
                 step_id="2",
                 data_schema=self.add_suggested_values_to_schema(schema, defaults),
+                last_step=False,
             )
 
         # Validate
-        errors = _validate_step_2(user_input, has_climate)
+        errors = _validate_step_1(user_input)
         if errors:
             return self.async_show_form(
                 step_id="2",
@@ -506,17 +643,76 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     # async_step_3
     #
     async def async_step_3(self, user_input: dict[str, Any] | None = None) -> config_entries.ConfigFlowResult:
-        """Step 3: Sensor Fault & Startup Mode."""
+        """Step 3: Temperature Sensors & Target."""
+
+        has_climate = self._has_climate()
+        defaults = self._merged_defaults()
+        schema = _build_schema_step_2(defaults, has_climate)
+
+        if user_input is None:
+            return self.async_show_form(
+                step_id="3",
+                data_schema=self.add_suggested_values_to_schema(schema, defaults),
+                last_step=False,
+            )
+
+        errors = _validate_step_2(user_input, has_climate)
+        if errors:
+            return self.async_show_form(
+                step_id="3",
+                data_schema=self.add_suggested_values_to_schema(schema, user_input),
+                errors=errors,
+            )
+
+        self._logger.debug(f"Options flow step 3 input: {user_input}")
+        self._config_data.update(user_input)
+        return await self.async_step_4()
+
+    #
+    # async_step_4
+    #
+    async def async_step_4(self, user_input: dict[str, Any] | None = None) -> config_entries.ConfigFlowResult:
+        """Step 4: Sensor Fault & Startup Mode."""
 
         defaults = self._merged_defaults()
         schema = _build_schema_step_3(defaults)
 
         if user_input is None:
             return self.async_show_form(
-                step_id="3",
+                step_id="4",
                 data_schema=self.add_suggested_values_to_schema(schema, defaults),
+                last_step=True,
             )
 
-        self._logger.debug(f"Options flow step 3 input: {user_input}")
+        self._logger.debug(f"Options flow step 4 input: {user_input}")
+        self._config_data.update(user_input)
+        return self._finalize_and_save()
+
+    #
+    # async_step_cca_sources
+    #
+    async def async_step_cca_sources(self, user_input: dict[str, Any] | None = None) -> config_entries.ConfigFlowResult:
+        """Step 2 of the CCA path: data sources."""
+
+        defaults = self._merged_defaults()
+        schema = _build_schema_step_cca_sources(defaults)
+
+        if user_input is None:
+            return self.async_show_form(
+                step_id="cca_sources",
+                data_schema=self.add_suggested_values_to_schema(schema, defaults),
+                last_step=True,
+            )
+
+        errors = await _validate_step_cca_sources(self.hass, user_input)
+        if errors:
+            return self.async_show_form(
+                step_id="cca_sources",
+                data_schema=self.add_suggested_values_to_schema(schema, user_input),
+                errors=errors,
+                last_step=True,
+            )
+
+        self._logger.debug(f"Options flow CCA sources input: {user_input}")
         self._config_data.update(user_input)
         return self._finalize_and_save()

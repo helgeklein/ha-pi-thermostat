@@ -25,12 +25,26 @@ from custom_components.pi_thermostat.config import (
     resolve_entry,
 )
 from custom_components.pi_thermostat.const import (
+    DEFAULT_CCA_CHARGE_GAIN,
+    DEFAULT_CCA_CHARGE_TARGET_SCALE,
+    DEFAULT_CCA_COOLING_ENABLE_ON,
+    DEFAULT_CCA_DISCHARGE_GAIN,
+    DEFAULT_CCA_FORECAST_HORIZON_DAYS,
+    DEFAULT_CCA_HOT_DAY_THRESHOLD,
+    DEFAULT_CCA_MANUAL_OUTPUT,
+    DEFAULT_CCA_OUTPUT_MAX,
+    DEFAULT_CCA_OUTPUT_MIN,
+    DEFAULT_CCA_OUTPUT_STEP_LIMIT,
+    DEFAULT_CCA_UPDATE_INTERVAL_HOURS,
+    DEFAULT_CCA_WARM_NIGHT_THRESHOLD,
     DEFAULT_INT_TIME,
     DEFAULT_ITERM_STARTUP_VALUE,
     DEFAULT_OUTPUT_MAX,
     DEFAULT_OUTPUT_MIN,
     DEFAULT_PROP_BAND,
     UPDATE_INTERVAL_DEFAULT_SECONDS,
+    CCAForecastUnavailableMode,
+    ControlMode,
     ITermStartupMode,
     OperatingMode,
     SensorFaultMode,
@@ -160,6 +174,23 @@ class TestResolve:
         assert resolved.sensor_fault_mode == SensorFaultMode.HOLD
         assert resolved.iterm_startup_mode == ITermStartupMode.LAST
         assert resolved.iterm_startup_value == DEFAULT_ITERM_STARTUP_VALUE
+        assert resolved.control_mode == ControlMode.PI
+        assert resolved.cca_cooling_enable_entity == ""
+        assert resolved.cca_cooling_enable_on is DEFAULT_CCA_COOLING_ENABLE_ON
+        assert resolved.cca_weather_entity == ""
+        assert resolved.cca_forecast_horizon_days == DEFAULT_CCA_FORECAST_HORIZON_DAYS
+        assert resolved.cca_forecast_unavailable_mode == CCAForecastUnavailableMode.HOLD
+        assert resolved.cca_update_interval_hours == DEFAULT_CCA_UPDATE_INTERVAL_HOURS
+        assert resolved.cca_manual_override_enabled is False
+        assert resolved.cca_manual_output == DEFAULT_CCA_MANUAL_OUTPUT
+        assert resolved.cca_hot_day_threshold == DEFAULT_CCA_HOT_DAY_THRESHOLD
+        assert resolved.cca_warm_night_threshold == DEFAULT_CCA_WARM_NIGHT_THRESHOLD
+        assert resolved.cca_output_min == DEFAULT_CCA_OUTPUT_MIN
+        assert resolved.cca_output_max == DEFAULT_CCA_OUTPUT_MAX
+        assert resolved.cca_charge_gain == DEFAULT_CCA_CHARGE_GAIN
+        assert resolved.cca_discharge_gain == DEFAULT_CCA_DISCHARGE_GAIN
+        assert resolved.cca_output_step_limit == DEFAULT_CCA_OUTPUT_STEP_LIMIT
+        assert resolved.cca_charge_target_scale == DEFAULT_CCA_CHARGE_TARGET_SCALE
 
     def test_empty_dict_defaults(self) -> None:
         """Resolve with empty dict is equivalent to None."""
@@ -178,6 +209,13 @@ class TestResolve:
         # Others still default
         assert resolved.integral_time == DEFAULT_INT_TIME
 
+    def test_override_cca_cooling_enable_on(self) -> None:
+        """Override the CCA enable-entity polarity."""
+
+        resolved = resolve({"cca_cooling_enable_on": False})
+
+        assert resolved.cca_cooling_enable_on is False
+
     def test_override_multiple(self) -> None:
         """Override multiple keys."""
 
@@ -189,10 +227,17 @@ class TestResolve:
                 "update_interval": 30,
             }
         )
+
         assert resolved.enabled is False
         assert resolved.proportional_band == 2.0
         assert resolved.integral_time == 60.0
         assert resolved.update_interval == 30
+
+    def test_invalid_forecast_mode_raises(self) -> None:
+        """Unsupported forecast fallback values are rejected."""
+
+        with pytest.raises(ValueError, match="Unsupported CCA forecast fallback mode"):
+            resolve({"cca_forecast_unavailable_mode": "zero_output"})
 
     def test_coercion_string_to_float(self) -> None:
         """String values are coerced to correct types."""
@@ -335,6 +380,16 @@ class TestRuntimeConfigurableKeys:
         assert "output_max" in keys
         assert "update_interval" in keys
         assert "auto_disable_on_hvac_off" in keys
+        assert "cca_manual_override_enabled" in keys
+        assert "cca_manual_output" in keys
+        assert "cca_hot_day_threshold" in keys
+        assert "cca_warm_night_threshold" in keys
+        assert "cca_output_min" in keys
+        assert "cca_output_max" in keys
+        assert "cca_charge_gain" in keys
+        assert "cca_discharge_gain" in keys
+        assert "cca_output_step_limit" in keys
+        assert "cca_charge_target_scale" in keys
 
     def test_excludes_structural_keys(self) -> None:
         """Structural keys are not runtime configurable."""
@@ -345,3 +400,6 @@ class TestRuntimeConfigurableKeys:
         assert "operating_mode" not in keys
         assert "sensor_fault_mode" not in keys
         assert "iterm_startup_mode" not in keys
+        assert "control_mode" not in keys
+        assert "cca_cooling_enable_entity" not in keys
+        assert "cca_weather_entity" not in keys

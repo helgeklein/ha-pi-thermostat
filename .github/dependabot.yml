@@ -9,7 +9,22 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "saturday"
+      time: "05:30"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    groups:
+      github-actions-version-updates:
+        applies-to: "version-updates"
+        patterns:
+          - "*"
+      github-actions-security-updates:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "ci(deps)"
 
   - package-ecosystem: "pip"
     directories:
