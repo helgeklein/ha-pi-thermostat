@@ -20,6 +20,7 @@ from homeassistant.core import HomeAssistant, State
 
 from custom_components.pi_thermostat.const import (
     DOMAIN,
+    ControlMode,
     ITermStartupMode,
     OperatingMode,
     TargetTempMode,
@@ -57,6 +58,19 @@ def _default_options(**overrides: Any) -> dict[str, Any]:
     return base
 
 
+def _default_cca_options(**overrides: Any) -> dict[str, Any]:
+    """Return a minimal valid CCA options dict."""
+
+    base: dict[str, Any] = {
+        "enabled": True,
+        "control_mode": ControlMode.CCA,
+        "cca_cooling_enable_entity": "binary_sensor.cooling_enabled",
+        "cca_weather_entity": "weather.home",
+    }
+    base.update(overrides)
+    return base
+
+
 async def _setup_integration(
     hass: HomeAssistant,
     options: dict[str, Any] | None = None,
@@ -70,6 +84,32 @@ async def _setup_integration(
     with patch(
         "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.get_temperature",
         return_value=20.0,
+    ):
+        result = await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert result is True
+    return entry
+
+
+async def _setup_cca_integration(
+    hass: HomeAssistant,
+    options: dict[str, Any] | None = None,
+) -> Any:
+    """Set up the integration in CCA mode and return the entry."""
+
+    entry = _make_entry(options or _default_cca_options())
+    entry.add_to_hass(hass)
+
+    with (
+        patch(
+            "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.is_entity_on",
+            return_value=True,
+        ),
+        patch(
+            "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.async_get_daily_forecasts",
+            AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 31.0, "templow": 21.0}]),
+        ),
     ):
         result = await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
@@ -99,6 +139,80 @@ class TestSetupEntry:
         result = await hass.config_entries.async_unload(entry.entry_id)
         assert result is True
 
+    async def test_multiple_entries_create_distinct_devices_and_entities(self, hass: HomeAssistant) -> None:
+        """Two config entries keep separate devices and stable unique IDs."""
+
+        from homeassistant.const import Platform
+        from homeassistant.helpers import device_registry as dr
+        from homeassistant.helpers import entity_registry as er
+        from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+        living_room_entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="Living Room",
+            data={},
+            options=_default_options(target_temp=21.0),
+        )
+        bedroom_entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="Bedroom",
+            data={},
+            options=_default_options(target_temp=19.0),
+        )
+        living_room_entry.add_to_hass(hass)
+
+        with patch(
+            "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.get_temperature",
+            return_value=20.0,
+        ):
+            first_result = await hass.config_entries.async_setup(living_room_entry.entry_id)
+            bedroom_entry.add_to_hass(hass)
+            second_result = await hass.config_entries.async_setup(bedroom_entry.entry_id)
+            await hass.async_block_till_done()
+
+        assert first_result is True
+        assert second_result is True
+
+        entity_registry = er.async_get(hass)
+        living_room_unique_id = f"{living_room_entry.entry_id}_output"
+        bedroom_unique_id = f"{bedroom_entry.entry_id}_output"
+
+        living_room_entity_id = entity_registry.async_get_entity_id(
+            Platform.SENSOR,
+            DOMAIN,
+            living_room_unique_id,
+        )
+        bedroom_entity_id = entity_registry.async_get_entity_id(
+            Platform.SENSOR,
+            DOMAIN,
+            bedroom_unique_id,
+        )
+
+        assert living_room_entity_id is not None
+        assert bedroom_entity_id is not None
+        assert living_room_entity_id != bedroom_entity_id
+
+        living_room_entity = entity_registry.async_get(living_room_entity_id)
+        bedroom_entity = entity_registry.async_get(bedroom_entity_id)
+
+        assert living_room_entity is not None
+        assert bedroom_entity is not None
+        assert living_room_entity.unique_id == living_room_unique_id
+        assert bedroom_entity.unique_id == bedroom_unique_id
+        assert living_room_entity.device_id != bedroom_entity.device_id
+
+        device_registry = dr.async_get(hass)
+        living_room_device = device_registry.async_get(living_room_entity.device_id)
+        bedroom_device = device_registry.async_get(bedroom_entity.device_id)
+
+        assert living_room_device is not None
+        assert bedroom_device is not None
+        assert living_room_device.name == "Living Room"
+        assert bedroom_device.name == "Bedroom"
+        assert living_room_device.id != bedroom_device.id
+        assert (DOMAIN, living_room_entry.entry_id) in living_room_device.identifiers
+        assert (DOMAIN, bedroom_entry.entry_id) in bedroom_device.identifiers
+
 
 # ===========================================================================
 # Sensor entities
@@ -116,6 +230,7 @@ class TestSensorEntities:
         expected_entity_ids = [
             "sensor.pi_thermostat_output",
             "sensor.pi_thermostat_deviation",
+            "sensor.pi_thermostat_current_mode",
             "sensor.pi_thermostat_current_temperature",
             "sensor.pi_thermostat_proportional_term",
             "sensor.pi_thermostat_integral_term",
@@ -144,6 +259,24 @@ class TestSensorEntities:
         assert state is not None
         # Deviation = target - current = 22 - 20 = 2.0
         assert float(state.state) == pytest.approx(2.0, abs=0.01)
+
+    async def test_current_mode_sensor_value_heating(self, hass: HomeAssistant) -> None:
+        """Current mode sensor reflects heating mode."""
+
+        await _setup_integration(hass, _default_options(operating_mode=OperatingMode.HEAT))
+
+        state = hass.states.get("sensor.pi_thermostat_current_mode")
+        assert state is not None
+        assert state.state == "heating"
+
+    async def test_current_mode_sensor_value_cooling(self, hass: HomeAssistant) -> None:
+        """Current mode sensor reflects cooling mode."""
+
+        await _setup_integration(hass, _default_options(operating_mode=OperatingMode.COOL))
+
+        state = hass.states.get("sensor.pi_thermostat_current_mode")
+        assert state is not None
+        assert state.state == "cooling"
 
     async def test_target_temp_sensor_created_in_climate_mode(self, hass: HomeAssistant) -> None:
         """Target temp sensor is created when target_temp_mode is not INTERNAL."""
@@ -180,6 +313,27 @@ class TestSensorEntities:
 
         state = hass.states.get("number.pi_thermostat_target_temperature")
         assert state is None, "target_temp number should not exist in CLIMATE mode"
+
+    async def test_cca_sensors_created(self, hass: HomeAssistant) -> None:
+        """CCA mode creates shared and CCA-specific sensors only."""
+
+        await _setup_cca_integration(hass)
+
+        expected_entity_ids = [
+            "sensor.pi_thermostat_output",
+            "sensor.pi_thermostat_current_mode",
+            "sensor.pi_thermostat_cca_heat_score",
+            "sensor.pi_thermostat_cca_charge_estimate",
+            "sensor.pi_thermostat_cca_charge_target",
+            "sensor.pi_thermostat_cca_override_active",
+            "sensor.pi_thermostat_cca_status",
+        ]
+
+        for entity_id in expected_entity_ids:
+            assert hass.states.get(entity_id) is not None, f"{entity_id} not found"
+
+        assert hass.states.get("sensor.pi_thermostat_deviation") is None
+        assert hass.states.get("sensor.pi_thermostat_integral_term") is None
 
 
 # ===========================================================================
@@ -226,6 +380,28 @@ class TestNumberEntities:
         assert state is not None
         assert float(state.state) == pytest.approx(6.0, abs=0.01)
 
+    async def test_cca_numbers_created(self, hass: HomeAssistant) -> None:
+        """CCA mode creates the runtime tuning number entities."""
+
+        await _setup_cca_integration(hass)
+
+        expected_entity_ids = [
+            "number.pi_thermostat_cca_manual_output",
+            "number.pi_thermostat_cca_hot_day_threshold",
+            "number.pi_thermostat_cca_warm_night_threshold",
+            "number.pi_thermostat_cca_output_minimum",
+            "number.pi_thermostat_cca_output_maximum",
+            "number.pi_thermostat_cca_charge_gain",
+            "number.pi_thermostat_cca_discharge_gain",
+            "number.pi_thermostat_cca_output_step_limit",
+            "number.pi_thermostat_cca_charge_target_scale",
+        ]
+
+        for entity_id in expected_entity_ids:
+            assert hass.states.get(entity_id) is not None, f"{entity_id} not found"
+
+        assert hass.states.get("number.pi_thermostat_proportional_band") is None
+
 
 # ===========================================================================
 # Switch entities
@@ -251,6 +427,14 @@ class TestSwitchEntities:
         state = hass.states.get("switch.pi_thermostat_enabled")
         assert state is not None
         assert state.state == "on"
+
+    async def test_cca_manual_override_switch_created(self, hass: HomeAssistant) -> None:
+        """CCA mode creates the manual override switch."""
+
+        await _setup_cca_integration(hass)
+
+        state = hass.states.get("switch.pi_thermostat_cca_manual_override")
+        assert state is not None
 
 
 # ===========================================================================

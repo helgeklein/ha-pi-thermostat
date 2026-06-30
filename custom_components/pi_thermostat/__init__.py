@@ -19,7 +19,29 @@ from .const import (
     DOMAIN,
     HA_OPTIONS,
     INTEGRATION_NAME,
+    NUMBER_KEY_CCA_CHARGE_GAIN,
+    NUMBER_KEY_CCA_CHARGE_TARGET_SCALE,
+    NUMBER_KEY_CCA_DISCHARGE_GAIN,
+    NUMBER_KEY_CCA_HOT_DAY_THRESHOLD,
+    NUMBER_KEY_CCA_MANUAL_OUTPUT,
+    NUMBER_KEY_CCA_OUTPUT_MAX,
+    NUMBER_KEY_CCA_OUTPUT_MIN,
+    NUMBER_KEY_CCA_OUTPUT_STEP_LIMIT,
+    NUMBER_KEY_CCA_WARM_NIGHT_THRESHOLD,
     NUMBER_KEY_TARGET_TEMP,
+    SENSOR_KEY_CCA_CHARGE_ESTIMATE,
+    SENSOR_KEY_CCA_CHARGE_TARGET,
+    SENSOR_KEY_CCA_HEAT_SCORE,
+    SENSOR_KEY_CCA_OVERRIDE_ACTIVE,
+    SENSOR_KEY_CCA_STATE_STORE,
+    SENSOR_KEY_CCA_STATUS,
+    SENSOR_KEY_CURRENT_TEMP,
+    SENSOR_KEY_DEVIATION,
+    SENSOR_KEY_I_TERM,
+    SENSOR_KEY_P_TERM,
+    SENSOR_KEY_TARGET_TEMP,
+    SWITCH_KEY_CCA_MANUAL_OVERRIDE_ENABLED,
+    ControlMode,
     TargetTempMode,
 )
 from .coordinator import DataUpdateCoordinator
@@ -82,15 +104,14 @@ async def async_setup_entry(
             config=merged_config,
         )
 
+        await coordinator.async_restore_cca_state()
+
         # Call each platform's async_setup_entry()
         logger.debug(f"Setting up platforms: {PLATFORMS}")
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
         # Remove stale conditional entities from the entity registry.
-        # The target_temp entity is either a number (INTERNAL mode) or a sensor
-        # (EXTERNAL/CLIMATE mode), never both. Without cleanup the previously
-        # created variant lingers as unavailable/greyed-out in the UI.
-        _remove_stale_target_temp_entities(hass, entry)
+        _remove_stale_conditional_entities(hass, entry)
 
         # Trigger initial coordinator refresh after platforms are set up
         # This ensures all entities are registered before the first state update
@@ -114,37 +135,63 @@ async def async_setup_entry(
 
 
 #
-# _remove_stale_target_temp_entities
+# _remove_stale_conditional_entities
 #
-def _remove_stale_target_temp_entities(
+def _remove_stale_conditional_entities(
     hass: HomeAssistant,
     entry: IntegrationConfigEntry,
 ) -> None:
-    """Remove the target-temp entity variant that is no longer active.
-
-    Depending on ``target_temp_mode``, the integration creates either a
-    writable **number** entity (INTERNAL mode) or a read-only **sensor**
-    entity (EXTERNAL / CLIMATE mode) for the target temperature.  When the
-    user switches modes, the previously-created variant would linger in the
-    entity registry as unavailable.  This helper removes it so the UI stays
-    clean.
-    """
+    """Remove stale PI/CCA conditional entities from the registry."""
 
     resolved = resolve_entry(entry)
     registry = er.async_get(hass)
-    unique_id_suffix = f"_{NUMBER_KEY_TARGET_TEMP}"
 
-    # Determine which platform's target_temp entity should NOT exist
-    if resolved.target_temp_mode == TargetTempMode.INTERNAL:
-        stale_platform = Platform.SENSOR
+    if resolved.control_mode == ControlMode.PI:
+        stale_entities: list[tuple[Platform, str]] = [
+            (Platform.NUMBER, NUMBER_KEY_CCA_MANUAL_OUTPUT),
+            (Platform.NUMBER, NUMBER_KEY_CCA_HOT_DAY_THRESHOLD),
+            (Platform.NUMBER, NUMBER_KEY_CCA_WARM_NIGHT_THRESHOLD),
+            (Platform.NUMBER, NUMBER_KEY_CCA_OUTPUT_MIN),
+            (Platform.NUMBER, NUMBER_KEY_CCA_OUTPUT_MAX),
+            (Platform.NUMBER, NUMBER_KEY_CCA_CHARGE_GAIN),
+            (Platform.NUMBER, NUMBER_KEY_CCA_DISCHARGE_GAIN),
+            (Platform.NUMBER, NUMBER_KEY_CCA_OUTPUT_STEP_LIMIT),
+            (Platform.NUMBER, NUMBER_KEY_CCA_CHARGE_TARGET_SCALE),
+            (Platform.SENSOR, SENSOR_KEY_CCA_HEAT_SCORE),
+            (Platform.SENSOR, SENSOR_KEY_CCA_CHARGE_ESTIMATE),
+            (Platform.SENSOR, SENSOR_KEY_CCA_CHARGE_TARGET),
+            (Platform.SENSOR, SENSOR_KEY_CCA_OVERRIDE_ACTIVE),
+            (Platform.SENSOR, SENSOR_KEY_CCA_STATUS),
+            (Platform.SENSOR, SENSOR_KEY_CCA_STATE_STORE),
+            (Platform.SWITCH, SWITCH_KEY_CCA_MANUAL_OVERRIDE_ENABLED),
+        ]
     else:
-        stale_platform = Platform.NUMBER
+        stale_entities = [
+            (Platform.NUMBER, NUMBER_KEY_TARGET_TEMP),
+            (Platform.NUMBER, "proportional_band"),
+            (Platform.NUMBER, "integral_time"),
+            (Platform.NUMBER, "output_min"),
+            (Platform.NUMBER, "output_max"),
+            (Platform.NUMBER, "update_interval"),
+            (Platform.SENSOR, SENSOR_KEY_DEVIATION),
+            (Platform.SENSOR, SENSOR_KEY_CURRENT_TEMP),
+            (Platform.SENSOR, SENSOR_KEY_TARGET_TEMP),
+            (Platform.SENSOR, SENSOR_KEY_P_TERM),
+            (Platform.SENSOR, SENSOR_KEY_I_TERM),
+            (Platform.SENSOR, SENSOR_KEY_CCA_STATE_STORE),
+        ]
 
-    # Look up by unique_id and remove if present
-    stale_unique_id = f"{entry.entry_id}{unique_id_suffix}"
-    stale_entry = registry.async_get_entity_id(stale_platform, DOMAIN, stale_unique_id)
-    if stale_entry is not None:
-        registry.async_remove(stale_entry)
+    if resolved.control_mode == ControlMode.PI:
+        stale_platform = Platform.SENSOR if resolved.target_temp_mode == TargetTempMode.INTERNAL else Platform.NUMBER
+        stale_entities.append((stale_platform, NUMBER_KEY_TARGET_TEMP))
+    else:
+        stale_entities.append((Platform.SENSOR, SENSOR_KEY_TARGET_TEMP))
+
+    for platform, key in stale_entities:
+        unique_id = f"{entry.entry_id}_{key}"
+        entity_id = registry.async_get_entity_id(platform, DOMAIN, unique_id)
+        if entity_id is not None:
+            registry.async_remove(entity_id)
 
 
 #

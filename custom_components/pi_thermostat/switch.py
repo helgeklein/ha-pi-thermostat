@@ -14,7 +14,7 @@ from homeassistant.components.switch import SwitchEntity, SwitchEntityDescriptio
 from homeassistant.const import EntityCategory
 
 from .config import ConfKeys, resolve_entry
-from .const import SWITCH_KEY_ENABLED
+from .const import SWITCH_KEY_CCA_MANUAL_OVERRIDE_ENABLED, SWITCH_KEY_ENABLED, ControlMode
 from .entity import IntegrationEntity
 
 if TYPE_CHECKING:
@@ -36,6 +36,13 @@ SWITCH_ENABLED = SwitchEntityDescription(
     icon="mdi:toggle-switch-outline",
 )
 
+SWITCH_CCA_MANUAL_OVERRIDE_ENABLED = SwitchEntityDescription(
+    key=SWITCH_KEY_CCA_MANUAL_OVERRIDE_ENABLED,
+    translation_key=SWITCH_KEY_CCA_MANUAL_OVERRIDE_ENABLED,
+    entity_category=None,
+    icon="mdi:hand-back-right-outline",
+)
+
 
 # ---------------------------------------------------------------------------
 # Platform setup
@@ -53,12 +60,20 @@ async def async_setup_entry(
     """Create all switch entities for a config entry."""
 
     coordinator = entry.runtime_data.coordinator
+    resolved = resolve_entry(entry)
 
-    async_add_entities(
-        [
-            IntegrationSwitch(coordinator, SWITCH_ENABLED, ConfKeys.ENABLED),
-        ]
-    )
+    entities = [IntegrationSwitch(coordinator, SWITCH_ENABLED, ConfKeys.ENABLED)]
+
+    if resolved.control_mode == ControlMode.CCA:
+        entities.append(
+            IntegrationSwitch(
+                coordinator,
+                SWITCH_CCA_MANUAL_OVERRIDE_ENABLED,
+                ConfKeys.CCA_MANUAL_OVERRIDE_ENABLED,
+            )
+        )
+
+    async_add_entities(entities)
 
 
 # ---------------------------------------------------------------------------

@@ -16,11 +16,16 @@ from homeassistant.components.climate.const import (
     ATTR_CURRENT_TEMPERATURE,
     ATTR_HVAC_ACTION,
 )
+from homeassistant.components.weather import SERVICE_GET_FORECASTS
+from homeassistant.components.weather.const import DOMAIN as WEATHER_DOMAIN
+from homeassistant.components.weather.const import WeatherEntityFeature
 from homeassistant.const import (
+    ATTR_SUPPORTED_FEATURES,
     ATTR_TEMPERATURE,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
 )
+from homeassistant.exceptions import HomeAssistantError
 
 from .log import Log
 
@@ -319,6 +324,71 @@ class HomeAssistantInterface:
         return str(state_obj.state)
 
     # ------------------------------------------------------------------
+    # Public API — weather forecast helpers
+    # ------------------------------------------------------------------
+
+    #
+    # async_validate_daily_forecast_support
+    #
+    async def async_validate_daily_forecast_support(self, entity_id: str) -> None:
+        """Validate that a weather entity exists and supports daily forecasts.
+
+        Args:
+            entity_id: Weather entity to validate.
+
+        Raises:
+            HomeAssistantError: If the entity is missing or lacks daily forecasts.
+        """
+
+        state_obj = self._get_state_obj(entity_id)
+        if state_obj is None:
+            raise HomeAssistantError(f"Weather entity '{entity_id}' was not found")
+
+        supported_features = int(state_obj.attributes.get(ATTR_SUPPORTED_FEATURES, 0))
+        if (supported_features & WeatherEntityFeature.FORECAST_DAILY) == 0:
+            raise HomeAssistantError(f"Weather entity '{entity_id}' does not support daily forecasts")
+
+    #
+    # async_get_daily_forecasts
+    #
+    async def async_get_daily_forecasts(self, entity_id: str) -> list[dict[str, Any]]:
+        """Return daily forecasts for a weather entity.
+
+        Args:
+            entity_id: Weather entity to query.
+
+        Returns:
+            Forecast list returned by Home Assistant.
+
+        Raises:
+            HomeAssistantError: If the forecast request fails.
+        """
+
+        await self.async_validate_daily_forecast_support(entity_id)
+
+        response = await self._hass.services.async_call(
+            WEATHER_DOMAIN,
+            SERVICE_GET_FORECASTS,
+            {"type": "daily"},
+            blocking=True,
+            target={"entity_id": entity_id},
+            return_response=True,
+        )
+
+        if not isinstance(response, dict):
+            raise HomeAssistantError(f"Daily forecast request for '{entity_id}' returned no response")
+
+        entity_response = response.get(entity_id, response)
+        if not isinstance(entity_response, dict):
+            raise HomeAssistantError(f"Daily forecast request for '{entity_id}' returned an invalid response")
+
+        forecast = entity_response.get("forecast", [])
+        if not isinstance(forecast, list):
+            raise HomeAssistantError(f"Daily forecast request for '{entity_id}' returned an invalid forecast payload")
+
+        return [item for item in forecast if isinstance(item, dict)]
+
+    # ------------------------------------------------------------------
     # Public API — availability
     # ------------------------------------------------------------------
 
@@ -340,3 +410,38 @@ class HomeAssistantInterface:
         if state_obj is None:
             return False
         return state_obj.state not in _UNAVAILABLE_STATES
+
+    #
+    # get_entity_on_state
+    #
+    def get_entity_on_state(self, entity_id: str) -> bool | None:
+        """Interpret a generic entity state while preserving unreadable states.
+
+        Returns:
+            ``True`` for explicit on-states, ``False`` for explicit off-states,
+            and ``None`` if the entity is missing, unavailable, or cannot be
+            interpreted as a boolean signal.
+        """
+
+        state_obj = self._get_state_obj(entity_id)
+        if state_obj is None or state_obj.state in _UNAVAILABLE_STATES:
+            return None
+
+        normalized = str(state_obj.state).strip().lower()
+        if normalized in {"on", "true"}:
+            return True
+        if normalized in {"off", "false"}:
+            return False
+
+        try:
+            return float(normalized) != 0.0
+        except ValueError:
+            return None
+
+    #
+    # is_entity_on
+    #
+    def is_entity_on(self, entity_id: str) -> bool:
+        """Interpret a generic entity state as an enabled/active boolean."""
+
+        return self.get_entity_on_state(entity_id) is True

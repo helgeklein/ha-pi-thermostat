@@ -24,6 +24,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.climate.const import HVACAction, HVACMode
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator as BaseCoordinator,
 )
@@ -31,13 +32,18 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 
+from .cca_controller import CCAControllerStrategy, CCAState
 from .config import ResolvedConfig, resolve_entry
 from .const import (
+    CCA_STATE_STORAGE_KEY_PREFIX,
+    CCA_STATE_STORAGE_VERSION,
     DOMAIN,
     HA_OPTIONS,
     SENSOR_FAULT_GRACE_PERIOD_SECONDS,
+    ControlMode,
     OperatingMode,
     SensorFaultMode,
+    TargetTempMode,
 )
 from .data import CoordinatorData
 from .ha_interface import HomeAssistantInterface
@@ -78,12 +84,13 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         self._logger = Log(entry_id=config_entry.entry_id)
 
         resolved = resolve_entry(config_entry)
+        update_interval_seconds = self._initial_update_interval_seconds(resolved)
 
         super().__init__(
             hass,
             self._logger.underlying_logger,
             name=DOMAIN,
-            update_interval=timedelta(seconds=resolved.update_interval),
+            update_interval=timedelta(seconds=update_interval_seconds),
             config_entry=config_entry,
         )
         self.config_entry = config_entry
@@ -105,6 +112,14 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             is_cooling=(resolved.operating_mode == OperatingMode.COOL),
         )
 
+        # CCA controller state/strategy
+        self._cca = CCAControllerStrategy()
+        self._cca_store: Store[dict[str, Any]] = Store(
+            hass,
+            CCA_STATE_STORAGE_VERSION,
+            f"{DOMAIN}.{CCA_STATE_STORAGE_KEY_PREFIX}.{config_entry.entry_id}",
+        )
+
         # Sensor-fault tracking for HOLD mode
         self._fault_cycles: int = 0
         self._last_good_output: float | None = None
@@ -121,10 +136,10 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
 
         self._logger.info(
             "Coordinator initialized: update_interval=%s s, prop_band=%s K, int_time=%s min, mode=%s",
-            resolved.update_interval,
+            update_interval_seconds,
             resolved.proportional_band,
             resolved.integral_time,
-            resolved.operating_mode,
+            resolved.control_mode,
         )
 
     # ------------------------------------------------------------------
@@ -144,6 +159,67 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         self._pi.restore_integral_term(value)
         self._logger.info("Restored integral term: %s", value)
 
+    #
+    # restore_cca_state
+    #
+    def restore_cca_state(self, state: CCAState) -> None:
+        """Restore the CCA controller state after restart."""
+
+        self._cca.restore_state(state)
+        self._logger.info("Restored CCA state: charge=%s status=%s", state.charge_estimate, state.status)
+
+    #
+    # get_cca_state
+    #
+    def get_cca_state(self) -> CCAState:
+        """Return the current CCA state for persistence entities."""
+
+        return self._cca.get_state()
+
+    #
+    # async_restore_cca_state
+    #
+    async def async_restore_cca_state(self) -> None:
+        """Restore persisted CCA state from storage when CCA mode is active."""
+
+        resolved = self._resolve()
+        if resolved.control_mode != ControlMode.CCA:
+            return
+
+        payload = await self._cca_store.async_load()
+        if not payload:
+            return
+
+        try:
+            restored_state = CCAState(
+                charge_estimate=float(payload.get("charge_estimate", 0.0)),
+                last_auto_output=float(payload.get("last_auto_output", 0.0)),
+                last_heat_score=float(payload.get("last_heat_score", 0.0)),
+                last_update_iso=payload.get("last_update_iso"),
+                status=str(payload.get("status", "idle")),
+            )
+        except (TypeError, ValueError):
+            self._logger.warning("Invalid persisted CCA state ignored")
+            return
+
+        self.restore_cca_state(restored_state)
+
+    #
+    # _async_save_cca_state
+    #
+    async def _async_save_cca_state(self, state: CCAState) -> None:
+        """Persist the current CCA state to storage."""
+
+        await self._cca_store.async_save(
+            {
+                "charge_estimate": state.charge_estimate,
+                "last_auto_output": state.last_auto_output,
+                "last_heat_score": state.last_heat_score,
+                "last_update_iso": state.last_update_iso,
+                "status": state.status,
+            }
+        )
+
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
@@ -158,6 +234,17 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
 
         opts = dict(getattr(self.config_entry, HA_OPTIONS, {}) or {})
         return resolve(opts)
+
+    #
+    # _initial_update_interval_seconds
+    #
+    @staticmethod
+    def _initial_update_interval_seconds(resolved: ResolvedConfig) -> int:
+        """Return the coordinator interval for the selected control mode."""
+
+        if resolved.control_mode == ControlMode.CCA:
+            return max(1, resolved.cca_update_interval_hours * 3600)
+        return resolved.update_interval
 
     #
     # _paused_result
@@ -175,14 +262,20 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             return CoordinatorData(
                 output=self._last_data.output,
                 deviation=self._last_data.deviation,
+                current_mode=self._last_data.current_mode,
                 p_term=self._last_data.p_term,
                 i_term=self._last_data.i_term,
                 current_temp=self._last_data.current_temp,
                 target_temp=self._last_data.target_temp,
                 sensor_available=self._last_data.sensor_available,
+                cca_heat_score=self._last_data.cca_heat_score,
+                cca_charge_estimate=self._last_data.cca_charge_estimate,
+                cca_charge_target=self._last_data.cca_charge_target,
+                cca_override_active=self._last_data.cca_override_active,
+                cca_status=self._last_data.cca_status,
             )
 
-        return self._unknown_result()
+        return self._unknown_result(current_mode="off")
 
     #
     # _shutdown_result
@@ -199,6 +292,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         return CoordinatorData(
             output=0.0,
             deviation=None,
+            current_mode="off",
             p_term=None,
             i_term=None,
             current_temp=current_temp,
@@ -215,6 +309,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         current_temp: float | None = None,
         target_temp: float | None = None,
         sensor_available: bool = True,
+        current_mode: str | None = None,
     ) -> CoordinatorData:
         """Return a CoordinatorData with output = None (no known-good value yet).
 
@@ -226,12 +321,24 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         return CoordinatorData(
             output=None,
             deviation=None,
+            current_mode=current_mode,
             p_term=None,
             i_term=None,
             current_temp=current_temp,
             target_temp=target_temp,
             sensor_available=sensor_available,
         )
+
+    #
+    # _current_mode
+    #
+    @staticmethod
+    def _current_mode(is_cooling: bool) -> str:
+        """Return the controller mode string for the resolved direction."""
+
+        if is_cooling:
+            return "cooling"
+        return "heating"
 
     #
     # _read_current_temp
@@ -339,8 +446,16 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             action = self._ha.get_climate_hvac_action(resolved.climate_entity)
             if action == HVACAction.COOLING:
                 return True
+            if action == HVACAction.HEATING:
+                return False
 
-        # Default to heating when action is unknown / idle
+            hvac_mode = self._ha.get_climate_hvac_mode(resolved.climate_entity)
+            if hvac_mode == HVACMode.COOL:
+                return True
+            if hvac_mode == HVACMode.HEAT:
+                return False
+
+        # Fall back to heating when neither action nor mode resolves direction.
         return False
 
     # ------------------------------------------------------------------
@@ -375,6 +490,21 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             self._logger.debug("Controller paused via enabled flag")
             return self._paused_result()
 
+        if resolved.control_mode == ControlMode.CCA:
+            data = await self._async_update_cca_data(resolved)
+            self._last_data = data
+            return data
+
+        data = await self._async_update_pi_data(resolved)
+        self._last_data = data
+        return data
+
+    #
+    # _async_update_pi_data
+    #
+    async def _async_update_pi_data(self, resolved: ResolvedConfig) -> CoordinatorData:
+        """Run one PI control cycle."""
+
         # ── Step 2: Auto-disable on HVAC off ────────────────────────────
         if resolved.climate_entity and resolved.auto_disable_on_hvac_off:
             hvac_mode = self._ha.get_climate_hvac_mode(resolved.climate_entity)
@@ -385,6 +515,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         # ── Step 3: Determine heating / cooling direction ───────────────
         is_cooling = self._determine_cooling(resolved)
         self._pi.set_cooling(is_cooling)
+        current_mode = self._current_mode(is_cooling)
 
         # ── Step 4: Read current temperature ────────────────────────────
         current_temp = self._read_current_temp(resolved)
@@ -392,12 +523,27 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         # ── Step 5: Determine target temperature ────────────────────────
         target_temp = self._read_target_temp(resolved)
 
-        if target_temp is not None:
-            self._pi.set_target(target_temp)
-
         # ── Step 6: Handle sensor faults ────────────────────────────────
         if current_temp is None:
-            return await self._async_handle_sensor_fault(resolved, target_temp)
+            return self._handle_fault_mode(
+                resolved,
+                current_temp=None,
+                target_temp=target_temp,
+                sensor_available=False,
+                reason="Sensor",
+            )
+
+        if target_temp is None and resolved.target_temp_mode != TargetTempMode.INTERNAL:
+            return self._handle_fault_mode(
+                resolved,
+                current_temp=current_temp,
+                target_temp=None,
+                sensor_available=True,
+                reason="Target temperature",
+            )
+
+        if target_temp is not None:
+            self._pi.set_target(target_temp)
 
         # Sensor is OK — reset fault counter
         self._fault_cycles = 0
@@ -415,28 +561,73 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         data = CoordinatorData(
             output=result.output,
             deviation=result.deviation,
+            current_mode=current_mode,
             p_term=result.p_term,
             i_term=result.i_term,
             current_temp=current_temp,
             target_temp=target_temp,
             sensor_available=True,
         )
-        self._last_data = data
         return data
 
     #
-    # _async_handle_sensor_fault
+    # _async_update_cca_data
     #
-    async def _async_handle_sensor_fault(
+    async def _async_update_cca_data(self, resolved: ResolvedConfig) -> CoordinatorData:
+        """Run one CCA control cycle."""
+
+        cooling_enabled = False
+        if resolved.cca_cooling_enable_entity:
+            cooling_signal_on = self._ha.get_entity_on_state(resolved.cca_cooling_enable_entity)
+            if cooling_signal_on is not None:
+                cooling_enabled = cooling_signal_on if resolved.cca_cooling_enable_on else not cooling_signal_on
+
+        forecasts: list[dict[str, Any]] | None = None
+        if cooling_enabled and resolved.cca_weather_entity:
+            try:
+                forecasts = await self._ha.async_get_daily_forecasts(resolved.cca_weather_entity)
+            except Exception as err:
+                self._logger.warning("CCA forecast retrieval failed: %s", err)
+
+        result = self._cca.compute(
+            resolved,
+            cooling_enabled=cooling_enabled,
+            forecasts=forecasts,
+        )
+
+        await self._async_save_cca_state(result.state)
+
+        return CoordinatorData(
+            output=result.output,
+            current_mode=result.current_mode,
+            sensor_available=True,
+            cca_heat_score=result.heat_score,
+            cca_charge_estimate=result.charge_estimate,
+            cca_charge_target=result.charge_target,
+            cca_override_active=result.override_active,
+            cca_status=result.status,
+        )
+
+    #
+    # _handle_fault_mode
+    #
+    def _handle_fault_mode(
         self,
         resolved: ResolvedConfig,
+        *,
+        current_temp: float | None,
         target_temp: float | None,
+        sensor_available: bool,
+        reason: str,
     ) -> CoordinatorData:
-        """Handle a sensor fault (current temperature unavailable).
+        """Apply the configured fault policy for a missing controller input.
 
         Args:
             resolved: Current resolved configuration.
+            current_temp: Current measured temperature, if available.
             target_temp: Current target temperature (may be ``None``).
+            sensor_available: Whether the temperature sensor is available.
+            reason: Short label used in log messages.
 
         Returns:
             ``CoordinatorData`` with either held output or shutdown (output=0).
@@ -454,7 +645,8 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
 
             if self._fault_cycles <= grace_cycles:
                 self._logger.warning(
-                    "Sensor unavailable (cycle %s/%s) — holding last output %s",
+                    "%s unavailable (cycle %s/%s) — holding last output %s",
+                    reason,
                     self._fault_cycles,
                     grace_cycles,
                     self._last_good_output,
@@ -462,30 +654,33 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
                 return CoordinatorData(
                     output=self._last_good_output,
                     deviation=None,
+                    current_mode=self._last_data.current_mode if self._last_data is not None else None,
                     p_term=None,
                     i_term=None,
-                    current_temp=None,
+                    current_temp=current_temp,
                     target_temp=target_temp,
-                    sensor_available=False,
+                    sensor_available=sensor_available,
                 )
 
             # Grace period exceeded — fall through to shutdown
-            self._logger.warning("Sensor unavailable — grace period exceeded, shutting down output")
+            self._logger.warning("%s unavailable — grace period exceeded, shutting down output", reason)
 
         elif fault_mode == SensorFaultMode.HOLD:
             # HOLD mode but no prior good output (e.g. first cycle after restart).
             # Return unknown result so entity states are not changed from their
             # restored values — avoids sending a spurious 0 % on restart.
-            self._logger.info("Sensor unavailable — no prior output available, waiting for sensor")
+            self._logger.info("%s unavailable — no prior output available, waiting", reason)
             return self._unknown_result(
+                current_temp=current_temp,
                 target_temp=target_temp,
-                sensor_available=False,
+                sensor_available=sensor_available,
             )
 
         else:
-            self._logger.warning("Sensor unavailable — shutting down output (shutdown mode)")
+            self._logger.warning("%s unavailable — shutting down output (shutdown mode)", reason)
 
         return self._shutdown_result(
+            current_temp=current_temp,
             target_temp=target_temp,
-            sensor_available=False,
+            sensor_available=sensor_available,
         )
