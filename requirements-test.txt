@@ -1,11 +1,9 @@
 #! Test requirements for PI Thermostat
 
-# Core test dependencies
-pytest>=8.0.0
-pytest-asyncio>=0.21.0
-pytest-cov>=4.0.0
-
 # Home Assistant testing dependencies
+# Keep the pytest stack aligned with the pinned Home Assistant test harness.
+# pytest, pytest-asyncio, and pytest-cov are resolved via
+# pytest-homeassistant-custom-component.
 -r requirements-ha.txt
 pytest-homeassistant-custom-component==0.13.271
 
