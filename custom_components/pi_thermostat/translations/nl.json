@@ -1,0 +1,245 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Welkom bij PI Thermostat",
+                "description": "Deze integratie wordt geinstalleerd met de standaardinstellingen.\n\nConfigureer de thermostaatinstellingen later via het **tandwielpictogram** (configuratieknop) op de integratiekaart.\n\n[Documentatie]({docs_url})"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "PI Thermostat - Stap 1",
+                "description": "Selecteer welk type verwarming of koeling deze instantie moet aansturen:\n\n- **CCA**: Betonkernactivering.\n- **PI**: Algemene verwarming/koeling.",
+                "data": {
+                    "control_mode": "Regelmodus"
+                },
+                "data_description": {
+                    "control_mode": "Kies of deze integratie-instantie de PI-regelaar of de CCA-regelaar moet gebruiken."
+                }
+            },
+            "2": {
+                "title": "PI Thermostat - Stap 2 van 4",
+                "description": "Configureer de **klimaatentiteit** en de **bedrijfsmodus**.",
+                "data": {
+                    "climate_entity": "Klimaatentiteit",
+                    "operating_mode": "Bedrijfsmodus",
+                    "auto_disable_on_hvac_off": "Automatisch uitschakelen wanneer HVAC-modus uit is"
+                },
+                "data_description": {
+                    "climate_entity": "Optioneel. Indien geconfigureerd, kan deze dienen als bron voor huidige temperatuur, doeltemperatuur, verwarmings-/koelrichting en automatisch uitschakelen.",
+                    "operating_mode": "Bepaalt hoe de regelaar kiest tussen verwarmen en koelen.",
+                    "auto_disable_on_hvac_off": "Indien ingeschakeld en een klimaatentiteit is geconfigureerd, wordt de uitgang op 0% gezet wanneer de HVAC-modus van de klimaatentiteit uit is."
+                }
+            },
+            "3": {
+                "title": "PI Thermostat - Stap 3 van 4",
+                "description": "Configureer **temperatuursensoren** en de **doeltemperatuurmodus**.",
+                "data": {
+                    "temp_sensor": "Temperatuursensor",
+                    "target_temp_mode": "Doeltemperatuurmodus",
+                    "target_temp_entity": "Doeltemperatuur-entiteit"
+                },
+                "data_description": {
+                    "temp_sensor": "Optioneel als een klimaatentiteit is geconfigureerd (valt dan terug op de huidige temperatuur van de klimaatentiteit).",
+                    "target_temp_mode": "Waar de doeltemperatuur vandaan wordt gelezen.",
+                    "target_temp_entity": "Entiteit waaruit de doeltemperatuur wordt gelezen (alleen gebruikt wanneer de modus 'Externe entiteit' is)."
+                }
+            },
+            "4": {
+                "title": "PI Thermostat - Stap 4 van 4",
+                "description": "Configureer de instellingen voor **sensorfout** en **opstarten**.",
+                "data": {
+                    "sensor_fault_mode": "Sensorfoutmodus",
+                    "iterm_startup_mode": "Opstartmodus van uitgang",
+                    "iterm_startup_value": "Opstartwaarde van uitgang"
+                },
+                "data_description": {
+                    "sensor_fault_mode": "Gedrag wanneer de temperatuursensor niet beschikbaar wordt.",
+                    "iterm_startup_mode": "Hoe de uitgang wordt geinitialiseerd wanneer de integratie start.",
+                    "iterm_startup_value": "Uitgangspercentage dat bij het opstarten wordt gebruikt. Wordt gebruikt als beginwaarde in modus 'Vaste waarde', of als terugval in modus 'Laatst opgeslagen' wanneer geen vorige waarde bestaat."
+                }
+            },
+            "cca_sources": {
+                "title": "PI Thermostat - Stap 2 van 2",
+                "description": "Configureer de **CCA-gegevensbronnen**.",
+                "data": {
+                    "cca_cooling_enable_entity": "Entiteit voor koeling inschakelen",
+                    "cca_cooling_enable_on": "Koeling wanneer entiteit aan staat",
+                    "cca_weather_entity": "Weer-entiteit",
+                    "cca_forecast_horizon_days": "Voorspellingshorizon",
+                    "cca_forecast_unavailable_mode": "Gedrag bij niet-beschikbare voorspelling"
+                },
+                "data_description": {
+                    "cca_cooling_enable_entity": "Entiteit die aangeeft of koeling actief of toegestaan is.",
+                    "cca_cooling_enable_on": "Schakel dit in wanneer de geselecteerde entiteit in de stand 'aan' betekent dat koeling actief of toegestaan is. Schakel het uit wanneer de geselecteerde entiteit in de stand 'uit' betekent dat koeling actief of toegestaan is.",
+                    "cca_weather_entity": "Weer-entiteit die wordt gebruikt om de dagvoorspelling te lezen.",
+                    "cca_forecast_horizon_days": "Hoeveel voorspellingsdagen moeten worden meegenomen.",
+                    "cca_forecast_unavailable_mode": "Wat de regelaar moet doen als dagelijkse voorspellingsgegevens niet beschikbaar zijn."
+                }
+            }
+        },
+        "error": {
+            "no_temp_source": "Minstens een temperatuurbron is vereist: configureer een temperatuursensor of een klimaatentiteit.",
+            "heat_cool_requires_climate": "De bedrijfsmodus 'Verwarmen + koelen' vereist een klimaatentiteit om de richting van verwarmen of koelen te bepalen.",
+            "climate_target_requires_climate": "De doeltemperatuurmodus 'Van klimaatentiteit' vereist een klimaatentiteit.",
+            "cca_cooling_enable_required": "Configureer een entiteit die de integratie vertelt of koeling actief of toegestaan is.",
+            "cca_weather_required": "Configureer een weer-entiteit voor dagvoorspellingen.",
+            "cca_weather_unsupported": "De geselecteerde weer-entiteit ondersteunt geen dagvoorspellingen."
+        }
+    },
+    "selector": {
+        "control_mode": {
+            "options": {
+                "pi": "PI",
+                "cca": "CCA"
+            }
+        },
+        "operating_mode": {
+            "options": {
+                "heat_cool": "Verwarmen + koelen (auto)",
+                "heat": "Alleen verwarmen",
+                "cool": "Alleen koelen"
+            }
+        },
+        "target_temp_mode": {
+            "options": {
+                "internal": "Ingebouwde setpoint",
+                "external": "Externe entiteit",
+                "climate": "Van klimaatentiteit"
+            }
+        },
+        "sensor_fault_mode": {
+            "options": {
+                "shutdown": "Direct uitschakelen",
+                "hold": "Laatste uitgang behouden"
+            }
+        },
+        "iterm_startup_mode": {
+            "options": {
+                "last": "Laatst opgeslagen",
+                "fixed": "Vaste waarde",
+                "zero": "Nul"
+            }
+        },
+        "cca_forecast_unavailable_mode": {
+            "options": {
+                "hold": "Laatste automatische uitgang behouden",
+                "shutdown": "Regelaaruitgang uitschakelen"
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "output": {
+                "name": "Uitgang"
+            },
+            "deviation": {
+                "name": "Afwijking"
+            },
+            "current_mode": {
+                "name": "Huidige modus",
+                "state": {
+                    "heating": "Verwarmen",
+                    "cooling": "Koelen",
+                    "off": "Uit"
+                }
+            },
+            "current_temp": {
+                "name": "Huidige temperatuur"
+            },
+            "target_temp": {
+                "name": "Doeltemperatuur"
+            },
+            "p_term": {
+                "name": "Proportionele term"
+            },
+            "i_term": {
+                "name": "Integrale term"
+            },
+            "cca_heat_score": {
+                "name": "Warmtescore"
+            },
+            "cca_charge_estimate": {
+                "name": "Laadschatting"
+            },
+            "cca_charge_target": {
+                "name": "Laaddoel"
+            },
+            "cca_override_active": {
+                "name": "Override actief",
+                "state": {
+                    "off": "Uit",
+                    "on": "Aan"
+                }
+            },
+            "cca_status": {
+                "name": "Status",
+                "state": {
+                    "idle": "Inactief",
+                    "inactive": "Niet actief",
+                    "forecast_hold": "Voorspellingsuitgang behouden",
+                    "forecast_unavailable": "Voorspelling niet beschikbaar",
+                    "active": "Actief",
+                    "manual_override": "Handmatige override"
+                }
+            }
+        },
+        "number": {
+            "proportional_band": {
+                "name": "Proportionele band"
+            },
+            "integral_time": {
+                "name": "Integratietijd"
+            },
+            "target_temp": {
+                "name": "Doeltemperatuur"
+            },
+            "output_min": {
+                "name": "Minimum uitgang"
+            },
+            "output_max": {
+                "name": "Maximum uitgang"
+            },
+            "update_interval": {
+                "name": "Update-interval"
+            },
+            "cca_manual_output": {
+                "name": "Handmatige uitgang"
+            },
+            "cca_hot_day_threshold": {
+                "name": "Drempel voor hete dag"
+            },
+            "cca_warm_night_threshold": {
+                "name": "Drempel voor warme nacht"
+            },
+            "cca_output_min": {
+                "name": "Minimum uitgang"
+            },
+            "cca_output_max": {
+                "name": "Maximum uitgang"
+            },
+            "cca_charge_gain": {
+                "name": "Laadversterking"
+            },
+            "cca_discharge_gain": {
+                "name": "Ontlaadversterking"
+            },
+            "cca_output_step_limit": {
+                "name": "Staplimiet van uitgang"
+            },
+            "cca_charge_target_scale": {
+                "name": "Schaal van laaddoel"
+            }
+        },
+        "switch": {
+            "enabled": {
+                "name": "Ingeschakeld"
+            },
+            "cca_manual_override_enabled": {
+                "name": "Handmatige override"
+            }
+        }
+    }
+}

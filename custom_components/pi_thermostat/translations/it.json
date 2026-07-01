@@ -1,0 +1,245 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Benvenuto in PI Thermostat",
+                "description": "Questa integrazione viene installata con le impostazioni predefinite.\n\nConfigura successivamente le impostazioni del termostato facendo clic sull'**icona a ingranaggio** (pulsante di configurazione) nella scheda dell'integrazione.\n\n[Documentazione]({docs_url})"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "PI Thermostat - Passo 1",
+                "description": "Seleziona il tipo di riscaldamento o raffreddamento che questa istanza deve controllare:\n\n- **CCA**: Attivazione del nucleo in calcestruzzo.\n- **PI**: Riscaldamento/raffreddamento generico.",
+                "data": {
+                    "control_mode": "Modalita del controller"
+                },
+                "data_description": {
+                    "control_mode": "Scegli se questa istanza dell'integrazione deve usare il controller PI o il controller CCA."
+                }
+            },
+            "2": {
+                "title": "PI Thermostat - Passo 2 di 4",
+                "description": "Configura l'**entita climate** e la **modalita operativa**.",
+                "data": {
+                    "climate_entity": "Entita climate",
+                    "operating_mode": "Modalita operativa",
+                    "auto_disable_on_hvac_off": "Disabilita automaticamente quando la modalita HVAC e disattivata"
+                },
+                "data_description": {
+                    "climate_entity": "Opzionale. Se configurata, puo fungere da sorgente per temperatura corrente, temperatura obiettivo, direzione riscaldamento/raffreddamento e disabilitazione automatica.",
+                    "operating_mode": "Determina come il controller decide tra riscaldamento e raffreddamento.",
+                    "auto_disable_on_hvac_off": "Se abilitata e se e configurata un'entita climate, l'uscita viene impostata allo 0% ogni volta che la modalita HVAC dell'entita climate e disattivata."
+                }
+            },
+            "3": {
+                "title": "PI Thermostat - Passo 3 di 4",
+                "description": "Configura i **sensori di temperatura** e la **modalita della temperatura obiettivo**.",
+                "data": {
+                    "temp_sensor": "Sensore di temperatura",
+                    "target_temp_mode": "Modalita della temperatura obiettivo",
+                    "target_temp_entity": "Entita della temperatura obiettivo"
+                },
+                "data_description": {
+                    "temp_sensor": "Opzionale se e configurata un'entita climate (in tal caso usa la temperatura corrente dell'entita climate).",
+                    "target_temp_mode": "Da dove leggere la temperatura obiettivo.",
+                    "target_temp_entity": "Entita da cui leggere la temperatura obiettivo (usata solo quando la modalita e 'Entita esterna')."
+                }
+            },
+            "4": {
+                "title": "PI Thermostat - Passo 4 di 4",
+                "description": "Configura le impostazioni di **guasto sensore** e **avvio**.",
+                "data": {
+                    "sensor_fault_mode": "Modalita guasto sensore",
+                    "iterm_startup_mode": "Modalita di avvio dell'uscita",
+                    "iterm_startup_value": "Valore di avvio dell'uscita"
+                },
+                "data_description": {
+                    "sensor_fault_mode": "Comportamento quando il sensore di temperatura diventa non disponibile.",
+                    "iterm_startup_mode": "Come viene inizializzata l'uscita all'avvio dell'integrazione.",
+                    "iterm_startup_value": "Percentuale di uscita da usare all'avvio. Usata come valore iniziale nella modalita 'Valore fisso' oppure come fallback nella modalita 'Ultimo valore salvato' quando non esiste un valore precedente."
+                }
+            },
+            "cca_sources": {
+                "title": "PI Thermostat - Passo 2 di 2",
+                "description": "Configura le **origini dati CCA**.",
+                "data": {
+                    "cca_cooling_enable_entity": "Entita di abilitazione raffreddamento",
+                    "cca_cooling_enable_on": "Raffreddamento quando l'entita e attiva",
+                    "cca_weather_entity": "Entita meteo",
+                    "cca_forecast_horizon_days": "Orizzonte previsione",
+                    "cca_forecast_unavailable_mode": "Comportamento se la previsione non e disponibile"
+                },
+                "data_description": {
+                    "cca_cooling_enable_entity": "Entita che indica se il raffreddamento e attivo o consentito.",
+                    "cca_cooling_enable_on": "Abilita questa opzione quando lo stato acceso dell'entita selezionata significa che il raffreddamento e attivo o consentito. Disabilitala quando lo stato spento dell'entita selezionata significa che il raffreddamento e attivo o consentito.",
+                    "cca_weather_entity": "Entita meteo usata per leggere le previsioni giornaliere.",
+                    "cca_forecast_horizon_days": "Quanti giorni di previsione considerare.",
+                    "cca_forecast_unavailable_mode": "Cosa deve fare il controller quando i dati delle previsioni giornaliere non sono disponibili."
+                }
+            }
+        },
+        "error": {
+            "no_temp_source": "E richiesta almeno una sorgente di temperatura: configura un sensore di temperatura o un'entita climate.",
+            "heat_cool_requires_climate": "La modalita operativa 'Riscaldamento + raffreddamento' richiede un'entita climate per determinare la direzione di riscaldamento o raffreddamento.",
+            "climate_target_requires_climate": "La modalita della temperatura obiettivo 'Da entita climate' richiede un'entita climate.",
+            "cca_cooling_enable_required": "Configura un'entita che indichi all'integrazione se il raffreddamento e attivo o consentito.",
+            "cca_weather_required": "Configura un'entita meteo per le previsioni giornaliere.",
+            "cca_weather_unsupported": "L'entita meteo selezionata non supporta le previsioni giornaliere."
+        }
+    },
+    "selector": {
+        "control_mode": {
+            "options": {
+                "pi": "PI",
+                "cca": "CCA"
+            }
+        },
+        "operating_mode": {
+            "options": {
+                "heat_cool": "Riscaldamento + raffreddamento (auto)",
+                "heat": "Solo riscaldamento",
+                "cool": "Solo raffreddamento"
+            }
+        },
+        "target_temp_mode": {
+            "options": {
+                "internal": "Setpoint integrato",
+                "external": "Entita esterna",
+                "climate": "Da entita climate"
+            }
+        },
+        "sensor_fault_mode": {
+            "options": {
+                "shutdown": "Spegni immediatamente",
+                "hold": "Mantieni l'ultima uscita"
+            }
+        },
+        "iterm_startup_mode": {
+            "options": {
+                "last": "Ultimo valore salvato",
+                "fixed": "Valore fisso",
+                "zero": "Zero"
+            }
+        },
+        "cca_forecast_unavailable_mode": {
+            "options": {
+                "hold": "Mantieni l'ultima uscita automatica",
+                "shutdown": "Disattiva l'uscita del controller"
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "output": {
+                "name": "Uscita"
+            },
+            "deviation": {
+                "name": "Deviazione"
+            },
+            "current_mode": {
+                "name": "Modalita corrente",
+                "state": {
+                    "heating": "Riscaldamento",
+                    "cooling": "Raffreddamento",
+                    "off": "Spento"
+                }
+            },
+            "current_temp": {
+                "name": "Temperatura corrente"
+            },
+            "target_temp": {
+                "name": "Temperatura obiettivo"
+            },
+            "p_term": {
+                "name": "Termine proporzionale"
+            },
+            "i_term": {
+                "name": "Termine integrale"
+            },
+            "cca_heat_score": {
+                "name": "Punteggio di calore"
+            },
+            "cca_charge_estimate": {
+                "name": "Stima della carica"
+            },
+            "cca_charge_target": {
+                "name": "Obiettivo di carica"
+            },
+            "cca_override_active": {
+                "name": "Override attivo",
+                "state": {
+                    "off": "Spento",
+                    "on": "Acceso"
+                }
+            },
+            "cca_status": {
+                "name": "Stato",
+                "state": {
+                    "idle": "In attesa",
+                    "inactive": "Inattivo",
+                    "forecast_hold": "Mantiene l'uscita della previsione",
+                    "forecast_unavailable": "Previsione non disponibile",
+                    "active": "Attivo",
+                    "manual_override": "Override manuale"
+                }
+            }
+        },
+        "number": {
+            "proportional_band": {
+                "name": "Banda proporzionale"
+            },
+            "integral_time": {
+                "name": "Tempo integrale"
+            },
+            "target_temp": {
+                "name": "Temperatura obiettivo"
+            },
+            "output_min": {
+                "name": "Uscita minima"
+            },
+            "output_max": {
+                "name": "Uscita massima"
+            },
+            "update_interval": {
+                "name": "Intervallo di aggiornamento"
+            },
+            "cca_manual_output": {
+                "name": "Uscita manuale"
+            },
+            "cca_hot_day_threshold": {
+                "name": "Soglia giorno caldo"
+            },
+            "cca_warm_night_threshold": {
+                "name": "Soglia notte calda"
+            },
+            "cca_output_min": {
+                "name": "Uscita minima"
+            },
+            "cca_output_max": {
+                "name": "Uscita massima"
+            },
+            "cca_charge_gain": {
+                "name": "Guadagno di carica"
+            },
+            "cca_discharge_gain": {
+                "name": "Guadagno di scarica"
+            },
+            "cca_output_step_limit": {
+                "name": "Limite del passo di uscita"
+            },
+            "cca_charge_target_scale": {
+                "name": "Scala dell'obiettivo di carica"
+            }
+        },
+        "switch": {
+            "enabled": {
+                "name": "Abilitato"
+            },
+            "cca_manual_override_enabled": {
+                "name": "Override manuale"
+            }
+        }
+    }
+}
