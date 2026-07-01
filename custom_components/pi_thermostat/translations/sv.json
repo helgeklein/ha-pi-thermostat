@@ -1,0 +1,245 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Valkommen till PI Thermostat",
+                "description": "Denna integration installeras med standardinstallningar.\n\nKonfigurera termostatinstallningarna senare genom att klicka pa **kugghjulsikonen** (konfigurationsknappen) pa integrationskortet.\n\n[Dokumentation]({docs_url})"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "PI Thermostat - Steg 1",
+                "description": "Valj vilken typ av varme eller kylning som denna instans ska styra:\n\n- **CCA**: Aktivering av betongkarnan.\n- **PI**: Allman varme/kylning.",
+                "data": {
+                    "control_mode": "Regulatorlage"
+                },
+                "data_description": {
+                    "control_mode": "Valj om denna integrationsinstans ska anvanda PI-regulatorn eller CCA-regulatorn."
+                }
+            },
+            "2": {
+                "title": "PI Thermostat - Steg 2 av 4",
+                "description": "Konfigurera **climate-entiteten** och **driftlaget**.",
+                "data": {
+                    "climate_entity": "Climate-entitet",
+                    "operating_mode": "Driftlage",
+                    "auto_disable_on_hvac_off": "Inaktivera automatiskt nar HVAC-laget ar av"
+                },
+                "data_description": {
+                    "climate_entity": "Valfri. Nar den ar konfigurerad kan den anvandas som kalla for aktuell temperatur, maltemperatur, varme-/kylriktning och automatisk inaktivering.",
+                    "operating_mode": "Bestammer hur regulatorn valjer mellan varme och kylning.",
+                    "auto_disable_on_hvac_off": "Nar detta ar aktiverat och en climate-entitet ar konfigurerad satts utgangen till 0 % nar climate-entitetens HVAC-lage ar av."
+                }
+            },
+            "3": {
+                "title": "PI Thermostat - Steg 3 av 4",
+                "description": "Konfigurera **temperatursensorer** och **maltemperaturlaget**.",
+                "data": {
+                    "temp_sensor": "Temperatursensor",
+                    "target_temp_mode": "Maltemperaturlage",
+                    "target_temp_entity": "Maltemperaturentitet"
+                },
+                "data_description": {
+                    "temp_sensor": "Valfri om en climate-entitet ar konfigurerad (anvander da climate-entitetens aktuella temperatur som reserv).",
+                    "target_temp_mode": "Varifran maltemperaturen ska lasas.",
+                    "target_temp_entity": "Entitet att lasa maltemperaturen fran (anvands bara nar laget ar 'Extern entitet')."
+                }
+            },
+            "4": {
+                "title": "PI Thermostat - Steg 4 av 4",
+                "description": "Konfigurera installningar for **sensorfel** och **uppstart**.",
+                "data": {
+                    "sensor_fault_mode": "Sensorfellage",
+                    "iterm_startup_mode": "Uppstartslage for utgang",
+                    "iterm_startup_value": "Uppstartsvarde for utgang"
+                },
+                "data_description": {
+                    "sensor_fault_mode": "Beteende nar temperatursensorn blir otillganglig.",
+                    "iterm_startup_mode": "Hur utgangen initieras nar integrationen startar.",
+                    "iterm_startup_value": "Utgangsprocent som ska anvandas vid uppstart. Anvands som initialt varde i laget 'Fast varde' eller som reserv i laget 'Senast sparat' om inget tidigare varde finns."
+                }
+            },
+            "cca_sources": {
+                "title": "PI Thermostat - Steg 2 av 2",
+                "description": "Konfigurera **CCA-datakallor**.",
+                "data": {
+                    "cca_cooling_enable_entity": "Entitet for att aktivera kylning",
+                    "cca_cooling_enable_on": "Kylning nar entiteten ar pa",
+                    "cca_weather_entity": "Vadret-entitet",
+                    "cca_forecast_horizon_days": "Prognoshorisont",
+                    "cca_forecast_unavailable_mode": "Beteende nar prognosen inte ar tillganglig"
+                },
+                "data_description": {
+                    "cca_cooling_enable_entity": "Entitet som anger om kylning ar aktiv eller tillaten.",
+                    "cca_cooling_enable_on": "Aktivera detta nar den valda entitetens pa-lage betyder att kylning ar aktiv eller tillaten. Inaktivera det nar den valda entitetens av-lage betyder att kylning ar aktiv eller tillaten.",
+                    "cca_weather_entity": "Vadret-entitet som anvands for att lasa den dagliga prognosen.",
+                    "cca_forecast_horizon_days": "Hur manga prognosdagar som ska beaktas.",
+                    "cca_forecast_unavailable_mode": "Vad regulatorn ska gora nar dagliga prognosdata inte ar tillgangliga."
+                }
+            }
+        },
+        "error": {
+            "no_temp_source": "Minst en temperaturkalla kravs: konfigurera en temperatursensor eller en climate-entitet.",
+            "heat_cool_requires_climate": "Driftlaget 'Varme + kylning' kraver en climate-entitet for att avgora riktningen for varme respektive kylning.",
+            "climate_target_requires_climate": "Maltemperaturlaget 'Fran climate-entitet' kraver en climate-entitet.",
+            "cca_cooling_enable_required": "Konfigurera en entitet som talar om for integrationen om kylning ar aktiv eller tillaten.",
+            "cca_weather_required": "Konfigurera en vadret-entitet for dagliga prognoser.",
+            "cca_weather_unsupported": "Den valda vadret-entiteten har inte stod for dagliga prognoser."
+        }
+    },
+    "selector": {
+        "control_mode": {
+            "options": {
+                "pi": "PI",
+                "cca": "CCA"
+            }
+        },
+        "operating_mode": {
+            "options": {
+                "heat_cool": "Varme + kylning (auto)",
+                "heat": "Endast varme",
+                "cool": "Endast kylning"
+            }
+        },
+        "target_temp_mode": {
+            "options": {
+                "internal": "Inbyggt borvarde",
+                "external": "Extern entitet",
+                "climate": "Fran climate-entitet"
+            }
+        },
+        "sensor_fault_mode": {
+            "options": {
+                "shutdown": "Stang av omedelbart",
+                "hold": "Behall senaste utgangen"
+            }
+        },
+        "iterm_startup_mode": {
+            "options": {
+                "last": "Senast sparat",
+                "fixed": "Fast varde",
+                "zero": "Noll"
+            }
+        },
+        "cca_forecast_unavailable_mode": {
+            "options": {
+                "hold": "Behall senaste automatiska utgangen",
+                "shutdown": "Stang av regulatorutgangen"
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "output": {
+                "name": "Utgang"
+            },
+            "deviation": {
+                "name": "Avvikelse"
+            },
+            "current_mode": {
+                "name": "Aktuellt lage",
+                "state": {
+                    "heating": "Varme",
+                    "cooling": "Kylning",
+                    "off": "Av"
+                }
+            },
+            "current_temp": {
+                "name": "Aktuell temperatur"
+            },
+            "target_temp": {
+                "name": "Maltemperatur"
+            },
+            "p_term": {
+                "name": "Proportionell term"
+            },
+            "i_term": {
+                "name": "Integrerande term"
+            },
+            "cca_heat_score": {
+                "name": "Varmepoang"
+            },
+            "cca_charge_estimate": {
+                "name": "Laddningsuppskattning"
+            },
+            "cca_charge_target": {
+                "name": "Laddningsmal"
+            },
+            "cca_override_active": {
+                "name": "Aidosattning aktiv",
+                "state": {
+                    "off": "Av",
+                    "on": "Pa"
+                }
+            },
+            "cca_status": {
+                "name": "Status",
+                "state": {
+                    "idle": "Vilolage",
+                    "inactive": "Inaktiv",
+                    "forecast_hold": "Haller prognosutgangen",
+                    "forecast_unavailable": "Prognos inte tillganglig",
+                    "active": "Aktiv",
+                    "manual_override": "Manuell aidosattning"
+                }
+            }
+        },
+        "number": {
+            "proportional_band": {
+                "name": "Proportionellt band"
+            },
+            "integral_time": {
+                "name": "Integraltid"
+            },
+            "target_temp": {
+                "name": "Maltemperatur"
+            },
+            "output_min": {
+                "name": "Minsta utgang"
+            },
+            "output_max": {
+                "name": "Hogsta utgang"
+            },
+            "update_interval": {
+                "name": "Uppdateringsintervall"
+            },
+            "cca_manual_output": {
+                "name": "Manuell utgang"
+            },
+            "cca_hot_day_threshold": {
+                "name": "Troskel for varm dag"
+            },
+            "cca_warm_night_threshold": {
+                "name": "Troskel for varm natt"
+            },
+            "cca_output_min": {
+                "name": "Minsta utgang"
+            },
+            "cca_output_max": {
+                "name": "Hogsta utgang"
+            },
+            "cca_charge_gain": {
+                "name": "Laddningsforstarkning"
+            },
+            "cca_discharge_gain": {
+                "name": "Urladdningsforstarkning"
+            },
+            "cca_output_step_limit": {
+                "name": "Begransning av utgangssteg"
+            },
+            "cca_charge_target_scale": {
+                "name": "Skala for laddningsmal"
+            }
+        },
+        "switch": {
+            "enabled": {
+                "name": "Aktiverad"
+            },
+            "cca_manual_override_enabled": {
+                "name": "Manuell aidosattning"
+            }
+        }
+    }
+}

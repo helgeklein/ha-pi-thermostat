@@ -1,0 +1,245 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Witamy w PI Thermostat",
+                "description": "Ta integracja jest instalowana z ustawieniami domyslnymi.\n\nSkonfiguruj ustawienia termostatu pozniej, klikajac **ikone zebatki** (przycisk konfiguracji) na karcie integracji.\n\n[Dokumentacja]({docs_url})"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "PI Thermostat - Krok 1",
+                "description": "Wybierz typ ogrzewania lub chlodzenia, ktory ma byc sterowany przez te instancje:\n\n- **CCA**: Aktywacja rdzenia betonowego.\n- **PI**: Ogrzewanie/chlodzenie ogolnego przeznaczenia.",
+                "data": {
+                    "control_mode": "Tryb sterownika"
+                },
+                "data_description": {
+                    "control_mode": "Wybierz, czy ta instancja integracji ma korzystac ze sterownika PI czy CCA."
+                }
+            },
+            "2": {
+                "title": "PI Thermostat - Krok 2 z 4",
+                "description": "Skonfiguruj **encje climate** i **tryb pracy**.",
+                "data": {
+                    "climate_entity": "Encja climate",
+                    "operating_mode": "Tryb pracy",
+                    "auto_disable_on_hvac_off": "Automatycznie wylacz, gdy tryb HVAC jest wylaczony"
+                },
+                "data_description": {
+                    "climate_entity": "Opcjonalnie. Po skonfigurowaniu moze sluzyc jako zrodlo aktualnej temperatury, temperatury docelowej, kierunku ogrzewania/chlodzenia i automatycznego wylaczania.",
+                    "operating_mode": "Okresla, jak sterownik decyduje miedzy ogrzewaniem a chlodzeniem.",
+                    "auto_disable_on_hvac_off": "Po wlaczeniu i skonfigurowaniu encji climate wyjscie jest ustawiane na 0%, gdy tryb HVAC encji climate jest wylaczony."
+                }
+            },
+            "3": {
+                "title": "PI Thermostat - Krok 3 z 4",
+                "description": "Skonfiguruj **czujniki temperatury** i **tryb temperatury docelowej**.",
+                "data": {
+                    "temp_sensor": "Czujnik temperatury",
+                    "target_temp_mode": "Tryb temperatury docelowej",
+                    "target_temp_entity": "Encja temperatury docelowej"
+                },
+                "data_description": {
+                    "temp_sensor": "Opcjonalnie, jesli skonfigurowano encje climate (wtedy uzywana jest aktualna temperatura encji climate).",
+                    "target_temp_mode": "Skad odczytywac temperature docelowa.",
+                    "target_temp_entity": "Encja, z ktorej odczytywana jest temperatura docelowa (uzywana tylko wtedy, gdy tryb to 'Encja zewnetrzna')."
+                }
+            },
+            "4": {
+                "title": "PI Thermostat - Krok 4 z 4",
+                "description": "Skonfiguruj ustawienia **awarii czujnika** i **uruchamiania**.",
+                "data": {
+                    "sensor_fault_mode": "Tryb awarii czujnika",
+                    "iterm_startup_mode": "Tryb startowy wyjscia",
+                    "iterm_startup_value": "Wartosc startowa wyjscia"
+                },
+                "data_description": {
+                    "sensor_fault_mode": "Zachowanie, gdy czujnik temperatury stanie sie niedostepny.",
+                    "iterm_startup_mode": "Jak inicjalizowane jest wyjscie podczas uruchamiania integracji.",
+                    "iterm_startup_value": "Procent wyjscia uzywany przy uruchomieniu. Sluzy jako wartosc poczatkowa w trybie 'Stala wartosc' albo jako wartosc zapasowa w trybie 'Ostatnio zapisana', gdy nie istnieje poprzednia wartosc."
+                }
+            },
+            "cca_sources": {
+                "title": "PI Thermostat - Krok 2 z 2",
+                "description": "Skonfiguruj **zrodla danych CCA**.",
+                "data": {
+                    "cca_cooling_enable_entity": "Encja wlaczenia chlodzenia",
+                    "cca_cooling_enable_on": "Chlodzenie, gdy encja jest wlaczona",
+                    "cca_weather_entity": "Encja pogody",
+                    "cca_forecast_horizon_days": "Horyzont prognozy",
+                    "cca_forecast_unavailable_mode": "Zachowanie przy niedostepnej prognozie"
+                },
+                "data_description": {
+                    "cca_cooling_enable_entity": "Encja wskazujaca, czy chlodzenie jest aktywne lub dozwolone.",
+                    "cca_cooling_enable_on": "Wlacz to, jesli stan 'wlaczony' wybranej encji oznacza, ze chlodzenie jest aktywne lub dozwolone. Wylacz to, jesli stan 'wylaczony' wybranej encji oznacza, ze chlodzenie jest aktywne lub dozwolone.",
+                    "cca_weather_entity": "Encja pogody uzywana do odczytu prognozy dziennej.",
+                    "cca_forecast_horizon_days": "Ile dni prognozy nalezy uwzglednic.",
+                    "cca_forecast_unavailable_mode": "Co sterownik ma zrobic, gdy dane dziennej prognozy sa niedostepne."
+                }
+            }
+        },
+        "error": {
+            "no_temp_source": "Wymagane jest co najmniej jedno zrodlo temperatury: skonfiguruj czujnik temperatury lub encje climate.",
+            "heat_cool_requires_climate": "Tryb pracy 'Ogrzewanie + chlodzenie' wymaga encji climate do okreslenia kierunku ogrzewania lub chlodzenia.",
+            "climate_target_requires_climate": "Tryb temperatury docelowej 'Z encji climate' wymaga encji climate.",
+            "cca_cooling_enable_required": "Skonfiguruj encje, ktora informuje integracje, czy chlodzenie jest aktywne lub dozwolone.",
+            "cca_weather_required": "Skonfiguruj encje pogody dla dziennych prognoz.",
+            "cca_weather_unsupported": "Wybrana encja pogody nie obsluguje dziennych prognoz."
+        }
+    },
+    "selector": {
+        "control_mode": {
+            "options": {
+                "pi": "PI",
+                "cca": "CCA"
+            }
+        },
+        "operating_mode": {
+            "options": {
+                "heat_cool": "Ogrzewanie + chlodzenie (auto)",
+                "heat": "Tylko ogrzewanie",
+                "cool": "Tylko chlodzenie"
+            }
+        },
+        "target_temp_mode": {
+            "options": {
+                "internal": "Wbudowany punkt nastawy",
+                "external": "Encja zewnetrzna",
+                "climate": "Z encji climate"
+            }
+        },
+        "sensor_fault_mode": {
+            "options": {
+                "shutdown": "Natychmiast wylacz",
+                "hold": "Utrzymaj ostatnie wyjscie"
+            }
+        },
+        "iterm_startup_mode": {
+            "options": {
+                "last": "Ostatnio zapisane",
+                "fixed": "Stala wartosc",
+                "zero": "Zero"
+            }
+        },
+        "cca_forecast_unavailable_mode": {
+            "options": {
+                "hold": "Utrzymaj ostatnie automatyczne wyjscie",
+                "shutdown": "Wylacz wyjscie sterownika"
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "output": {
+                "name": "Wyjscie"
+            },
+            "deviation": {
+                "name": "Odchylenie"
+            },
+            "current_mode": {
+                "name": "Biezacy tryb",
+                "state": {
+                    "heating": "Ogrzewanie",
+                    "cooling": "Chlodzenie",
+                    "off": "Wylaczone"
+                }
+            },
+            "current_temp": {
+                "name": "Aktualna temperatura"
+            },
+            "target_temp": {
+                "name": "Temperatura docelowa"
+            },
+            "p_term": {
+                "name": "Skladnik proporcjonalny"
+            },
+            "i_term": {
+                "name": "Skladnik calkujacy"
+            },
+            "cca_heat_score": {
+                "name": "Wskaznik ciepla"
+            },
+            "cca_charge_estimate": {
+                "name": "Szacowanie ladowania"
+            },
+            "cca_charge_target": {
+                "name": "Cel ladowania"
+            },
+            "cca_override_active": {
+                "name": "Nadpisanie aktywne",
+                "state": {
+                    "off": "Wylaczone",
+                    "on": "Wlaczone"
+                }
+            },
+            "cca_status": {
+                "name": "Stan",
+                "state": {
+                    "idle": "Bezczynnosc",
+                    "inactive": "Nieaktywny",
+                    "forecast_hold": "Utrzymywanie wyjscia prognozy",
+                    "forecast_unavailable": "Prognoza niedostepna",
+                    "active": "Aktywny",
+                    "manual_override": "Nadpisanie reczne"
+                }
+            }
+        },
+        "number": {
+            "proportional_band": {
+                "name": "Pasmo proporcjonalne"
+            },
+            "integral_time": {
+                "name": "Czas calkowania"
+            },
+            "target_temp": {
+                "name": "Temperatura docelowa"
+            },
+            "output_min": {
+                "name": "Minimalne wyjscie"
+            },
+            "output_max": {
+                "name": "Maksymalne wyjscie"
+            },
+            "update_interval": {
+                "name": "Interwal aktualizacji"
+            },
+            "cca_manual_output": {
+                "name": "Wyjscie reczne"
+            },
+            "cca_hot_day_threshold": {
+                "name": "Prog goracego dnia"
+            },
+            "cca_warm_night_threshold": {
+                "name": "Prog cieplej nocy"
+            },
+            "cca_output_min": {
+                "name": "Minimalne wyjscie"
+            },
+            "cca_output_max": {
+                "name": "Maksymalne wyjscie"
+            },
+            "cca_charge_gain": {
+                "name": "Wzmocnienie ladowania"
+            },
+            "cca_discharge_gain": {
+                "name": "Wzmocnienie rozladowania"
+            },
+            "cca_output_step_limit": {
+                "name": "Limit kroku wyjscia"
+            },
+            "cca_charge_target_scale": {
+                "name": "Skala celu ladowania"
+            }
+        },
+        "switch": {
+            "enabled": {
+                "name": "Wlaczone"
+            },
+            "cca_manual_override_enabled": {
+                "name": "Nadpisanie reczne"
+            }
+        }
+    }
+}

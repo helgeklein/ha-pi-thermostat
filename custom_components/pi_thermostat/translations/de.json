@@ -1,0 +1,245 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Willkommen bei PI Thermostat",
+                "description": "Diese Integration wird mit den Standardeinstellungen installiert.\n\nBitte konfigurieren Sie die Thermostat-Einstellungen später über das **Zahnradsymbol** (Konfigurieren-Schaltfläche) auf der Integrationskarte.\n\n[Dokumentation]({docs_url})"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "PI Thermostat - Schritt 1",
+                "description": "Wählen Sie den Typ der Heizung oder Kühlung aus, den diese Instanz steuern soll:\n\n- **CCA**: Betonkernaktivierung.\n- **PI**: Allgemeine Heizungs-/Kühlungsregelung.",
+                "data": {
+                    "control_mode": "Reglermodus"
+                },
+                "data_description": {
+                    "control_mode": "Wählen Sie, ob diese Integrationsinstanz den PI-Regler oder den CCA-Regler verwenden soll."
+                }
+            },
+            "2": {
+                "title": "PI Thermostat - Schritt 2 von 4",
+                "description": "Konfigurieren Sie die **Klima-Entität** und den **Betriebsmodus**.",
+                "data": {
+                    "climate_entity": "Klima-Entität",
+                    "operating_mode": "Betriebsmodus",
+                    "auto_disable_on_hvac_off": "Automatisch deaktivieren, wenn HVAC-Modus aus ist"
+                },
+                "data_description": {
+                    "climate_entity": "Optional. Wenn konfiguriert, kann sie als Quelle für aktuelle Temperatur, Zieltemperatur, Heiz-/Kühlrichtung und automatische Deaktivierung dienen.",
+                    "operating_mode": "Legt fest, wie der Regler zwischen Heizen und Kühlen entscheidet.",
+                    "auto_disable_on_hvac_off": "Wenn aktiviert und eine Klima-Entität konfiguriert ist, wird die Ausgabe auf 0 % gesetzt, sobald der HVAC-Modus der Klima-Entität aus ist."
+                }
+            },
+            "3": {
+                "title": "PI Thermostat - Schritt 3 von 4",
+                "description": "Konfigurieren Sie **Temperatursensoren** und den **Zieltemperaturmodus**.",
+                "data": {
+                    "temp_sensor": "Temperatursensor",
+                    "target_temp_mode": "Zieltemperaturmodus",
+                    "target_temp_entity": "Zieltemperatur-Entität"
+                },
+                "data_description": {
+                    "temp_sensor": "Optional, wenn eine Klima-Entität konfiguriert ist (greift dann auf die aktuelle Temperatur der Klima-Entität zurück).",
+                    "target_temp_mode": "Woher die Zieltemperatur gelesen werden soll.",
+                    "target_temp_entity": "Entität, aus der die Zieltemperatur gelesen wird (wird nur verwendet, wenn der Modus 'Externe Entität' ist)."
+                }
+            },
+            "4": {
+                "title": "PI Thermostat - Schritt 4 von 4",
+                "description": "Konfigurieren Sie die Einstellungen für **Sensorfehler** und **Startverhalten**.",
+                "data": {
+                    "sensor_fault_mode": "Sensorfehler-Modus",
+                    "iterm_startup_mode": "Ausgabe-Startmodus",
+                    "iterm_startup_value": "Ausgabe-Startwert"
+                },
+                "data_description": {
+                    "sensor_fault_mode": "Verhalten, wenn der Temperatursensor nicht verfügbar wird.",
+                    "iterm_startup_mode": "Wie die Ausgabe beim Start der Integration initialisiert wird.",
+                    "iterm_startup_value": "Prozentwert der Ausgabe, der beim Start verwendet wird. Dient als Anfangswert im Modus 'Fester Wert' oder als Fallback im Modus 'Zuletzt gespeichert', wenn kein vorheriger Wert vorhanden ist."
+                }
+            },
+            "cca_sources": {
+                "title": "PI Thermostat - Schritt 2 von 2",
+                "description": "Konfigurieren Sie die **CCA-Datenquellen**.",
+                "data": {
+                    "cca_cooling_enable_entity": "Kühlung aktivieren-Entität",
+                    "cca_cooling_enable_on": "Kühlung bei eingeschalteter Entität",
+                    "cca_weather_entity": "Wetter-Entität",
+                    "cca_forecast_horizon_days": "Vorhersagehorizont",
+                    "cca_forecast_unavailable_mode": "Verhalten bei nicht verfügbarer Vorhersage"
+                },
+                "data_description": {
+                    "cca_cooling_enable_entity": "Entität, die anzeigt, ob Kühlung aktiv oder erlaubt ist.",
+                    "cca_cooling_enable_on": "Aktivieren Sie dies, wenn bei der ausgewählten Entität der Zustand 'ein' bedeutet, dass Kühlung aktiv oder erlaubt ist. Deaktivieren Sie es, wenn bei der ausgewählten Entität der Zustand 'aus' bedeutet, dass Kühlung aktiv oder erlaubt ist.",
+                    "cca_weather_entity": "Wetter-Entität, die zum Lesen der Tagesvorhersage verwendet wird.",
+                    "cca_forecast_horizon_days": "Wie viele Vorhersagetage berücksichtigt werden sollen.",
+                    "cca_forecast_unavailable_mode": "Was der Regler tun soll, wenn Tagesvorhersagedaten nicht verfügbar sind."
+                }
+            }
+        },
+        "error": {
+            "no_temp_source": "Mindestens eine Temperaturquelle ist erforderlich: Konfigurieren Sie einen Temperatursensor oder eine Klima-Entität.",
+            "heat_cool_requires_climate": "Der Betriebsmodus 'Heizen + Kühlen' erfordert eine Klima-Entität, um zwischen Heizen und Kühlen zu unterscheiden.",
+            "climate_target_requires_climate": "Der Zieltemperaturmodus 'Von Klima-Entität' erfordert eine Klima-Entität.",
+            "cca_cooling_enable_required": "Konfigurieren Sie eine Entität, die der Integration mitteilt, ob Kühlung aktiv oder erlaubt ist.",
+            "cca_weather_required": "Konfigurieren Sie eine Wetter-Entität für Tagesvorhersagen.",
+            "cca_weather_unsupported": "Die ausgewählte Wetter-Entität unterstützt keine Tagesvorhersagen."
+        }
+    },
+    "selector": {
+        "control_mode": {
+            "options": {
+                "pi": "PI",
+                "cca": "CCA"
+            }
+        },
+        "operating_mode": {
+            "options": {
+                "heat_cool": "Heizen + Kühlen (auto)",
+                "heat": "Nur heizen",
+                "cool": "Nur kühlen"
+            }
+        },
+        "target_temp_mode": {
+            "options": {
+                "internal": "Integrierter Sollwert",
+                "external": "Externe Entität",
+                "climate": "Von Klima-Entität"
+            }
+        },
+        "sensor_fault_mode": {
+            "options": {
+                "shutdown": "Sofort abschalten",
+                "hold": "Letzte Ausgabe beibehalten"
+            }
+        },
+        "iterm_startup_mode": {
+            "options": {
+                "last": "Zuletzt gespeichert",
+                "fixed": "Fester Wert",
+                "zero": "Null"
+            }
+        },
+        "cca_forecast_unavailable_mode": {
+            "options": {
+                "hold": "Letzte automatische Ausgabe beibehalten",
+                "shutdown": "Reglerausgabe abschalten"
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "output": {
+                "name": "Ausgabe"
+            },
+            "deviation": {
+                "name": "Abweichung"
+            },
+            "current_mode": {
+                "name": "Aktueller Modus",
+                "state": {
+                    "heating": "Heizen",
+                    "cooling": "Kühlen",
+                    "off": "Aus"
+                }
+            },
+            "current_temp": {
+                "name": "Aktuelle Temperatur"
+            },
+            "target_temp": {
+                "name": "Zieltemperatur"
+            },
+            "p_term": {
+                "name": "Proportionalanteil"
+            },
+            "i_term": {
+                "name": "Integralanteil"
+            },
+            "cca_heat_score": {
+                "name": "Heizwert"
+            },
+            "cca_charge_estimate": {
+                "name": "Ladeschätzung"
+            },
+            "cca_charge_target": {
+                "name": "Ladeziel"
+            },
+            "cca_override_active": {
+                "name": "Überschreibung aktiv",
+                "state": {
+                    "off": "Aus",
+                    "on": "Ein"
+                }
+            },
+            "cca_status": {
+                "name": "Status",
+                "state": {
+                    "idle": "Leerlauf",
+                    "inactive": "Inaktiv",
+                    "forecast_hold": "Vorhersageausgabe wird gehalten",
+                    "forecast_unavailable": "Vorhersage nicht verfügbar",
+                    "active": "Aktiv",
+                    "manual_override": "Manuelle Überschreibung"
+                }
+            }
+        },
+        "number": {
+            "proportional_band": {
+                "name": "Proportionalband"
+            },
+            "integral_time": {
+                "name": "Integralzeit"
+            },
+            "target_temp": {
+                "name": "Zieltemperatur"
+            },
+            "output_min": {
+                "name": "Ausgabeminimum"
+            },
+            "output_max": {
+                "name": "Ausgabemaximum"
+            },
+            "update_interval": {
+                "name": "Aktualisierungsintervall"
+            },
+            "cca_manual_output": {
+                "name": "Manuelle Ausgabe"
+            },
+            "cca_hot_day_threshold": {
+                "name": "Schwellwert für heiße Tage"
+            },
+            "cca_warm_night_threshold": {
+                "name": "Schwellwert für warme Nächte"
+            },
+            "cca_output_min": {
+                "name": "Ausgabeminimum"
+            },
+            "cca_output_max": {
+                "name": "Ausgabemaximum"
+            },
+            "cca_charge_gain": {
+                "name": "Ladeverstärkung"
+            },
+            "cca_discharge_gain": {
+                "name": "Entladeverstärkung"
+            },
+            "cca_output_step_limit": {
+                "name": "Ausgabe-Schrittbegrenzung"
+            },
+            "cca_charge_target_scale": {
+                "name": "Skalierung des Ladeziels"
+            }
+        },
+        "switch": {
+            "enabled": {
+                "name": "Aktiviert"
+            },
+            "cca_manual_override_enabled": {
+                "name": "Manuelle Überschreibung"
+            }
+        }
+    }
+}

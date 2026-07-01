@@ -1,0 +1,245 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "欢迎使用 PI Thermostat",
+                "description": "此集成将使用默认设置进行安装。\n\n请稍后通过集成卡片上的**齿轮图标**（配置按钮）来配置恒温器设置。\n\n[文档]({docs_url})"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "PI Thermostat - 第 1 步",
+                "description": "选择此实例应控制的加热或制冷类型：\n\n- **CCA**：混凝土芯激活。\n- **PI**：通用加热/制冷。",
+                "data": {
+                    "control_mode": "控制器模式"
+                },
+                "data_description": {
+                    "control_mode": "选择此集成实例应使用 PI 控制器还是 CCA 控制器。"
+                }
+            },
+            "2": {
+                "title": "PI Thermostat - 第 2 步，共 4 步",
+                "description": "配置**climate 实体**和**运行模式**。",
+                "data": {
+                    "climate_entity": "climate 实体",
+                    "operating_mode": "运行模式",
+                    "auto_disable_on_hvac_off": "当 HVAC 模式关闭时自动禁用"
+                },
+                "data_description": {
+                    "climate_entity": "可选。配置后，可作为当前温度、目标温度、加热/制冷方向以及自动禁用的来源。",
+                    "operating_mode": "决定控制器如何在加热和制冷之间进行选择。",
+                    "auto_disable_on_hvac_off": "启用后，如果已配置 climate 实体，则每当该 climate 实体的 HVAC 模式关闭时，输出都会设置为 0%。"
+                }
+            },
+            "3": {
+                "title": "PI Thermostat - 第 3 步，共 4 步",
+                "description": "配置**温度传感器**和**目标温度模式**。",
+                "data": {
+                    "temp_sensor": "温度传感器",
+                    "target_temp_mode": "目标温度模式",
+                    "target_temp_entity": "目标温度实体"
+                },
+                "data_description": {
+                    "temp_sensor": "如果已配置 climate 实体，则为可选（将回退到 climate 实体的当前温度）。",
+                    "target_temp_mode": "目标温度的读取来源。",
+                    "target_temp_entity": "用于读取目标温度的实体（仅在模式为“外部实体”时使用）。"
+                }
+            },
+            "4": {
+                "title": "PI Thermostat - 第 4 步，共 4 步",
+                "description": "配置**传感器故障**和**启动**设置。",
+                "data": {
+                    "sensor_fault_mode": "传感器故障模式",
+                    "iterm_startup_mode": "输出启动模式",
+                    "iterm_startup_value": "输出启动值"
+                },
+                "data_description": {
+                    "sensor_fault_mode": "当温度传感器不可用时的行为。",
+                    "iterm_startup_mode": "集成启动时如何初始化输出。",
+                    "iterm_startup_value": "启动时使用的输出百分比。在“固定值”模式下用作初始值，或在“上次保存”模式下当不存在先前值时作为回退值。"
+                }
+            },
+            "cca_sources": {
+                "title": "PI Thermostat - 第 2 步，共 2 步",
+                "description": "配置**CCA 数据源**。",
+                "data": {
+                    "cca_cooling_enable_entity": "制冷启用实体",
+                    "cca_cooling_enable_on": "实体开启时制冷",
+                    "cca_weather_entity": "天气实体",
+                    "cca_forecast_horizon_days": "预测范围",
+                    "cca_forecast_unavailable_mode": "预测不可用时的行为"
+                },
+                "data_description": {
+                    "cca_cooling_enable_entity": "指示制冷是否处于活动状态或被允许的实体。",
+                    "cca_cooling_enable_on": "当所选实体为开启状态意味着制冷处于活动状态或被允许时启用此项。当所选实体为关闭状态意味着制冷处于活动状态或被允许时禁用此项。",
+                    "cca_weather_entity": "用于读取每日天气预报的天气实体。",
+                    "cca_forecast_horizon_days": "应考虑多少天的预测。",
+                    "cca_forecast_unavailable_mode": "当每日预测数据不可用时控制器应执行的操作。"
+                }
+            }
+        },
+        "error": {
+            "no_temp_source": "至少需要一个温度来源：请配置温度传感器或 climate 实体。",
+            "heat_cool_requires_climate": "“加热 + 制冷”运行模式需要一个 climate 实体来确定加热或制冷方向。",
+            "climate_target_requires_climate": "“来自 climate 实体”的目标温度模式需要一个 climate 实体。",
+            "cca_cooling_enable_required": "请配置一个实体，以告知集成制冷是否处于活动状态或被允许。",
+            "cca_weather_required": "请配置一个天气实体以获取每日天气预报。",
+            "cca_weather_unsupported": "所选天气实体不支持每日天气预报。"
+        }
+    },
+    "selector": {
+        "control_mode": {
+            "options": {
+                "pi": "PI",
+                "cca": "CCA"
+            }
+        },
+        "operating_mode": {
+            "options": {
+                "heat_cool": "加热 + 制冷（自动）",
+                "heat": "仅加热",
+                "cool": "仅制冷"
+            }
+        },
+        "target_temp_mode": {
+            "options": {
+                "internal": "内置设定值",
+                "external": "外部实体",
+                "climate": "来自 climate 实体"
+            }
+        },
+        "sensor_fault_mode": {
+            "options": {
+                "shutdown": "立即关闭",
+                "hold": "保持上次输出"
+            }
+        },
+        "iterm_startup_mode": {
+            "options": {
+                "last": "上次保存",
+                "fixed": "固定值",
+                "zero": "零"
+            }
+        },
+        "cca_forecast_unavailable_mode": {
+            "options": {
+                "hold": "保持上次自动输出",
+                "shutdown": "关闭控制器输出"
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "output": {
+                "name": "输出"
+            },
+            "deviation": {
+                "name": "偏差"
+            },
+            "current_mode": {
+                "name": "当前模式",
+                "state": {
+                    "heating": "加热",
+                    "cooling": "制冷",
+                    "off": "关闭"
+                }
+            },
+            "current_temp": {
+                "name": "当前温度"
+            },
+            "target_temp": {
+                "name": "目标温度"
+            },
+            "p_term": {
+                "name": "比例项"
+            },
+            "i_term": {
+                "name": "积分项"
+            },
+            "cca_heat_score": {
+                "name": "热量评分"
+            },
+            "cca_charge_estimate": {
+                "name": "充能估算"
+            },
+            "cca_charge_target": {
+                "name": "充能目标"
+            },
+            "cca_override_active": {
+                "name": "覆盖已激活",
+                "state": {
+                    "off": "关闭",
+                    "on": "开启"
+                }
+            },
+            "cca_status": {
+                "name": "状态",
+                "state": {
+                    "idle": "空闲",
+                    "inactive": "未激活",
+                    "forecast_hold": "保持预测输出",
+                    "forecast_unavailable": "预测不可用",
+                    "active": "活动",
+                    "manual_override": "手动覆盖"
+                }
+            }
+        },
+        "number": {
+            "proportional_band": {
+                "name": "比例带"
+            },
+            "integral_time": {
+                "name": "积分时间"
+            },
+            "target_temp": {
+                "name": "目标温度"
+            },
+            "output_min": {
+                "name": "最小输出"
+            },
+            "output_max": {
+                "name": "最大输出"
+            },
+            "update_interval": {
+                "name": "更新间隔"
+            },
+            "cca_manual_output": {
+                "name": "手动输出"
+            },
+            "cca_hot_day_threshold": {
+                "name": "炎热白天阈值"
+            },
+            "cca_warm_night_threshold": {
+                "name": "温暖夜晚阈值"
+            },
+            "cca_output_min": {
+                "name": "最小输出"
+            },
+            "cca_output_max": {
+                "name": "最大输出"
+            },
+            "cca_charge_gain": {
+                "name": "充能增益"
+            },
+            "cca_discharge_gain": {
+                "name": "放能增益"
+            },
+            "cca_output_step_limit": {
+                "name": "输出步进限制"
+            },
+            "cca_charge_target_scale": {
+                "name": "充能目标缩放"
+            }
+        },
+        "switch": {
+            "enabled": {
+                "name": "已启用"
+            },
+            "cca_manual_override_enabled": {
+                "name": "手动覆盖"
+            }
+        }
+    }
+}
