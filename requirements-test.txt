@@ -10,4 +10,4 @@ pytest-cov>=4.0.0
 pytest-homeassistant-custom-component==0.13.271
 
 # Static type checking
-mypy>=1.0.0
+mypy>=2.1.0
