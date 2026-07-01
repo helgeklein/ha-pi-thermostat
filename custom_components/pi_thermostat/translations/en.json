@@ -11,7 +11,7 @@
         "step": {
             "init": {
                 "title": "PI Thermostat - Step 1",
-                "description": "Select the **controller mode**.",
+                "description": "Select the type of heating or cooling this instance should control:\n\n- **CCA**: Concrete core activation.\n- **PI**: General-purpose heating/cooling.",
                 "data": {
                     "control_mode": "Controller mode"
                 },
@@ -25,7 +25,7 @@
                 "data": {
                     "climate_entity": "Climate entity",
                     "operating_mode": "Operating mode",
-                    "auto_disable_on_hvac_off": "Auto-disable when HVAC is off"
+                    "auto_disable_on_hvac_off": "Auto-disable when HVAC mode is off"
                 },
                 "data_description": {
                     "climate_entity": "Optional. When configured, can serve as source for current temperature, target temperature, heat/cool direction, and auto-disable.",
@@ -92,8 +92,8 @@
     "selector": {
         "control_mode": {
             "options": {
-                "pi": "PI controller",
-                "cca": "CCA controller"
+                "pi": "PI",
+                "cca": "CCA"
             }
         },
         "operating_mode": {

@@ -23,8 +23,8 @@ A Home Assistant custom integration that implements a **PI (proportional–integ
 - **I-term persistence** — The integral term is saved across restarts. Configurable startup modes: last persisted, fixed value, or zero.
 - **Runtime-configurable entities** — Number entities for proportional band, integral time, target temperature, output min/max, and update interval. Enabled switch to pause/resume.
 - **Diagnostic sensors** — Output %, deviation, proportional term, integral term.
-- **Multiple instances** — Run independent thermostat controllers for different zones.
-- **Fully UI-configured** — Three-step options wizard, no YAML required.
+- **Multiple instances** — Run independent controllers for different zones, or for different types of heating/cooling systems.
+- **Fully UI-configured** — Multi-step options wizard, no YAML required.
 - **Rich language support** — Chinese, Dutch, English, French, German, Italian, Polish, Portuguese, Spanish, Swedish.
 
 ---

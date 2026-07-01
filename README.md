@@ -33,11 +33,11 @@ A Home Assistant custom integration that implements a **PI (proportional–integ
 - **Diagnostic sensors:**
     - Output %, deviation, proportional term, integral term.
 - **Multiple instances:** Run independent thermostat controllers for different zones.
-- **Fully UI-configured:** Three-step options wizard, no YAML required.
+- **Fully UI-configured:** Multi-step options wizard, no YAML required.
 
 ## Configuration
 
-The integration is configured via a three-step options wizard:
+The integration is configured via a multi-step options wizard:
 
 1. **Climate entity & operating mode** — optional climate entity, heat/cool/auto mode, auto-disable on HVAC off.
 2. **Temperature sensors & target** — temperature sensor, target temperature mode (built-in, external entity, or climate entity).
