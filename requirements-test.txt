@@ -3,7 +3,7 @@
 # Core test dependencies
 pytest>=8.0.0
 pytest-asyncio>=0.21.0
-pytest-cov>=4.0.0
+pytest-cov>=7.1.0
 
 # Home Assistant testing dependencies
 -r requirements-ha.txt
