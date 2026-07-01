@@ -1,8 +1,8 @@
 """
-Custom integration for PI temperature control with Home Assistant.
+Custom integration for PI temperature and CCA control with Home Assistant.
 
 For more details about this integration, please refer to
-https://github.com/helgeklein/ha-pi-thermostat
+https://github.com/helgeklein/ha-pi-thermostat-cca-control
 """
 
 from __future__ import annotations
@@ -68,7 +68,7 @@ async def async_setup_entry(
     hass: HomeAssistant,
     entry: IntegrationConfigEntry,
 ) -> bool:
-    """Set up the PI Thermostat integration from a config entry.
+    """Set up the PI Thermostat & CCA Control integration from a config entry.
 
     This function is called by Home Assistant during:
     - Initial setup of the integration via the UI (after the user completes the config flow)

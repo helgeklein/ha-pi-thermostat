@@ -1,4 +1,4 @@
-"""Base entity class for PI Thermostat integration.
+"""Base entity class for PI Thermostat & CCA Control integration.
 
 This module provides the foundation entity class that all platform entities
 (sensors, switches, binary sensors) inherit from. It ensures consistent
@@ -15,7 +15,7 @@ from .coordinator import DataUpdateCoordinator
 
 
 class IntegrationEntity(CoordinatorEntity[DataUpdateCoordinator]):
-    """Base entity class for PI Thermostat integration.
+    """Base entity class for PI Thermostat & CCA Control integration.
 
     This class serves as the foundation for all entities created by this integration.
     It provides:

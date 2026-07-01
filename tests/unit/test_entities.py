@@ -30,6 +30,14 @@ from custom_components.pi_thermostat.const import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+DEFAULT_OBJECT_ID_PREFIX = "pi_thermostat_cca_control"
+
+
+def _entity_id(platform: str, object_id: str) -> str:
+    """Build an entity ID for the default renamed integration title."""
+
+    return f"{platform}.{DEFAULT_OBJECT_ID_PREFIX}_{object_id}"
+
 
 def _make_entry(options: dict[str, Any] | None = None) -> Any:
     """Create a MockConfigEntry."""
@@ -38,7 +46,7 @@ def _make_entry(options: dict[str, Any] | None = None) -> Any:
 
     return MockConfigEntry(
         domain=DOMAIN,
-        title="PI Thermostat",
+        title="PI Thermostat & CCA Control",
         data={},
         options=options or _default_options(),
     )
@@ -228,12 +236,12 @@ class TestSensorEntities:
         await _setup_integration(hass)
 
         expected_entity_ids = [
-            "sensor.pi_thermostat_output",
-            "sensor.pi_thermostat_deviation",
-            "sensor.pi_thermostat_current_mode",
-            "sensor.pi_thermostat_current_temperature",
-            "sensor.pi_thermostat_proportional_term",
-            "sensor.pi_thermostat_integral_term",
+            _entity_id("sensor", "output"),
+            _entity_id("sensor", "deviation"),
+            _entity_id("sensor", "current_mode"),
+            _entity_id("sensor", "current_temperature"),
+            _entity_id("sensor", "proportional_term"),
+            _entity_id("sensor", "integral_term"),
         ]
 
         for entity_id in expected_entity_ids:
@@ -245,7 +253,7 @@ class TestSensorEntities:
 
         await _setup_integration(hass, _default_options(target_temp=22.0))
 
-        state = hass.states.get("sensor.pi_thermostat_output")
+        state = hass.states.get(_entity_id("sensor", "output"))
         assert state is not None
         # With target=22, current=20 (mocked), output should be > 0
         assert float(state.state) >= 0.0
@@ -255,7 +263,7 @@ class TestSensorEntities:
 
         await _setup_integration(hass, _default_options(target_temp=22.0))
 
-        state = hass.states.get("sensor.pi_thermostat_deviation")
+        state = hass.states.get(_entity_id("sensor", "deviation"))
         assert state is not None
         # Deviation = target - current = 22 - 20 = 2.0
         assert float(state.state) == pytest.approx(2.0, abs=0.01)
@@ -265,7 +273,7 @@ class TestSensorEntities:
 
         await _setup_integration(hass, _default_options(operating_mode=OperatingMode.HEAT))
 
-        state = hass.states.get("sensor.pi_thermostat_current_mode")
+        state = hass.states.get(_entity_id("sensor", "current_mode"))
         assert state is not None
         assert state.state == "heating"
 
@@ -274,7 +282,7 @@ class TestSensorEntities:
 
         await _setup_integration(hass, _default_options(operating_mode=OperatingMode.COOL))
 
-        state = hass.states.get("sensor.pi_thermostat_current_mode")
+        state = hass.states.get(_entity_id("sensor", "current_mode"))
         assert state is not None
         assert state.state == "cooling"
 
@@ -289,7 +297,7 @@ class TestSensorEntities:
             ),
         )
 
-        state = hass.states.get("sensor.pi_thermostat_target_temperature")
+        state = hass.states.get(_entity_id("sensor", "target_temperature"))
         assert state is not None, "target_temp sensor should exist in CLIMATE mode"
 
     async def test_target_temp_sensor_not_created_in_internal_mode(self, hass: HomeAssistant) -> None:
@@ -297,7 +305,7 @@ class TestSensorEntities:
 
         await _setup_integration(hass, _default_options())
 
-        state = hass.states.get("sensor.pi_thermostat_target_temperature")
+        state = hass.states.get(_entity_id("sensor", "target_temperature"))
         assert state is None, "target_temp sensor should not exist in INTERNAL mode"
 
     async def test_target_temp_number_not_created_in_climate_mode(self, hass: HomeAssistant) -> None:
@@ -311,7 +319,7 @@ class TestSensorEntities:
             ),
         )
 
-        state = hass.states.get("number.pi_thermostat_target_temperature")
+        state = hass.states.get(_entity_id("number", "target_temperature"))
         assert state is None, "target_temp number should not exist in CLIMATE mode"
 
     async def test_cca_sensors_created(self, hass: HomeAssistant) -> None:
@@ -320,20 +328,20 @@ class TestSensorEntities:
         await _setup_cca_integration(hass)
 
         expected_entity_ids = [
-            "sensor.pi_thermostat_output",
-            "sensor.pi_thermostat_current_mode",
-            "sensor.pi_thermostat_heat_score",
-            "sensor.pi_thermostat_charge_estimate",
-            "sensor.pi_thermostat_charge_target",
-            "sensor.pi_thermostat_override_active",
-            "sensor.pi_thermostat_status",
+            _entity_id("sensor", "output"),
+            _entity_id("sensor", "current_mode"),
+            _entity_id("sensor", "heat_score"),
+            _entity_id("sensor", "charge_estimate"),
+            _entity_id("sensor", "charge_target"),
+            _entity_id("sensor", "override_active"),
+            _entity_id("sensor", "status"),
         ]
 
         for entity_id in expected_entity_ids:
             assert hass.states.get(entity_id) is not None, f"{entity_id} not found"
 
-        assert hass.states.get("sensor.pi_thermostat_deviation") is None
-        assert hass.states.get("sensor.pi_thermostat_integral_term") is None
+        assert hass.states.get(_entity_id("sensor", "deviation")) is None
+        assert hass.states.get(_entity_id("sensor", "integral_term")) is None
 
 
 # ===========================================================================
@@ -350,12 +358,12 @@ class TestNumberEntities:
         await _setup_integration(hass)
 
         expected_entity_ids = [
-            "number.pi_thermostat_proportional_band",
-            "number.pi_thermostat_integral_time",
-            "number.pi_thermostat_target_temperature",
-            "number.pi_thermostat_output_minimum",
-            "number.pi_thermostat_output_maximum",
-            "number.pi_thermostat_update_interval",
+            _entity_id("number", "proportional_band"),
+            _entity_id("number", "integral_time"),
+            _entity_id("number", "target_temperature"),
+            _entity_id("number", "output_minimum"),
+            _entity_id("number", "output_maximum"),
+            _entity_id("number", "update_interval"),
         ]
 
         for entity_id in expected_entity_ids:
@@ -367,7 +375,7 @@ class TestNumberEntities:
 
         await _setup_integration(hass, _default_options(target_temp=23.5))
 
-        state = hass.states.get("number.pi_thermostat_target_temperature")
+        state = hass.states.get(_entity_id("number", "target_temperature"))
         assert state is not None
         assert float(state.state) == pytest.approx(23.5, abs=0.01)
 
@@ -376,7 +384,7 @@ class TestNumberEntities:
 
         await _setup_integration(hass, _default_options(proportional_band=6.0))
 
-        state = hass.states.get("number.pi_thermostat_proportional_band")
+        state = hass.states.get(_entity_id("number", "proportional_band"))
         assert state is not None
         assert float(state.state) == pytest.approx(6.0, abs=0.01)
 
@@ -386,21 +394,21 @@ class TestNumberEntities:
         await _setup_cca_integration(hass)
 
         expected_entity_ids = [
-            "number.pi_thermostat_manual_output",
-            "number.pi_thermostat_hot_day_threshold",
-            "number.pi_thermostat_warm_night_threshold",
-            "number.pi_thermostat_output_minimum",
-            "number.pi_thermostat_output_maximum",
-            "number.pi_thermostat_charge_gain",
-            "number.pi_thermostat_discharge_gain",
-            "number.pi_thermostat_output_step_limit",
-            "number.pi_thermostat_charge_target_scale",
+            _entity_id("number", "manual_output"),
+            _entity_id("number", "hot_day_threshold"),
+            _entity_id("number", "warm_night_threshold"),
+            _entity_id("number", "output_minimum"),
+            _entity_id("number", "output_maximum"),
+            _entity_id("number", "charge_gain"),
+            _entity_id("number", "discharge_gain"),
+            _entity_id("number", "output_step_limit"),
+            _entity_id("number", "charge_target_scale"),
         ]
 
         for entity_id in expected_entity_ids:
             assert hass.states.get(entity_id) is not None, f"{entity_id} not found"
 
-        assert hass.states.get("number.pi_thermostat_proportional_band") is None
+        assert hass.states.get(_entity_id("number", "proportional_band")) is None
 
 
 # ===========================================================================
@@ -416,7 +424,7 @@ class TestSwitchEntities:
 
         await _setup_integration(hass)
 
-        state = hass.states.get("switch.pi_thermostat_enabled")
+        state = hass.states.get(_entity_id("switch", "enabled"))
         assert state is not None
 
     async def test_switch_default_on(self, hass: HomeAssistant) -> None:
@@ -424,7 +432,7 @@ class TestSwitchEntities:
 
         await _setup_integration(hass, _default_options(enabled=True))
 
-        state = hass.states.get("switch.pi_thermostat_enabled")
+        state = hass.states.get(_entity_id("switch", "enabled"))
         assert state is not None
         assert state.state == "on"
 
@@ -433,7 +441,7 @@ class TestSwitchEntities:
 
         await _setup_cca_integration(hass)
 
-        state = hass.states.get("switch.pi_thermostat_manual_override")
+        state = hass.states.get(_entity_id("switch", "manual_override"))
         assert state is not None
 
 
@@ -481,7 +489,7 @@ class TestITermStartupModes:
         # Pre-populate the restore cache with a persisted i_term value
         mock_restore_cache(
             hass,
-            [State("sensor.pi_thermostat_integral_term", "42.5")],
+            [State(_entity_id("sensor", "integral_term"), "42.5")],
         )
 
         entry = await _setup_integration(
@@ -503,7 +511,7 @@ class TestITermStartupModes:
         # Pre-populate with an unparseable state
         mock_restore_cache(
             hass,
-            [State("sensor.pi_thermostat_integral_term", "unknown")],
+            [State(_entity_id("sensor", "integral_term"), "unknown")],
         )
 
         entry = await _setup_integration(
@@ -554,11 +562,11 @@ class TestSwitchWrite:
             await hass.services.async_call(
                 "switch",
                 "turn_off",
-                {"entity_id": "switch.pi_thermostat_enabled"},
+                {"entity_id": _entity_id("switch", "enabled")},
                 blocking=True,
             )
 
-        state = hass.states.get("switch.pi_thermostat_enabled")
+        state = hass.states.get(_entity_id("switch", "enabled"))
         assert state is not None
         assert state.state == "off"
         assert entry.options["enabled"] is False
@@ -568,7 +576,7 @@ class TestSwitchWrite:
 
         entry = await _setup_integration(hass, _default_options(enabled=False))
 
-        state = hass.states.get("switch.pi_thermostat_enabled")
+        state = hass.states.get(_entity_id("switch", "enabled"))
         assert state is not None
         assert state.state == "off"
 
@@ -580,11 +588,11 @@ class TestSwitchWrite:
             await hass.services.async_call(
                 "switch",
                 "turn_on",
-                {"entity_id": "switch.pi_thermostat_enabled"},
+                {"entity_id": _entity_id("switch", "enabled")},
                 blocking=True,
             )
 
-        state = hass.states.get("switch.pi_thermostat_enabled")
+        state = hass.states.get(_entity_id("switch", "enabled"))
         assert state is not None
         assert state.state == "on"
         assert entry.options["enabled"] is True
@@ -612,13 +620,13 @@ class TestNumberWrite:
                 "number",
                 "set_value",
                 {
-                    "entity_id": "number.pi_thermostat_target_temperature",
+                    "entity_id": _entity_id("number", "target_temperature"),
                     "value": 23.0,
                 },
                 blocking=True,
             )
 
-        state = hass.states.get("number.pi_thermostat_target_temperature")
+        state = hass.states.get(_entity_id("number", "target_temperature"))
         assert state is not None
         assert float(state.state) == pytest.approx(23.0, abs=0.01)
         assert entry.options["target_temp"] == pytest.approx(23.0, abs=0.01)
@@ -637,13 +645,13 @@ class TestNumberWrite:
                 "number",
                 "set_value",
                 {
-                    "entity_id": "number.pi_thermostat_proportional_band",
+                    "entity_id": _entity_id("number", "proportional_band"),
                     "value": 8.0,
                 },
                 blocking=True,
             )
 
-        state = hass.states.get("number.pi_thermostat_proportional_band")
+        state = hass.states.get(_entity_id("number", "proportional_band"))
         assert state is not None
         assert float(state.state) == pytest.approx(8.0, abs=0.01)
         assert entry.options["proportional_band"] == pytest.approx(8.0, abs=0.01)

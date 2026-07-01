@@ -1,4 +1,4 @@
-"""PI thermostat coordinator — update loop.
+"""PI Thermostat & CCA Control coordinator - update loop.
 
 Reads temperatures, delegates to the PI controller, and returns
 ``CoordinatorData`` consumed by all entities.
@@ -65,7 +65,7 @@ if TYPE_CHECKING:
 # DataUpdateCoordinator
 #
 class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
-    """PI thermostat update coordinator."""
+    """PI Thermostat & CCA Control update coordinator."""
 
     config_entry: IntegrationConfigEntry
 

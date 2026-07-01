@@ -49,7 +49,7 @@ def _make_entry(
 
     entry = MockConfigEntry(
         domain=DOMAIN,
-        title="PI Thermostat",
+        title="PI Thermostat & CCA Control",
         data={},
         options=options or {},
     )

@@ -1,1 +1,1 @@
-"""Tests for PI Thermostat integration."""
+"""Tests for PI Thermostat & CCA Control integration."""

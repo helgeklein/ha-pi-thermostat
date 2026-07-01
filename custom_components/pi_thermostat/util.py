@@ -1,4 +1,4 @@
-"""Shared utility helpers for the PI Thermostat integration."""
+"""Shared utility helpers for the PI Thermostat & CCA Control integration."""
 
 from __future__ import annotations
 

@@ -67,7 +67,7 @@ class TestDomainIdentity:
     def test_integration_name(self) -> None:
         """Integration display name."""
 
-        assert INTEGRATION_NAME == "PI Thermostat"
+        assert INTEGRATION_NAME == "PI Thermostat & CCA Control"
 
 
 # ---------------------------------------------------------------------------

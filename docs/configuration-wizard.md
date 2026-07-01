@@ -2,7 +2,7 @@
 layout: default
 title: Configuration Wizard
 nav_order: 4
-description: "Configuration guide part 1 for PI Thermostat for Home Assistant."
+description: "Configuration guide part 1 for PI Thermostat & CCA Control for Home Assistant."
 permalink: /configuration-wizard/
 ---
 
@@ -11,7 +11,7 @@ permalink: /configuration-wizard/
 The integration's settings are managed via a three-step options wizard. To invoke the configuration wizard:
 
 1. Go to **Settings** → **Devices & Services**.
-2. Find **PI Thermostat**.
+2. Find **PI Thermostat & CCA Control**.
 3. Click the **gear icon** to open the configuration wizard.
 
 **Notes**

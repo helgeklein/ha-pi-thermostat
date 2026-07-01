@@ -2,7 +2,7 @@
 layout: default
 title: UI Configuration Entities
 nav_order: 5
-description: "Configuration guide part 2 for PI Thermostat for Home Assistant."
+description: "Configuration guide part 2 for PI Thermostat & CCA Control for Home Assistant."
 permalink: /ui-configuration-entities/
 ---
 

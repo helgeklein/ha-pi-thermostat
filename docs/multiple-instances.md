@@ -2,7 +2,7 @@
 layout: default
 title: Multiple Instances
 nav_order: 7
-description: "Configuring multiple instances of PI Thermostat for Home Assistant."
+description: "Configuring multiple instances of PI Thermostat & CCA Control for Home Assistant."
 permalink: /multiple-instances/
 ---
 
@@ -19,7 +19,7 @@ After the initial installation, additional integration instances can be created 
 The names of an instance's entity IDs are constructed by Home Assistant from the following components:
 
 - Entity type (e.g., `sensor`)
-- Device name (e.g., `PI Thermostat Living Room`)
+- Device name (e.g., `PI Thermostat & CCA Control Living Room`)
 - Entity name (e.g., `Output`)
 
 The example above would result in the entity ID: `sensor.pi_thermostat_living_room_output`.
@@ -37,7 +37,7 @@ You have underfloor heating in two zones with different thermal characteristics:
 
 #### Configuration
 
-1. On the integration page, rename the default integration entry from `PI Thermostat` to `Living Room`.
+1. On the integration page, rename the default integration entry from `PI Thermostat & CCA Control` to `Living Room`.
 2. Create a second instance of the integration named `Bedroom`.
 3. Configure each instance with its own temperature sensor, target temperature, and PI tuning parameters.
 

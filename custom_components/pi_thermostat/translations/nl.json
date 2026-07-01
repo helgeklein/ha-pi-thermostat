@@ -2,7 +2,7 @@
     "config": {
         "step": {
             "user": {
-                "title": "Welkom bij PI Thermostat",
+                "title": "Welkom bij PI Thermostat & CCA Control",
                 "description": "Deze integratie wordt geinstalleerd met de standaardinstellingen.\n\nConfigureer de thermostaatinstellingen later via het **tandwielpictogram** (configuratieknop) op de integratiekaart.\n\n[Documentatie]({docs_url})"
             }
         }
@@ -10,7 +10,7 @@
     "options": {
         "step": {
             "init": {
-                "title": "PI Thermostat - Stap 1",
+                "title": "PI Thermostat & CCA Control - Stap 1",
                 "description": "Selecteer welk type verwarming of koeling deze instantie moet aansturen:\n\n- **CCA**: Betonkernactivering.\n- **PI**: Algemene verwarming/koeling.",
                 "data": {
                     "control_mode": "Regelmodus"
@@ -20,7 +20,7 @@
                 }
             },
             "2": {
-                "title": "PI Thermostat - Stap 2 van 4",
+                "title": "PI Thermostat & CCA Control - Stap 2 van 4",
                 "description": "Configureer de **klimaatentiteit** en de **bedrijfsmodus**.",
                 "data": {
                     "climate_entity": "Klimaatentiteit",
@@ -34,7 +34,7 @@
                 }
             },
             "3": {
-                "title": "PI Thermostat - Stap 3 van 4",
+                "title": "PI Thermostat & CCA Control - Stap 3 van 4",
                 "description": "Configureer **temperatuursensoren** en de **doeltemperatuurmodus**.",
                 "data": {
                     "temp_sensor": "Temperatuursensor",
@@ -48,7 +48,7 @@
                 }
             },
             "4": {
-                "title": "PI Thermostat - Stap 4 van 4",
+                "title": "PI Thermostat & CCA Control - Stap 4 van 4",
                 "description": "Configureer de instellingen voor **sensorfout** en **opstarten**.",
                 "data": {
                     "sensor_fault_mode": "Sensorfoutmodus",
@@ -62,7 +62,7 @@
                 }
             },
             "cca_sources": {
-                "title": "PI Thermostat - Stap 2 van 2",
+                "title": "PI Thermostat & CCA Control - Stap 2 van 2",
                 "description": "Configureer de **CCA-gegevensbronnen**.",
                 "data": {
                     "cca_cooling_enable_entity": "Entiteit voor koeling inschakelen",

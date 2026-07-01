@@ -2,7 +2,7 @@
     "config": {
         "step": {
             "user": {
-                "title": "Welcome to PI Thermostat",
+                "title": "Welcome to PI Thermostat & CCA Control",
                 "description": "This integration is installed with default settings.\n\nPlease configure the thermostat settings later by clicking the **gear icon** (configure button) on the integration card.\n\n[Documentation]({docs_url})"
             }
         }
@@ -10,7 +10,7 @@
     "options": {
         "step": {
             "init": {
-                "title": "PI Thermostat - Step 1",
+                "title": "PI Thermostat & CCA Control - Step 1",
                 "description": "Select the type of heating or cooling this instance should control:\n\n- **CCA**: Concrete core activation.\n- **PI**: General-purpose heating/cooling.",
                 "data": {
                     "control_mode": "Controller mode"
@@ -20,7 +20,7 @@
                 }
             },
             "2": {
-                "title": "PI Thermostat - Step 2 of 4",
+                "title": "PI Thermostat & CCA Control - Step 2 of 4",
                 "description": "Configure the **climate entity** and **operating mode**.",
                 "data": {
                     "climate_entity": "Climate entity",
@@ -34,7 +34,7 @@
                 }
             },
             "3": {
-                "title": "PI Thermostat - Step 3 of 4",
+                "title": "PI Thermostat & CCA Control - Step 3 of 4",
                 "description": "Configure **temperature sensors** and **target temperature mode**.",
                 "data": {
                     "temp_sensor": "Temperature sensor",
@@ -48,7 +48,7 @@
                 }
             },
             "4": {
-                "title": "PI Thermostat - Step 4 of 4",
+                "title": "PI Thermostat & CCA Control - Step 4 of 4",
                 "description": "Configure **sensor fault** and **startup** settings.",
                 "data": {
                     "sensor_fault_mode": "Sensor fault mode",
@@ -62,7 +62,7 @@
                 }
             },
             "cca_sources": {
-                "title": "PI Thermostat - Step 2 of 2",
+                "title": "PI Thermostat & CCA Control - Step 2 of 2",
                 "description": "Configure the **CCA data sources**.",
                 "data": {
                     "cca_cooling_enable_entity": "Cooling enable entity",
