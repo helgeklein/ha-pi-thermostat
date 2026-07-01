@@ -6,12 +6,12 @@ description: "A Home Assistant custom integration that implements a PI (proporti
 permalink: /
 ---
 
-# PI Thermostat for Home Assistant
+# PI Thermostat & CCA Control for Home Assistant
 
-[![Test status](https://github.com/helgeklein/ha-pi-thermostat/actions/workflows/test.yml/badge.svg)](https://github.com/helgeklein/ha-pi-thermostat/actions/workflows/test.yml)
-[![Test coverage](https://raw.githubusercontent.com/helgeklein/ha-pi-thermostat/main/.github/badges/coverage.svg)](https://github.com/helgeklein/ha-pi-thermostat/actions/workflows/test.yml)
+[![Test status](https://github.com/helgeklein/ha-pi-thermostat-cca-control/actions/workflows/test.yml/badge.svg)](https://github.com/helgeklein/ha-pi-thermostat-cca-control/actions/workflows/test.yml)
+[![Test coverage](https://raw.githubusercontent.com/helgeklein/ha-pi-thermostat-cca-control/main/.github/badges/coverage.svg)](https://github.com/helgeklein/ha-pi-thermostat-cca-control/actions/workflows/test.yml)
 
-A Home Assistant custom integration that implements a **PI (proportional–integral) controller** for precise temperature regulation. It calculates a heating or cooling output percentage based on the difference between a target temperature and a measured current temperature, and exposes the result as a sensor for use in automations.
+A Home Assistant custom integration that combines a **PI (proportional-integral) controller** with **CCA (concrete core activation) control**. It calculates a heating or cooling output percentage based on the difference between a target temperature and a measured current temperature, and exposes the result as a sensor for use in automations.
 
 ## Features
 

@@ -2,7 +2,7 @@
 
 This module provides a clean abstraction layer over Home Assistant's APIs,
 encapsulating all direct interactions with the HA core system for the
-PI thermostat integration.
+PI Thermostat & CCA Control integration.
 
 All entity state reads and service calls go through this class so that the
 coordinator and other modules remain decoupled from HA implementation details.

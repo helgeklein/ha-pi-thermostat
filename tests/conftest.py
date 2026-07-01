@@ -1,4 +1,4 @@
-"""Root conftest for PI Thermostat tests.
+"""Root conftest for PI Thermostat & CCA Control tests.
 
 Provides common fixtures and enables custom integration discovery
 for tests that need a full Home Assistant instance.

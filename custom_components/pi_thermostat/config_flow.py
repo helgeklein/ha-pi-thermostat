@@ -1,4 +1,4 @@
-"""Config flow and options flow for PI Thermostat integration.
+"""Config flow and options flow for PI Thermostat & CCA Control integration.
 
 The config flow is minimal: it creates an entry with default settings and no
 user-configurable fields. All real configuration happens in the options flow.
@@ -438,7 +438,7 @@ async def _validate_step_cca_sources(
 # FlowHandler
 #
 class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
-    """Config flow for the PI Thermostat integration.
+    """Config flow for the PI Thermostat & CCA Control integration.
 
     The config flow has no user-configurable fields. It creates the config
     entry with all defaults and prompts HA for the instance name.
@@ -495,7 +495,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 # OptionsFlowHandler
 #
 class OptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle post-setup configuration for the PI Thermostat integration.
+    """Handle post-setup configuration for the PI Thermostat & CCA Control integration.
 
     Mode-aware wizard:
         - PI path: mode -> climate -> temperature -> fault/startup

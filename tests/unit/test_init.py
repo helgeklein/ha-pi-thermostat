@@ -36,7 +36,7 @@ def _make_entry(options: dict[str, Any] | None = None) -> Any:
 
     return MockConfigEntry(
         domain=DOMAIN,
-        title="PI Thermostat",
+        title="PI Thermostat & CCA Control",
         data={},
         options=options or _default_options(),
     )

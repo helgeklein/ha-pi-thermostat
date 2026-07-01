@@ -1,4 +1,4 @@
-"""Unified logger for PI Thermostat.
+"""Unified logger for PI Thermostat & CCA Control.
 
 This module provides a Logger-compatible wrapper using child loggers.
 

@@ -2,7 +2,7 @@
     "config": {
         "step": {
             "user": {
-                "title": "欢迎使用 PI Thermostat",
+                "title": "欢迎使用 PI Thermostat & CCA Control",
                 "description": "此集成将使用默认设置进行安装。\n\n请稍后通过集成卡片上的**齿轮图标**（配置按钮）来配置恒温器设置。\n\n[文档]({docs_url})"
             }
         }
@@ -10,7 +10,7 @@
     "options": {
         "step": {
             "init": {
-                "title": "PI Thermostat - 第 1 步",
+                "title": "PI Thermostat & CCA Control - 第 1 步",
                 "description": "选择此实例应控制的加热或制冷类型：\n\n- **CCA**：混凝土芯激活。\n- **PI**：通用加热/制冷。",
                 "data": {
                     "control_mode": "控制器模式"
@@ -20,7 +20,7 @@
                 }
             },
             "2": {
-                "title": "PI Thermostat - 第 2 步，共 4 步",
+                "title": "PI Thermostat & CCA Control - 第 2 步，共 4 步",
                 "description": "配置**climate 实体**和**运行模式**。",
                 "data": {
                     "climate_entity": "climate 实体",
@@ -34,7 +34,7 @@
                 }
             },
             "3": {
-                "title": "PI Thermostat - 第 3 步，共 4 步",
+                "title": "PI Thermostat & CCA Control - 第 3 步，共 4 步",
                 "description": "配置**温度传感器**和**目标温度模式**。",
                 "data": {
                     "temp_sensor": "温度传感器",
@@ -48,7 +48,7 @@
                 }
             },
             "4": {
-                "title": "PI Thermostat - 第 4 步，共 4 步",
+                "title": "PI Thermostat & CCA Control - 第 4 步，共 4 步",
                 "description": "配置**传感器故障**和**启动**设置。",
                 "data": {
                     "sensor_fault_mode": "传感器故障模式",
@@ -62,7 +62,7 @@
                 }
             },
             "cca_sources": {
-                "title": "PI Thermostat - 第 2 步，共 2 步",
+                "title": "PI Thermostat & CCA Control - 第 2 步，共 2 步",
                 "description": "配置**CCA 数据源**。",
                 "data": {
                     "cca_cooling_enable_entity": "制冷启用实体",

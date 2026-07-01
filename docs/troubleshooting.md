@@ -2,13 +2,13 @@
 layout: default
 title: Troubleshooting
 nav_order: 6
-description: "Common issues and solutions for PI Thermostat for Home Assistant."
+description: "Common issues and solutions for PI Thermostat & CCA Control for Home Assistant."
 permalink: /troubleshooting/
 ---
 
 # Troubleshooting Guide
 
-This guide helps resolve issues with the PI Thermostat integration.
+This guide helps resolve issues with the PI Thermostat & CCA Control integration.
 
 ## Monitoring the Integration from the UI
 
@@ -88,5 +88,5 @@ You can find the **Home Assistant Core** log at **Settings** → **Systems** →
 ### Where to Get Help
 
 1. **Documentation:** Review all sections of this documentation.
-1. **GitHub Issues:** [Report a bug](https://github.com/helgeklein/ha-pi-thermostat/issues).
+1. **GitHub Issues:** [Report a bug](https://github.com/helgeklein/ha-pi-thermostat-cca-control/issues).
 1. **Home Assistant Community:** [Join a forum discussion](https://community.home-assistant.io/).

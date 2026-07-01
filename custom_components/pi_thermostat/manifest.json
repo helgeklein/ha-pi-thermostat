@@ -1,14 +1,14 @@
 {
     "domain": "pi_thermostat",
-    "name": "PI Thermostat",
+    "name": "PI Thermostat & CCA Control",
     "codeowners": [
         "@helgeklein"
     ],
     "config_flow": true,
     "dependencies": [],
-    "documentation": "https://github.com/helgeklein/ha-pi-thermostat",
+    "documentation": "https://github.com/helgeklein/ha-pi-thermostat-cca-control",
     "iot_class": "calculated",
-    "issue_tracker": "https://github.com/helgeklein/ha-pi-thermostat/issues",
+    "issue_tracker": "https://github.com/helgeklein/ha-pi-thermostat-cca-control/issues",
     "requirements": [
         "simple-pid==2.0.1"
     ],

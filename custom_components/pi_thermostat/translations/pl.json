@@ -2,7 +2,7 @@
     "config": {
         "step": {
             "user": {
-                "title": "Witamy w PI Thermostat",
+                "title": "Witamy w PI Thermostat & CCA Control",
                 "description": "Ta integracja jest instalowana z ustawieniami domyslnymi.\n\nSkonfiguruj ustawienia termostatu pozniej, klikajac **ikone zebatki** (przycisk konfiguracji) na karcie integracji.\n\n[Dokumentacja]({docs_url})"
             }
         }
@@ -10,7 +10,7 @@
     "options": {
         "step": {
             "init": {
-                "title": "PI Thermostat - Krok 1",
+                "title": "PI Thermostat & CCA Control - Krok 1",
                 "description": "Wybierz typ ogrzewania lub chlodzenia, ktory ma byc sterowany przez te instancje:\n\n- **CCA**: Aktywacja rdzenia betonowego.\n- **PI**: Ogrzewanie/chlodzenie ogolnego przeznaczenia.",
                 "data": {
                     "control_mode": "Tryb sterownika"
@@ -20,7 +20,7 @@
                 }
             },
             "2": {
-                "title": "PI Thermostat - Krok 2 z 4",
+                "title": "PI Thermostat & CCA Control - Krok 2 z 4",
                 "description": "Skonfiguruj **encje climate** i **tryb pracy**.",
                 "data": {
                     "climate_entity": "Encja climate",
@@ -34,7 +34,7 @@
                 }
             },
             "3": {
-                "title": "PI Thermostat - Krok 3 z 4",
+                "title": "PI Thermostat & CCA Control - Krok 3 z 4",
                 "description": "Skonfiguruj **czujniki temperatury** i **tryb temperatury docelowej**.",
                 "data": {
                     "temp_sensor": "Czujnik temperatury",
@@ -48,7 +48,7 @@
                 }
             },
             "4": {
-                "title": "PI Thermostat - Krok 4 z 4",
+                "title": "PI Thermostat & CCA Control - Krok 4 z 4",
                 "description": "Skonfiguruj ustawienia **awarii czujnika** i **uruchamiania**.",
                 "data": {
                     "sensor_fault_mode": "Tryb awarii czujnika",
@@ -62,7 +62,7 @@
                 }
             },
             "cca_sources": {
-                "title": "PI Thermostat - Krok 2 z 2",
+                "title": "PI Thermostat & CCA Control - Krok 2 z 2",
                 "description": "Skonfiguruj **zrodla danych CCA**.",
                 "data": {
                     "cca_cooling_enable_entity": "Encja wlaczenia chlodzenia",

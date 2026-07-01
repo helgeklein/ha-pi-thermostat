@@ -78,7 +78,7 @@ class LogSeverity(Enum):
 # ---------------------------------------------------------------------------
 
 DOMAIN: Final[str] = "pi_thermostat"
-INTEGRATION_NAME: Final[str] = "PI Thermostat"
+INTEGRATION_NAME: Final[str] = "PI Thermostat & CCA Control"
 
 # Home Assistant string literals
 HA_OPTIONS: Final[str] = "options"

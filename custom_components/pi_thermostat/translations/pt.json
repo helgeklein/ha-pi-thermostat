@@ -2,7 +2,7 @@
     "config": {
         "step": {
             "user": {
-                "title": "Bem-vindo ao PI Thermostat",
+                "title": "Bem-vindo ao PI Thermostat & CCA Control",
                 "description": "Esta integracao e instalada com as configuracoes padrao.\n\nConfigure as definicoes do termostato mais tarde clicando no **icone de engrenagem** (botao de configurar) no cartao da integracao.\n\n[Documentacao]({docs_url})"
             }
         }
@@ -10,7 +10,7 @@
     "options": {
         "step": {
             "init": {
-                "title": "PI Thermostat - Passo 1",
+                "title": "PI Thermostat & CCA Control - Passo 1",
                 "description": "Selecione o tipo de aquecimento ou arrefecimento que esta instancia deve controlar:\n\n- **CCA**: Ativacao do nucleo de concreto.\n- **PI**: Aquecimento/arrefecimento de uso geral.",
                 "data": {
                     "control_mode": "Modo do controlador"
@@ -20,7 +20,7 @@
                 }
             },
             "2": {
-                "title": "PI Thermostat - Passo 2 de 4",
+                "title": "PI Thermostat & CCA Control - Passo 2 de 4",
                 "description": "Configure a **entidade climate** e o **modo de funcionamento**.",
                 "data": {
                     "climate_entity": "Entidade climate",
@@ -34,7 +34,7 @@
                 }
             },
             "3": {
-                "title": "PI Thermostat - Passo 3 de 4",
+                "title": "PI Thermostat & CCA Control - Passo 3 de 4",
                 "description": "Configure os **sensores de temperatura** e o **modo de temperatura alvo**.",
                 "data": {
                     "temp_sensor": "Sensor de temperatura",
@@ -48,7 +48,7 @@
                 }
             },
             "4": {
-                "title": "PI Thermostat - Passo 4 de 4",
+                "title": "PI Thermostat & CCA Control - Passo 4 de 4",
                 "description": "Configure as definicoes de **falha do sensor** e **arranque**.",
                 "data": {
                     "sensor_fault_mode": "Modo de falha do sensor",
@@ -62,7 +62,7 @@
                 }
             },
             "cca_sources": {
-                "title": "PI Thermostat - Passo 2 de 2",
+                "title": "PI Thermostat & CCA Control - Passo 2 de 2",
                 "description": "Configure as **fontes de dados CCA**.",
                 "data": {
                     "cca_cooling_enable_entity": "Entidade para ativar arrefecimento",

@@ -2,7 +2,7 @@
     "config": {
         "step": {
             "user": {
-                "title": "Valkommen till PI Thermostat",
+                "title": "Valkommen till PI Thermostat & CCA Control",
                 "description": "Denna integration installeras med standardinstallningar.\n\nKonfigurera termostatinstallningarna senare genom att klicka pa **kugghjulsikonen** (konfigurationsknappen) pa integrationskortet.\n\n[Dokumentation]({docs_url})"
             }
         }
@@ -10,7 +10,7 @@
     "options": {
         "step": {
             "init": {
-                "title": "PI Thermostat - Steg 1",
+                "title": "PI Thermostat & CCA Control - Steg 1",
                 "description": "Valj vilken typ av varme eller kylning som denna instans ska styra:\n\n- **CCA**: Aktivering av betongkarnan.\n- **PI**: Allman varme/kylning.",
                 "data": {
                     "control_mode": "Regulatorlage"
@@ -20,7 +20,7 @@
                 }
             },
             "2": {
-                "title": "PI Thermostat - Steg 2 av 4",
+                "title": "PI Thermostat & CCA Control - Steg 2 av 4",
                 "description": "Konfigurera **climate-entiteten** och **driftlaget**.",
                 "data": {
                     "climate_entity": "Climate-entitet",
@@ -34,7 +34,7 @@
                 }
             },
             "3": {
-                "title": "PI Thermostat - Steg 3 av 4",
+                "title": "PI Thermostat & CCA Control - Steg 3 av 4",
                 "description": "Konfigurera **temperatursensorer** och **maltemperaturlaget**.",
                 "data": {
                     "temp_sensor": "Temperatursensor",
@@ -48,7 +48,7 @@
                 }
             },
             "4": {
-                "title": "PI Thermostat - Steg 4 av 4",
+                "title": "PI Thermostat & CCA Control - Steg 4 av 4",
                 "description": "Konfigurera installningar for **sensorfel** och **uppstart**.",
                 "data": {
                     "sensor_fault_mode": "Sensorfellage",
@@ -62,7 +62,7 @@
                 }
             },
             "cca_sources": {
-                "title": "PI Thermostat - Steg 2 av 2",
+                "title": "PI Thermostat & CCA Control - Steg 2 av 2",
                 "description": "Konfigurera **CCA-datakallor**.",
                 "data": {
                     "cca_cooling_enable_entity": "Entitet for att aktivera kylning",

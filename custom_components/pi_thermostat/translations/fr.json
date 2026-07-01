@@ -2,7 +2,7 @@
     "config": {
         "step": {
             "user": {
-                "title": "Bienvenue dans PI Thermostat",
+                "title": "Bienvenue dans PI Thermostat & CCA Control",
                 "description": "Cette integration est installee avec les parametres par defaut.\n\nVeuillez configurer les parametres du thermostat plus tard en cliquant sur l'**icone d'engrenage** (bouton de configuration) sur la carte de l'integration.\n\n[Documentation]({docs_url})"
             }
         }
@@ -10,7 +10,7 @@
     "options": {
         "step": {
             "init": {
-                "title": "PI Thermostat - Etape 1",
+                "title": "PI Thermostat & CCA Control - Etape 1",
                 "description": "Selectionnez le type de chauffage ou de refroidissement que cette instance doit controler :\n\n- **CCA** : Activation du noyau en beton.\n- **PI** : Chauffage/refroidissement a usage general.",
                 "data": {
                     "control_mode": "Mode du controleur"
@@ -20,7 +20,7 @@
                 }
             },
             "2": {
-                "title": "PI Thermostat - Etape 2 sur 4",
+                "title": "PI Thermostat & CCA Control - Etape 2 sur 4",
                 "description": "Configurez l'**entite climate** et le **mode de fonctionnement**.",
                 "data": {
                     "climate_entity": "Entite climate",
@@ -34,7 +34,7 @@
                 }
             },
             "3": {
-                "title": "PI Thermostat - Etape 3 sur 4",
+                "title": "PI Thermostat & CCA Control - Etape 3 sur 4",
                 "description": "Configurez les **capteurs de temperature** et le **mode de temperature cible**.",
                 "data": {
                     "temp_sensor": "Capteur de temperature",
@@ -48,7 +48,7 @@
                 }
             },
             "4": {
-                "title": "PI Thermostat - Etape 4 sur 4",
+                "title": "PI Thermostat & CCA Control - Etape 4 sur 4",
                 "description": "Configurez les parametres de **defaut du capteur** et de **demarrage**.",
                 "data": {
                     "sensor_fault_mode": "Mode de defaut du capteur",
@@ -62,7 +62,7 @@
                 }
             },
             "cca_sources": {
-                "title": "PI Thermostat - Etape 2 sur 2",
+                "title": "PI Thermostat & CCA Control - Etape 2 sur 2",
                 "description": "Configurez les **sources de donnees CCA**.",
                 "data": {
                     "cca_cooling_enable_entity": "Entite d'activation du refroidissement",
