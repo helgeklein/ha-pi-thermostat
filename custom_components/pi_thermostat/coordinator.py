@@ -6,7 +6,7 @@ Reads temperatures, delegates to the PI controller, and returns
 The ``_async_update_data`` cycle runs on every update interval:
 
  1. Resolve configuration from config entry options.
- 1b. Check the enabled flag — return paused result if off (preserves last state).
+ 1b. Check the enabled flag — CCA shuts down to 0, PI pauses and preserves the last state.
  2. Auto-disable when the climate entity's HVAC mode is "off".
  3. Determine heating / cooling direction (fixed or from climate entity).
  4. Read the current temperature (sensor or climate entity).
@@ -485,9 +485,15 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             self._logger.error("Configuration error: %s", err)
             raise UpdateFailed(f"Configuration error: {err}") from err
 
-        # ── Step 1b: Check enabled flag (pause — preserve last state) ──
+        # ── Step 1b: Check enabled flag ────────────────────────────────
         if not resolved.enabled:
-            self._logger.debug("Controller paused via enabled flag")
+            if resolved.control_mode == ControlMode.CCA:
+                self._logger.debug("CCA controller disabled via enabled flag; forcing output to 0")
+                data = await self._async_update_disabled_cca_data(resolved)
+                self._last_data = data
+                return data
+
+            self._logger.debug("PI controller paused via enabled flag")
             return self._paused_result()
 
         if resolved.control_mode == ControlMode.CCA:
@@ -593,6 +599,31 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             resolved,
             cooling_enabled=cooling_enabled,
             forecasts=forecasts,
+        )
+
+        await self._async_save_cca_state(result.state)
+
+        return CoordinatorData(
+            output=result.output,
+            current_mode=result.current_mode,
+            sensor_available=True,
+            cca_heat_score=result.heat_score,
+            cca_charge_estimate=result.charge_estimate,
+            cca_charge_target=result.charge_target,
+            cca_override_active=result.override_active,
+            cca_status=result.status,
+        )
+
+    #
+    # _async_update_disabled_cca_data
+    #
+    async def _async_update_disabled_cca_data(self, resolved: ResolvedConfig) -> CoordinatorData:
+        """Return the disabled-state CCA payload and persist the inactive state."""
+
+        result = self._cca.compute(
+            resolved,
+            cooling_enabled=False,
+            forecasts=None,
         )
 
         await self._async_save_cca_state(result.state)

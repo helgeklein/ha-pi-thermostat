@@ -111,7 +111,7 @@ async def _setup_cca_integration(
 
     with (
         patch(
-            "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.is_entity_on",
+            "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.get_entity_on_state",
             return_value=True,
         ),
         patch(
@@ -342,6 +342,25 @@ class TestSensorEntities:
 
         assert hass.states.get(_entity_id("sensor", "deviation")) is None
         assert hass.states.get(_entity_id("sensor", "integral_term")) is None
+
+    async def test_disabled_cca_sensors_publish_inactive_state(self, hass: HomeAssistant) -> None:
+        """Disabled CCA instances keep published sensor states defined and inactive."""
+
+        await _setup_cca_integration(hass, _default_cca_options(enabled=False))
+
+        output_state = hass.states.get(_entity_id("sensor", "output"))
+        current_mode_state = hass.states.get(_entity_id("sensor", "current_mode"))
+        override_state = hass.states.get(_entity_id("sensor", "override_active"))
+        status_state = hass.states.get(_entity_id("sensor", "status"))
+
+        assert output_state is not None
+        assert current_mode_state is not None
+        assert override_state is not None
+        assert status_state is not None
+        assert float(output_state.state) == pytest.approx(0.0, abs=0.01)
+        assert current_mode_state.state == "off"
+        assert override_state.state == "off"
+        assert status_state.state == "inactive"
 
 
 # ===========================================================================
@@ -596,6 +615,53 @@ class TestSwitchWrite:
         assert state is not None
         assert state.state == "on"
         assert entry.options["enabled"] is True
+
+    async def test_turn_off_cca_switch_updates_published_sensor_states(self, hass: HomeAssistant) -> None:
+        """Turning off the CCA enabled switch refreshes sensors to the inactive state."""
+
+        entry = await _setup_cca_integration(hass, _default_cca_options(enabled=True))
+
+        initial_output_state = hass.states.get(_entity_id("sensor", "output"))
+        initial_current_mode_state = hass.states.get(_entity_id("sensor", "current_mode"))
+        initial_status_state = hass.states.get(_entity_id("sensor", "status"))
+
+        assert initial_output_state is not None
+        assert initial_current_mode_state is not None
+        assert initial_status_state is not None
+        assert float(initial_output_state.state) > 0.0
+        assert initial_current_mode_state.state == "cooling"
+        assert initial_status_state.state == "active"
+
+        with patch.object(
+            hass.config_entries,
+            "async_reload",
+            new_callable=AsyncMock,
+        ) as mock_reload:
+            await hass.services.async_call(
+                "switch",
+                "turn_off",
+                {"entity_id": _entity_id("switch", "enabled")},
+                blocking=True,
+            )
+
+        output_state = hass.states.get(_entity_id("sensor", "output"))
+        current_mode_state = hass.states.get(_entity_id("sensor", "current_mode"))
+        override_state = hass.states.get(_entity_id("sensor", "override_active"))
+        status_state = hass.states.get(_entity_id("sensor", "status"))
+        switch_state = hass.states.get(_entity_id("switch", "enabled"))
+
+        assert output_state is not None
+        assert current_mode_state is not None
+        assert override_state is not None
+        assert status_state is not None
+        assert switch_state is not None
+        assert float(output_state.state) == pytest.approx(0.0, abs=0.01)
+        assert current_mode_state.state == "off"
+        assert override_state.state == "off"
+        assert status_state.state == "inactive"
+        assert switch_state.state == "off"
+        assert entry.options["enabled"] is False
+        mock_reload.assert_not_awaited()
 
 
 # ===========================================================================

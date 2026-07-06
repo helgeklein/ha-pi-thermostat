@@ -2,8 +2,8 @@
 
 Provides a single writable switch:
 
-- **enabled** — Master on/off. When off, the PI controller is paused and
-  output is 0 %.
+- **enabled** — Master on/off. When off, CCA forces output to 0 % while
+    PI pauses and preserves the previous output.
 """
 
 from __future__ import annotations

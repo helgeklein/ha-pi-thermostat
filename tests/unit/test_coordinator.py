@@ -2,7 +2,7 @@
 
 Tests cover:
 - Normal PI control cycle (heating, cooling, heat_cool).
-- Enabled flag = False → paused result (preserves last state).
+- Enabled flag = False → PI pauses, CCA shuts down to 0.
 - Auto-disable on HVAC off.
 - Sensor faults (shutdown mode, hold mode with grace period).
 - Target temperature modes (internal, external, climate).
@@ -413,6 +413,49 @@ class TestPausedResult:
         data = await coordinator._async_update_data()
 
         assert data.output is None
+
+    async def test_disabled_cca_returns_shutdown_result(self, hass: HomeAssistant) -> None:
+        """Disabling a CCA instance forces a persisted inactive zero-output state."""
+
+        entry = _make_entry(hass, _default_cca_options(enabled=False))
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        data = await coordinator._async_update_data()
+
+        assert data.output == 0.0
+        assert data.current_mode == "off"
+        assert data.cca_status == "inactive"
+        assert data.cca_override_active == "off"
+        assert coordinator._cca.get_state().last_auto_output == 0.0
+
+    async def test_disabled_cca_resets_persisted_auto_output(self, hass: HomeAssistant) -> None:
+        """Disabling after an active cycle clears the stored auto output to zero."""
+
+        entry = _make_entry(hass, _default_cca_options())
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(
+                coordinator._ha,
+                "async_get_daily_forecasts",
+                AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 35.0, "templow": 24.0}]),
+            ),
+        ):
+            first_data = await coordinator._async_update_data()
+
+        assert first_data.output > 0.0
+        assert coordinator._cca.get_state().last_auto_output > 0.0
+
+        with patch.object(coordinator, "_resolve") as mock_resolve:
+            from custom_components.pi_thermostat.config import resolve
+
+            mock_resolve.return_value = resolve(_default_cca_options(enabled=False))
+            disabled_data = await coordinator._async_update_data()
+
+        assert disabled_data.output == 0.0
+        assert disabled_data.cca_status == "inactive"
+        assert coordinator._cca.get_state().last_auto_output == 0.0
 
 
 class TestAutoDisable:
