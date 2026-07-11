@@ -20,7 +20,7 @@ The ``_async_update_data`` cycle runs on every update interval:
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.climate.const import HVACAction, HVACMode
@@ -341,6 +341,69 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         return "heating"
 
     #
+    # _parse_cca_last_update
+    #
+    @staticmethod
+    def _parse_cca_last_update(last_update_iso: str | None) -> datetime | None:
+        """Parse the persisted CCA update timestamp."""
+
+        if not last_update_iso:
+            return None
+
+        try:
+            parsed = datetime.fromisoformat(last_update_iso)
+        except ValueError:
+            return None
+
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=UTC)
+        return parsed.astimezone(UTC)
+
+    #
+    # _is_cca_update_due
+    #
+    def _is_cca_update_due(self, resolved: ResolvedConfig) -> bool:
+        """Return whether the next automatic CCA control step is due."""
+
+        last_update = self._parse_cca_last_update(self._cca.get_state().last_update_iso)
+        if last_update is None:
+            return True
+
+        update_interval = timedelta(hours=resolved.cca_update_interval_hours)
+        return datetime.now(UTC) - last_update >= update_interval
+
+    #
+    # _build_cca_refresh_result
+    #
+    def _build_cca_refresh_result(self, resolved: ResolvedConfig) -> CoordinatorData:
+        """Return the current CCA output without consuming another control step."""
+
+        state = self._cca.get_state()
+        output = state.last_auto_output
+        override_active = "off"
+        status = state.status
+
+        if resolved.cca_manual_override_enabled:
+            output = max(0.0, min(100.0, resolved.cca_manual_output))
+            override_active = "on"
+            status = "manual_override"
+
+        current_mode = "cooling" if output > 0 else "off"
+        heat_score = state.last_heat_score if self._last_data is None else self._last_data.cca_heat_score
+        charge_target = None if self._last_data is None else self._last_data.cca_charge_target
+
+        return CoordinatorData(
+            output=output,
+            current_mode=current_mode,
+            sensor_available=True,
+            cca_heat_score=heat_score,
+            cca_charge_estimate=state.charge_estimate,
+            cca_charge_target=charge_target,
+            cca_override_active=override_active,
+            cca_status=status,
+        )
+
+    #
     # _read_current_temp
     #
     def _read_current_temp(self, resolved: ResolvedConfig) -> float | None:
@@ -587,6 +650,9 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             cooling_signal_on = self._ha.get_entity_on_state(resolved.cca_cooling_enable_entity)
             if cooling_signal_on is not None:
                 cooling_enabled = cooling_signal_on if resolved.cca_cooling_enable_on else not cooling_signal_on
+
+        if cooling_enabled and not self._is_cca_update_due(resolved):
+            return self._build_cca_refresh_result(resolved)
 
         forecasts: list[dict[str, Any]] | None = None
         if cooling_enabled and resolved.cca_weather_entity:
