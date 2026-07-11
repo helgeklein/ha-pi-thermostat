@@ -353,8 +353,8 @@ class TestCCACycle:
         assert second_data.output == first_data.output
         assert second_data.cca_status == "forecast_hold"
 
-    async def test_cca_runtime_refresh_does_not_consume_control_step(self, hass: HomeAssistant) -> None:
-        """Immediate CCA refreshes preserve the last auto output until the interval elapses."""
+    async def test_cca_runtime_refresh_recomputes_immediately(self, hass: HomeAssistant) -> None:
+        """Runtime CCA option changes force an immediate recompute."""
 
         entry = _make_entry(
             hass,
@@ -388,17 +388,23 @@ class TestCCACycle:
 
         with (
             patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
-            patch.object(coordinator._ha, "async_get_daily_forecasts", AsyncMock()) as mock_forecasts,
+            patch.object(
+                coordinator._ha,
+                "async_get_daily_forecasts",
+                AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 35.0, "templow": 24.0}]),
+            ) as mock_forecasts,
         ):
-            second_data = await coordinator._async_update_data()
+            await coordinator.async_request_cca_runtime_recompute()
 
-        assert second_data.output == first_data.output
+        second_data = coordinator._last_data
+
+        assert second_data is not None
         assert second_data.cca_status == "active"
         assert second_data.cca_next_update_in == 360
-        mock_forecasts.assert_not_awaited()
+        mock_forecasts.assert_awaited_once()
 
-    async def test_cca_interval_change_waits_for_next_heartbeat(self, hass: HomeAssistant) -> None:
-        """A runtime interval change updates the countdown immediately but defers recomputation to the next heartbeat."""
+    async def test_cca_interval_change_recomputes_immediately(self, hass: HomeAssistant) -> None:
+        """A runtime interval change recomputes immediately and resets the countdown."""
 
         entry = _make_entry(
             hass,
@@ -426,20 +432,6 @@ class TestCCACycle:
             },
         )
 
-        coordinator._cca_runtime_refresh_only = True
-        try:
-            with (
-                patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
-                patch.object(coordinator._ha, "async_get_daily_forecasts", AsyncMock()) as mock_forecasts,
-            ):
-                refresh_data = await coordinator._async_update_data()
-        finally:
-            coordinator._cca_runtime_refresh_only = False
-
-        assert refresh_data.output == 12.0
-        assert refresh_data.cca_next_update_in == 0
-        mock_forecasts.assert_not_awaited()
-
         with (
             patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
             patch.object(
@@ -448,14 +440,17 @@ class TestCCACycle:
                 AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 35.0, "templow": 24.0}]),
             ) as mock_forecasts,
         ):
-            heartbeat_data = await coordinator._async_update_data()
+            await coordinator.async_request_cca_runtime_recompute()
 
-        assert heartbeat_data.output > 0.0
-        assert heartbeat_data.cca_next_update_in == 240
+        refresh_data = coordinator._last_data
+
+        assert refresh_data is not None
+        assert refresh_data.output > 0.0
+        assert refresh_data.cca_next_update_in == 240
         mock_forecasts.assert_awaited_once()
 
-    async def test_cca_manual_override_applies_immediately_without_advancing_auto_state(self, hass: HomeAssistant) -> None:
-        """Manual override takes effect immediately without consuming an automatic CCA step."""
+    async def test_cca_manual_override_applies_immediately(self, hass: HomeAssistant) -> None:
+        """Manual override takes effect immediately on the forced recompute."""
 
         entry = _make_entry(
             hass,
@@ -490,16 +485,68 @@ class TestCCACycle:
 
         with (
             patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
-            patch.object(coordinator._ha, "async_get_daily_forecasts", AsyncMock()) as mock_forecasts,
+            patch.object(
+                coordinator._ha,
+                "async_get_daily_forecasts",
+                AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 35.0, "templow": 24.0}]),
+            ) as mock_forecasts,
         ):
-            second_data = await coordinator._async_update_data()
+            await coordinator.async_request_cca_runtime_recompute()
 
+        second_data = coordinator._last_data
+
+        assert second_data is not None
         assert second_data.output == 42.0
         assert second_data.cca_override_active == "on"
         assert second_data.cca_status == "manual_override"
         assert second_data.cca_next_update_in == 360
-        assert coordinator.get_cca_state().last_auto_output == first_data.output
-        mock_forecasts.assert_not_awaited()
+        mock_forecasts.assert_awaited_once()
+
+    async def test_cca_reenable_refresh_recomputes_immediately(self, hass: HomeAssistant) -> None:
+        """Re-enabling a CCA instance runs a real control step immediately."""
+
+        entry = _make_entry(
+            hass,
+            _default_cca_options(
+                enabled=False,
+                cca_charge_target_scale=200.0,
+                cca_update_interval_minutes=360,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with patch.object(coordinator._ha, "get_entity_on_state", return_value=False):
+            disabled_data = await coordinator._async_update_data()
+
+        assert disabled_data.output == 0.0
+        assert disabled_data.cca_status == "inactive"
+
+        hass.config_entries.async_update_entry(
+            entry,
+            options={
+                **entry.options,
+                "enabled": True,
+            },
+        )
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(
+                coordinator._ha,
+                "async_get_daily_forecasts",
+                AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 35.0, "templow": 24.0}]),
+            ) as mock_forecasts,
+        ):
+            await coordinator.async_request_cca_runtime_recompute()
+
+        data = coordinator._last_data
+
+        assert data is not None
+        assert data.output > 0.0
+        assert data.current_mode == "cooling"
+        assert data.cca_status == "active"
+        assert data.cca_next_update_in == 360
+        mock_forecasts.assert_awaited_once()
 
     async def test_cca_non_due_refresh_reports_time_until_next_update(self, hass: HomeAssistant) -> None:
         """Non-due CCA heartbeats expose the remaining countdown without fetching forecasts."""
@@ -556,6 +603,29 @@ class TestCCACycle:
         assert data.cca_status == "active"
         assert data.cca_next_update_in == 360
         mock_forecasts.assert_awaited_once()
+
+    async def test_cca_inactive_state_hides_next_update_countdown(self, hass: HomeAssistant) -> None:
+        """Inactive CCA results do not advertise a misleading update countdown."""
+
+        entry = _make_entry(hass, _default_cca_options(cca_update_interval_minutes=360))
+        coordinator = DataUpdateCoordinator(hass, entry)
+        coordinator.restore_cca_state(
+            CCAState(
+                charge_estimate=18.0,
+                last_auto_output=12.0,
+                last_heat_score=45.0,
+                last_update_iso=(datetime.now(UTC) - timedelta(hours=2)).isoformat(),
+                status="active",
+            )
+        )
+
+        with patch.object(coordinator._ha, "get_entity_on_state", return_value=False):
+            data = await coordinator._async_update_data()
+
+        assert data.output == 0.0
+        assert data.current_mode == "off"
+        assert data.cca_status == "inactive"
+        assert data.cca_next_update_in is None
 
     async def test_cca_cycle_persists_state_to_storage(self, hass: HomeAssistant) -> None:
         """CCA mode persists the computed state after each update."""

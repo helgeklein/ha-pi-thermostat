@@ -129,8 +129,8 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         # Last coordinator result — used to preserve state when paused
         self._last_data: CoordinatorData | None = None
 
-        # When set, the next refresh publishes current CCA state without consuming a control step.
-        self._cca_runtime_refresh_only = False
+        # When set, the next refresh bypasses the elapsed-time gate and recomputes CCA immediately.
+        self._cca_force_recompute = False
 
         # Track last-applied tunings to detect changes
         self._last_prop_band: float = resolved.proportional_band
@@ -182,16 +182,16 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         return self._cca.get_state()
 
     #
-    # async_request_cca_runtime_refresh_only
+    # async_request_cca_runtime_recompute
     #
-    async def async_request_cca_runtime_refresh_only(self) -> None:
-        """Refresh published CCA state without consuming an automatic control step."""
+    async def async_request_cca_runtime_recompute(self) -> None:
+        """Apply runtime CCA option changes immediately via one forced recompute."""
 
-        self._cca_runtime_refresh_only = True
+        self._cca_force_recompute = True
         try:
             await self.async_request_refresh()
         finally:
-            self._cca_runtime_refresh_only = False
+            self._cca_force_recompute = False
 
     #
     # async_restore_cca_state
@@ -694,7 +694,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             if cooling_signal_on is not None:
                 cooling_enabled = cooling_signal_on if resolved.cca_cooling_enable_on else not cooling_signal_on
 
-        if cooling_enabled and (self._cca_runtime_refresh_only or not self._is_cca_update_due(resolved)):
+        if cooling_enabled and not self._cca_force_recompute and not self._is_cca_update_due(resolved):
             return self._build_cca_refresh_result(resolved)
 
         forecasts: list[dict[str, Any]] | None = None
@@ -723,7 +723,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             cca_charge_target=result.charge_target,
             cca_override_active=result.override_active,
             cca_status=result.status,
-            cca_next_update_in=self._cca_next_update_in_minutes(resolved),
+            cca_next_update_in=self._cca_next_update_in_minutes(resolved) if cooling_enabled else None,
         )
 
     #
@@ -751,7 +751,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             cca_charge_target=result.charge_target,
             cca_override_active=result.override_active,
             cca_status=result.status,
-            cca_next_update_in=self._cca_next_update_in_minutes(resolved),
+            cca_next_update_in=None,
         )
 
     #

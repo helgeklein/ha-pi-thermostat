@@ -663,6 +663,60 @@ class TestSwitchWrite:
         assert entry.options["enabled"] is False
         mock_reload.assert_not_awaited()
 
+    async def test_turn_on_cca_switch_updates_published_sensor_states(self, hass: HomeAssistant) -> None:
+        """Turning on the CCA enabled switch recomputes and republishes active sensor state."""
+
+        entry = await _setup_cca_integration(hass, _default_cca_options(enabled=False))
+
+        initial_output_state = hass.states.get(_entity_id("sensor", "output"))
+        initial_status_state = hass.states.get(_entity_id("sensor", "status"))
+
+        assert initial_output_state is not None
+        assert initial_status_state is not None
+        assert float(initial_output_state.state) == pytest.approx(0.0, abs=0.01)
+        assert initial_status_state.state == "inactive"
+
+        with patch.object(
+            hass.config_entries,
+            "async_reload",
+            new_callable=AsyncMock,
+        ) as mock_reload:
+            with (
+                patch(
+                    "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.get_entity_on_state",
+                    return_value=True,
+                ),
+                patch(
+                    "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.async_get_daily_forecasts",
+                    AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 31.0, "templow": 21.0}]),
+                ),
+            ):
+                await hass.services.async_call(
+                    "switch",
+                    "turn_on",
+                    {"entity_id": _entity_id("switch", "enabled")},
+                    blocking=True,
+                )
+
+        output_state = hass.states.get(_entity_id("sensor", "output"))
+        current_mode_state = hass.states.get(_entity_id("sensor", "current_mode"))
+        status_state = hass.states.get(_entity_id("sensor", "status"))
+        next_update_state = hass.states.get(_entity_id("sensor", "next_update_in"))
+        switch_state = hass.states.get(_entity_id("switch", "enabled"))
+
+        assert output_state is not None
+        assert current_mode_state is not None
+        assert status_state is not None
+        assert next_update_state is not None
+        assert switch_state is not None
+        assert float(output_state.state) > 0.0
+        assert current_mode_state.state == "cooling"
+        assert status_state.state == "active"
+        assert float(next_update_state.state) == pytest.approx(360.0, abs=0.01)
+        assert switch_state.state == "on"
+        assert entry.options["enabled"] is True
+        mock_reload.assert_not_awaited()
+
 
 # ===========================================================================
 # Number write operations
