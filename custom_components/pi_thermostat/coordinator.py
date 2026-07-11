@@ -418,7 +418,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         """Return the current CCA output without consuming another control step."""
 
         state = self._cca.get_state()
-        output = state.last_auto_output
+        output = max(0.0, min(100.0, state.last_auto_output))
         override_active = "off"
         status = state.status
 
@@ -426,6 +426,12 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             output = max(0.0, min(100.0, resolved.cca_manual_output))
             override_active = "on"
             status = "manual_override"
+        else:
+            if output > 0.0:
+                output = max(resolved.cca_output_min, min(resolved.cca_output_max, output))
+
+            if status == "manual_override":
+                status = "active"
 
         current_mode = "cooling" if output > 0 else "off"
         heat_score = state.last_heat_score if self._last_data is None else self._last_data.cca_heat_score

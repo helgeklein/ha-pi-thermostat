@@ -572,6 +572,58 @@ class TestCCACycle:
         assert second_data.cca_next_update_in == 360
         mock_forecasts.assert_not_awaited()
 
+    async def test_cca_manual_override_disable_refresh_clears_override(self, hass: HomeAssistant) -> None:
+        """Disabling manual override mid-interval clears the cached override state immediately."""
+
+        entry = _make_entry(
+            hass,
+            _default_cca_options(
+                cca_charge_target_scale=200.0,
+                cca_output_step_limit=10.0,
+                cca_update_interval_minutes=360,
+                cca_manual_override_enabled=True,
+                cca_manual_output=42.0,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(
+                coordinator._ha,
+                "async_get_daily_forecasts",
+                AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 35.0, "templow": 24.0}]),
+            ),
+        ):
+            first_data = await coordinator._async_update_data()
+
+        assert first_data.output == pytest.approx(42.0)
+        assert coordinator.get_cca_state().status == "manual_override"
+        assert coordinator.get_cca_state().last_auto_output == pytest.approx(10.0)
+
+        hass.config_entries.async_update_entry(
+            entry,
+            options={
+                **entry.options,
+                "cca_manual_override_enabled": False,
+            },
+        )
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(coordinator._ha, "async_get_daily_forecasts", AsyncMock()) as mock_forecasts,
+        ):
+            await coordinator.async_request_cca_runtime_recompute()
+
+        second_data = coordinator._last_data
+
+        assert second_data is not None
+        assert second_data.output == pytest.approx(10.0)
+        assert second_data.cca_override_active == "off"
+        assert second_data.cca_status == "active"
+        assert second_data.cca_next_update_in == 360
+        mock_forecasts.assert_not_awaited()
+
     async def test_cca_output_max_change_does_not_consume_next_step(self, hass: HomeAssistant) -> None:
         """A runtime output-maximum change must not advance the automatic CCA step."""
 
@@ -616,6 +668,94 @@ class TestCCACycle:
 
         assert second_data is not None
         assert second_data.output == pytest.approx(10.0)
+        assert second_data.cca_next_update_in == 360
+        mock_forecasts.assert_not_awaited()
+
+    async def test_cca_output_max_lower_clamps_immediately(self, hass: HomeAssistant) -> None:
+        """Lowering the output maximum clamps the cached automatic output immediately."""
+
+        entry = _make_entry(
+            hass,
+            _default_cca_options(
+                cca_output_min=0.0,
+                cca_output_max=60.0,
+                cca_update_interval_minutes=360,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+        coordinator.restore_cca_state(
+            CCAState(
+                charge_estimate=18.0,
+                last_auto_output=30.0,
+                last_heat_score=45.0,
+                last_update_iso=datetime.now(UTC).isoformat(),
+                status="active",
+            )
+        )
+
+        hass.config_entries.async_update_entry(
+            entry,
+            options={
+                **entry.options,
+                "cca_output_max": 20.0,
+            },
+        )
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(coordinator._ha, "async_get_daily_forecasts", AsyncMock()) as mock_forecasts,
+        ):
+            await coordinator.async_request_cca_runtime_recompute()
+
+        second_data = coordinator._last_data
+
+        assert second_data is not None
+        assert second_data.output == pytest.approx(20.0)
+        assert second_data.cca_status == "active"
+        assert second_data.cca_next_update_in == 360
+        mock_forecasts.assert_not_awaited()
+
+    async def test_cca_output_min_raise_clamps_immediately(self, hass: HomeAssistant) -> None:
+        """Raising the output minimum clamps the cached automatic output immediately."""
+
+        entry = _make_entry(
+            hass,
+            _default_cca_options(
+                cca_output_min=0.0,
+                cca_output_max=60.0,
+                cca_update_interval_minutes=360,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+        coordinator.restore_cca_state(
+            CCAState(
+                charge_estimate=18.0,
+                last_auto_output=10.0,
+                last_heat_score=45.0,
+                last_update_iso=datetime.now(UTC).isoformat(),
+                status="active",
+            )
+        )
+
+        hass.config_entries.async_update_entry(
+            entry,
+            options={
+                **entry.options,
+                "cca_output_min": 15.0,
+            },
+        )
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(coordinator._ha, "async_get_daily_forecasts", AsyncMock()) as mock_forecasts,
+        ):
+            await coordinator.async_request_cca_runtime_recompute()
+
+        second_data = coordinator._last_data
+
+        assert second_data is not None
+        assert second_data.output == pytest.approx(15.0)
+        assert second_data.cca_status == "active"
         assert second_data.cca_next_update_in == 360
         mock_forecasts.assert_not_awaited()
 
