@@ -7,16 +7,25 @@ string values match expectations for serialization/translation lookups.
 from __future__ import annotations
 
 from custom_components.pi_thermostat.const import (
+    CCA_COORDINATOR_POLL_INTERVAL_SECONDS,
+    CCA_TUNING_MAX,
+    CCA_TUNING_MIN,
+    CCA_TUNING_STEP,
+    CCA_UPDATE_INTERVAL_MAX_MINUTES,
+    CCA_UPDATE_INTERVAL_MIN_MINUTES,
+    CCA_UPDATE_INTERVAL_STEP_MINUTES,
     DEFAULT_CCA_CHARGE_GAIN,
     DEFAULT_CCA_CHARGE_TARGET_SCALE,
     DEFAULT_CCA_DISCHARGE_GAIN,
     DEFAULT_CCA_FORECAST_HORIZON_DAYS,
+    DEFAULT_CCA_FORECAST_RESPONSE_STRENGTH,
     DEFAULT_CCA_HOT_DAY_THRESHOLD,
     DEFAULT_CCA_MANUAL_OUTPUT,
     DEFAULT_CCA_OUTPUT_MAX,
     DEFAULT_CCA_OUTPUT_MIN,
     DEFAULT_CCA_OUTPUT_STEP_LIMIT,
-    DEFAULT_CCA_UPDATE_INTERVAL_HOURS,
+    DEFAULT_CCA_THERMAL_STORAGE_PERSISTENCE,
+    DEFAULT_CCA_UPDATE_INTERVAL_MINUTES,
     DEFAULT_CCA_WARM_NIGHT_THRESHOLD,
     DEFAULT_INT_TIME,
     DEFAULT_ITERM_STARTUP_VALUE,
@@ -28,6 +37,8 @@ from custom_components.pi_thermostat.const import (
     ERROR_HEAT_COOL_REQUIRES_CLIMATE,
     ERROR_NO_TEMP_SOURCE,
     INTEGRATION_NAME,
+    NUMBER_KEY_CCA_FORECAST_RESPONSE_STRENGTH,
+    NUMBER_KEY_CCA_THERMAL_STORAGE_PERSISTENCE,
     NUMBER_KEY_INT_TIME,
     NUMBER_KEY_OUTPUT_MAX,
     NUMBER_KEY_OUTPUT_MIN,
@@ -82,6 +93,7 @@ class TestDefaults:
         """Default update interval is 60 seconds."""
 
         assert UPDATE_INTERVAL_DEFAULT_SECONDS == 60
+        assert CCA_COORDINATOR_POLL_INTERVAL_SECONDS == 60
 
     def test_prop_band(self) -> None:
         """Default proportional band is 4 K."""
@@ -117,12 +129,20 @@ class TestDefaults:
         """CCA defaults match the implementation plan."""
 
         assert DEFAULT_CCA_FORECAST_HORIZON_DAYS == 3
-        assert DEFAULT_CCA_UPDATE_INTERVAL_HOURS == 6
+        assert DEFAULT_CCA_UPDATE_INTERVAL_MINUTES == 360
+        assert CCA_UPDATE_INTERVAL_MIN_MINUTES == 60
+        assert CCA_UPDATE_INTERVAL_MAX_MINUTES == 1440
+        assert CCA_UPDATE_INTERVAL_STEP_MINUTES == 15
         assert DEFAULT_CCA_MANUAL_OUTPUT == 0.0
         assert DEFAULT_CCA_HOT_DAY_THRESHOLD == 26.0
         assert DEFAULT_CCA_WARM_NIGHT_THRESHOLD == 18.0
         assert DEFAULT_CCA_OUTPUT_MIN == 0.0
         assert DEFAULT_CCA_OUTPUT_MAX == 60.0
+        assert DEFAULT_CCA_FORECAST_RESPONSE_STRENGTH == 100.0
+        assert DEFAULT_CCA_THERMAL_STORAGE_PERSISTENCE == 100.0
+        assert CCA_TUNING_MIN == 60.0
+        assert CCA_TUNING_MAX == 140.0
+        assert CCA_TUNING_STEP == 5.0
         assert DEFAULT_CCA_CHARGE_GAIN == 25.0
         assert DEFAULT_CCA_DISCHARGE_GAIN == 20.0
         assert DEFAULT_CCA_OUTPUT_STEP_LIMIT == 10.0
@@ -161,6 +181,8 @@ class TestEntityKeys:
             NUMBER_KEY_OUTPUT_MIN,
             NUMBER_KEY_OUTPUT_MAX,
             NUMBER_KEY_UPDATE_INTERVAL,
+            NUMBER_KEY_CCA_FORECAST_RESPONSE_STRENGTH,
+            NUMBER_KEY_CCA_THERMAL_STORAGE_PERSISTENCE,
         ]
         assert len(keys) == len(set(keys))
 

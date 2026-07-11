@@ -159,13 +159,16 @@
                 "name": "Terme integral"
             },
             "cca_heat_score": {
-                "name": "Score de chaleur"
+                "name": "Objectif de charge (avant mise à l'échelle)"
             },
             "cca_charge_estimate": {
-                "name": "Estimation de charge"
+                "name": "Charge actuelle (est.)"
             },
             "cca_charge_target": {
                 "name": "Objectif de charge"
+            },
+            "cca_next_update_in": {
+                "name": "Prochaine mise à jour dans"
             },
             "cca_override_active": {
                 "name": "Override actif",
@@ -203,10 +206,13 @@
                 "name": "Sortie maximale"
             },
             "update_interval": {
-                "name": "Intervalle de mise a jour"
+                "name": "Intervalle de mise à jour"
             },
             "cca_manual_output": {
                 "name": "Sortie manuelle"
+            },
+            "cca_update_interval_minutes": {
+                "name": "Intervalle de mise à jour automatique"
             },
             "cca_hot_day_threshold": {
                 "name": "Seuil de jour chaud"
@@ -220,11 +226,11 @@
             "cca_output_max": {
                 "name": "Sortie maximale"
             },
-            "cca_charge_gain": {
-                "name": "Gain de charge"
+            "cca_forecast_response_strength": {
+                "name": "Intensité de réponse aux prévisions"
             },
-            "cca_discharge_gain": {
-                "name": "Gain de decharge"
+            "cca_thermal_storage_persistence": {
+                "name": "Persistance du stockage thermique"
             },
             "cca_output_step_limit": {
                 "name": "Limite de pas de sortie"

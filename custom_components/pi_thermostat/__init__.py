@@ -22,16 +22,20 @@ from .const import (
     NUMBER_KEY_CCA_CHARGE_GAIN,
     NUMBER_KEY_CCA_CHARGE_TARGET_SCALE,
     NUMBER_KEY_CCA_DISCHARGE_GAIN,
+    NUMBER_KEY_CCA_FORECAST_RESPONSE_STRENGTH,
     NUMBER_KEY_CCA_HOT_DAY_THRESHOLD,
     NUMBER_KEY_CCA_MANUAL_OUTPUT,
     NUMBER_KEY_CCA_OUTPUT_MAX,
     NUMBER_KEY_CCA_OUTPUT_MIN,
     NUMBER_KEY_CCA_OUTPUT_STEP_LIMIT,
+    NUMBER_KEY_CCA_THERMAL_STORAGE_PERSISTENCE,
+    NUMBER_KEY_CCA_UPDATE_INTERVAL,
     NUMBER_KEY_CCA_WARM_NIGHT_THRESHOLD,
     NUMBER_KEY_TARGET_TEMP,
     SENSOR_KEY_CCA_CHARGE_ESTIMATE,
     SENSOR_KEY_CCA_CHARGE_TARGET,
     SENSOR_KEY_CCA_HEAT_SCORE,
+    SENSOR_KEY_CCA_NEXT_UPDATE_IN,
     SENSOR_KEY_CCA_OVERRIDE_ACTIVE,
     SENSOR_KEY_CCA_STATE_STORE,
     SENSOR_KEY_CCA_STATUS,
@@ -149,12 +153,15 @@ def _remove_stale_conditional_entities(
     if resolved.control_mode == ControlMode.PI:
         stale_entities: list[tuple[Platform, str]] = [
             (Platform.NUMBER, NUMBER_KEY_CCA_MANUAL_OUTPUT),
+            (Platform.NUMBER, NUMBER_KEY_CCA_UPDATE_INTERVAL),
             (Platform.NUMBER, NUMBER_KEY_CCA_HOT_DAY_THRESHOLD),
             (Platform.NUMBER, NUMBER_KEY_CCA_WARM_NIGHT_THRESHOLD),
             (Platform.NUMBER, NUMBER_KEY_CCA_OUTPUT_MIN),
             (Platform.NUMBER, NUMBER_KEY_CCA_OUTPUT_MAX),
             (Platform.NUMBER, NUMBER_KEY_CCA_CHARGE_GAIN),
             (Platform.NUMBER, NUMBER_KEY_CCA_DISCHARGE_GAIN),
+            (Platform.NUMBER, NUMBER_KEY_CCA_FORECAST_RESPONSE_STRENGTH),
+            (Platform.NUMBER, NUMBER_KEY_CCA_THERMAL_STORAGE_PERSISTENCE),
             (Platform.NUMBER, NUMBER_KEY_CCA_OUTPUT_STEP_LIMIT),
             (Platform.NUMBER, NUMBER_KEY_CCA_CHARGE_TARGET_SCALE),
             (Platform.SENSOR, SENSOR_KEY_CCA_HEAT_SCORE),
@@ -162,6 +169,7 @@ def _remove_stale_conditional_entities(
             (Platform.SENSOR, SENSOR_KEY_CCA_CHARGE_TARGET),
             (Platform.SENSOR, SENSOR_KEY_CCA_OVERRIDE_ACTIVE),
             (Platform.SENSOR, SENSOR_KEY_CCA_STATUS),
+            (Platform.SENSOR, SENSOR_KEY_CCA_NEXT_UPDATE_IN),
             (Platform.SENSOR, SENSOR_KEY_CCA_STATE_STORE),
             (Platform.SWITCH, SWITCH_KEY_CCA_MANUAL_OVERRIDE_ENABLED),
         ]
@@ -179,6 +187,8 @@ def _remove_stale_conditional_entities(
             (Platform.SENSOR, SENSOR_KEY_P_TERM),
             (Platform.SENSOR, SENSOR_KEY_I_TERM),
             (Platform.SENSOR, SENSOR_KEY_CCA_STATE_STORE),
+            (Platform.NUMBER, NUMBER_KEY_CCA_CHARGE_GAIN),
+            (Platform.NUMBER, NUMBER_KEY_CCA_DISCHARGE_GAIN),
         ]
 
     if resolved.control_mode == ControlMode.PI:
@@ -273,8 +283,12 @@ async def async_reload_entry(
             coordinator._merged_config = new_config
             entry.runtime_data.config = new_config
 
-            # Trigger a coordinator refresh to apply the changes
-            await coordinator.async_request_refresh()
+            # Trigger a coordinator refresh to apply the changes. In CCA mode,
+            # runtime changes must not consume the next scheduled control step.
+            if resolve_entry(entry).control_mode == ControlMode.CCA:
+                await coordinator.async_request_cca_runtime_recompute()
+            else:
+                await coordinator.async_request_refresh()
             return
 
     # For all other changes (structural, new keys, etc.), do a full reload

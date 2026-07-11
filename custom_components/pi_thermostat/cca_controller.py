@@ -48,6 +48,16 @@ class CCAControllerStrategy:
 
         return max(lower, min(upper, value))
 
+    @classmethod
+    def compute_charge_target(cls, heat_score: float, resolved: ResolvedConfig) -> float:
+        """Map a normalized heat score to a normalized charge target."""
+
+        return cls._clip(
+            heat_score * (resolved.cca_charge_target_scale / 100.0),
+            0.0,
+            100.0,
+        )
+
     @staticmethod
     def _parse_forecast_date(value: Any) -> date | None:
         """Parse a forecast date or datetime value."""
@@ -162,11 +172,12 @@ class CCAControllerStrategy:
         now_iso = datetime.now(UTC).isoformat()
 
         if not cooling_enabled:
+            charge_target = self.compute_charge_target(self._state.last_heat_score, resolved)
             state = CCAState(
                 charge_estimate=self._state.charge_estimate,
                 last_auto_output=0.0,
                 last_heat_score=self._state.last_heat_score,
-                last_update_iso=now_iso,
+                last_update_iso=self._state.last_update_iso,
                 status="inactive",
             )
             self._state = state
@@ -174,7 +185,7 @@ class CCAControllerStrategy:
                 output=0.0,
                 current_mode="off",
                 heat_score=self._state.last_heat_score,
-                charge_target=None,
+                charge_target=charge_target,
                 charge_estimate=state.charge_estimate,
                 override_active="off",
                 status=state.status,
@@ -182,6 +193,7 @@ class CCAControllerStrategy:
             )
 
         if forecasts is None:
+            charge_target = self.compute_charge_target(self._state.last_heat_score, resolved)
             if resolved.cca_forecast_unavailable_mode == "hold":
                 output = self._state.last_auto_output
                 status = "forecast_hold"
@@ -201,7 +213,7 @@ class CCAControllerStrategy:
                 output=output,
                 current_mode="cooling" if output > 0 else "off",
                 heat_score=self._state.last_heat_score,
-                charge_target=None,
+                charge_target=charge_target,
                 charge_estimate=state.charge_estimate,
                 override_active="off",
                 status=status,
@@ -217,11 +229,7 @@ class CCAControllerStrategy:
             return self.compute(resolved, cooling_enabled=cooling_enabled, forecasts=None)
 
         heat_score = self._compute_heat_score(valid_forecasts, resolved)
-        charge_target = self._clip(
-            heat_score * (resolved.cca_charge_target_scale / 100.0),
-            0.0,
-            100.0,
-        )
+        charge_target = self.compute_charge_target(heat_score, resolved)
         charge_estimate = self._clip(
             self._state.charge_estimate
             + resolved.cca_charge_gain * (self._state.last_auto_output / 100.0)

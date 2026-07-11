@@ -21,7 +21,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import EntityCategory, UnitOfTemperature
+from homeassistant.const import EntityCategory, UnitOfTemperature, UnitOfTime
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .config import resolve_entry
@@ -29,6 +29,7 @@ from .const import (
     SENSOR_KEY_CCA_CHARGE_ESTIMATE,
     SENSOR_KEY_CCA_CHARGE_TARGET,
     SENSOR_KEY_CCA_HEAT_SCORE,
+    SENSOR_KEY_CCA_NEXT_UPDATE_IN,
     SENSOR_KEY_CCA_OVERRIDE_ACTIVE,
     SENSOR_KEY_CCA_STATUS,
     SENSOR_KEY_CURRENT_MODE,
@@ -167,6 +168,16 @@ SENSOR_CCA_STATUS = SensorEntityDescription(
     entity_category=EntityCategory.DIAGNOSTIC,
 )
 
+SENSOR_CCA_NEXT_UPDATE_IN = SensorEntityDescription(
+    key=SENSOR_KEY_CCA_NEXT_UPDATE_IN,
+    translation_key=SENSOR_KEY_CCA_NEXT_UPDATE_IN,
+    device_class=SensorDeviceClass.DURATION,
+    native_unit_of_measurement=UnitOfTime.MINUTES,
+    entity_category=EntityCategory.DIAGNOSTIC,
+    state_class=SensorStateClass.MEASUREMENT,
+    suggested_display_precision=0,
+)
+
 
 # ---------------------------------------------------------------------------
 # Platform setup
@@ -211,6 +222,7 @@ async def async_setup_entry(
                 IntegrationSensor(coordinator, SENSOR_CCA_CHARGE_TARGET),
                 IntegrationSensor(coordinator, SENSOR_CCA_OVERRIDE_ACTIVE),
                 IntegrationSensor(coordinator, SENSOR_CCA_STATUS),
+                IntegrationSensor(coordinator, SENSOR_CCA_NEXT_UPDATE_IN),
             ]
         )
 
