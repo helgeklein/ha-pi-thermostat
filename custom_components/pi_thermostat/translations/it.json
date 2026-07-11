@@ -159,10 +159,10 @@
                 "name": "Termine integrale"
             },
             "cca_heat_score": {
-                "name": "Punteggio di calore"
+                "name": "Obiettivo di carica (prima della scalatura)"
             },
             "cca_charge_estimate": {
-                "name": "Stima della carica"
+                "name": "Carica attuale (stimata)"
             },
             "cca_charge_target": {
                 "name": "Obiettivo di carica"

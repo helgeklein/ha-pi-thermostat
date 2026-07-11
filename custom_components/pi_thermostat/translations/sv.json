@@ -159,10 +159,10 @@
                 "name": "Integrerande term"
             },
             "cca_heat_score": {
-                "name": "Varmepoang"
+                "name": "Laddningsmål (före skalning)"
             },
             "cca_charge_estimate": {
-                "name": "Laddningsuppskattning"
+                "name": "Nuvarande laddning (uppsk.)"
             },
             "cca_charge_target": {
                 "name": "Laddningsmal"

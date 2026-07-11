@@ -159,10 +159,10 @@
                 "name": "积分项"
             },
             "cca_heat_score": {
-                "name": "热量评分"
+                "name": "充能目标（缩放前）"
             },
             "cca_charge_estimate": {
-                "name": "充能估算"
+                "name": "当前充能（估算）"
             },
             "cca_charge_target": {
                 "name": "充能目标"

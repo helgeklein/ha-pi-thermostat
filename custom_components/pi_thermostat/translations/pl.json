@@ -159,10 +159,10 @@
                 "name": "Skladnik calkujacy"
             },
             "cca_heat_score": {
-                "name": "Wskaznik ciepla"
+                "name": "Cel ładowania (przed skalowaniem)"
             },
             "cca_charge_estimate": {
-                "name": "Szacowanie ladowania"
+                "name": "Bieżące naładowanie (szac.)"
             },
             "cca_charge_target": {
                 "name": "Cel ladowania"

@@ -159,10 +159,10 @@
                 "name": "Integral term"
             },
             "cca_heat_score": {
-                "name": "Heat score"
+                "name": "Charge target (before scaling)"
             },
             "cca_charge_estimate": {
-                "name": "Charge estimate"
+                "name": "Current charge (est.)"
             },
             "cca_charge_target": {
                 "name": "Charge target"

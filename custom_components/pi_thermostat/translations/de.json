@@ -159,10 +159,10 @@
                 "name": "Integralanteil"
             },
             "cca_heat_score": {
-                "name": "Heizwert"
+                "name": "Ladeziel (vor Skalierung)"
             },
             "cca_charge_estimate": {
-                "name": "Ladeschätzung"
+                "name": "Aktuelle Ladung (geschätzt)"
             },
             "cca_charge_target": {
                 "name": "Ladeziel"

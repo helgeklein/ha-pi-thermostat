@@ -159,10 +159,10 @@
                 "name": "Integrale term"
             },
             "cca_heat_score": {
-                "name": "Warmtescore"
+                "name": "Laaddoel (voor schaling)"
             },
             "cca_charge_estimate": {
-                "name": "Laadschatting"
+                "name": "Huidige lading (schatting)"
             },
             "cca_charge_target": {
                 "name": "Laaddoel"

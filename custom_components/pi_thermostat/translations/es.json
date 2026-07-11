@@ -159,10 +159,10 @@
                 "name": "Termino integral"
             },
             "cca_heat_score": {
-                "name": "Puntuacion de calor"
+                "name": "Objetivo de carga (antes del escalado)"
             },
             "cca_charge_estimate": {
-                "name": "Estimacion de carga"
+                "name": "Carga actual (est.)"
             },
             "cca_charge_target": {
                 "name": "Objetivo de carga"

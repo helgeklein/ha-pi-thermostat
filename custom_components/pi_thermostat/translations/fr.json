@@ -159,10 +159,10 @@
                 "name": "Terme integral"
             },
             "cca_heat_score": {
-                "name": "Score de chaleur"
+                "name": "Objectif de charge (avant mise à l'échelle)"
             },
             "cca_charge_estimate": {
-                "name": "Estimation de charge"
+                "name": "Charge actuelle (est.)"
             },
             "cca_charge_target": {
                 "name": "Objectif de charge"
