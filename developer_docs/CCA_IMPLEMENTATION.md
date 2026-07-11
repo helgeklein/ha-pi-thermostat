@@ -55,12 +55,25 @@ Changing these settings causes a full integration reload.
 - `cca_warm_night_threshold`
 - `cca_output_min`
 - `cca_output_max`
-- `cca_charge_gain`
-- `cca_discharge_gain`
+- `cca_forecast_response_strength`
+- `cca_thermal_storage_persistence`
 - `cca_output_step_limit`
 - `cca_charge_target_scale`
 
 These settings are exposed through entities and persist via config entry options. Changing them triggers a coordinator refresh instead of a full reload.
+
+The two CCA tuning controls are exposed as sliders:
+
+- `cca_forecast_response_strength`
+  - range `60..140`
+  - step `5`
+  - default `100`
+- `cca_thermal_storage_persistence`
+  - range `60..140`
+  - step `5`
+  - default `100`
+
+`100` means baseline behavior. Lower values reduce that behavior; higher values increase it.
 
 ## Options Flow
 
@@ -111,8 +124,8 @@ CCA mode exposes the following entities.
 - `number.cca_warm_night_threshold`
 - `number.cca_output_min`
 - `number.cca_output_max`
-- `number.cca_charge_gain`
-- `number.cca_discharge_gain`
+- `number.cca_forecast_response_strength`
+- `number.cca_thermal_storage_persistence`
 - `number.cca_output_step_limit`
 - `number.cca_charge_target_scale`
 
@@ -243,6 +256,27 @@ The final `heat_score` is the mean of all valid daily scores.
 
 `charge_target = clip(heat_score * (cca_charge_target_scale / 100), 0, 100)`
 
+### High-level tuning controls
+
+The UI exposes two higher-level sliders:
+
+- `cca_forecast_response_strength`
+- `cca_thermal_storage_persistence`
+
+These sliders are resolved into internal gains during config resolution.
+
+Let:
+
+- `response_scale = cca_forecast_response_strength / 100`
+- `persistence_scale = cca_thermal_storage_persistence / 100`
+
+Then the internal gains are derived as:
+
+- `cca_charge_gain = clip(25 / persistence_scale, 10, 40)`
+- `cca_discharge_gain = clip(20 * response_scale / persistence_scale, 8, 40)`
+
+This preserves the previous baseline at `100 / 100`, which yields the historical defaults `cca_charge_gain = 25` and `cca_discharge_gain = 20`.
+
 ### Charge estimate
 
 `charge_estimate` advances each automatic update as:
@@ -310,6 +344,7 @@ PI mode uses a different persistence model:
 - CCA persistence is internal coordinator storage only; there is no dedicated hidden CCA restore entity
 - forecast-unavailable behavior supports only `hold` and `shutdown`
 - the CCA controller is based on daily highs and lows only; it does not use hourly forecasts or per-day weighting beyond the unweighted average
+- the UI exposes higher-level slider controls, but the controller still runs on derived internal gains rather than directly on physical time constants or energy units
 
 ## Testing Coverage
 
