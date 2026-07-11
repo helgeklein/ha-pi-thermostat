@@ -278,8 +278,7 @@ async def async_reload_entry(
             entry.runtime_data.config = new_config
 
             # Trigger a coordinator refresh to apply the changes. In CCA mode,
-            # runtime changes force one immediate recompute so the new setting
-            # takes effect right away.
+            # runtime changes must not consume the next scheduled control step.
             if resolve_entry(entry).control_mode == ControlMode.CCA:
                 await coordinator.async_request_cca_runtime_recompute()
             else:

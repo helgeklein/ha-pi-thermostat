@@ -775,3 +775,63 @@ class TestNumberWrite:
         assert state is not None
         assert float(state.state) == pytest.approx(8.0, abs=0.01)
         assert entry.options["proportional_band"] == pytest.approx(8.0, abs=0.01)
+
+    async def test_set_cca_output_step_limit_does_not_advance_output(self, hass: HomeAssistant) -> None:
+        """Changing the CCA step limit in the UI must not consume the next scheduled step."""
+
+        entry = await _setup_cca_integration(
+            hass,
+            _default_cca_options(
+                cca_charge_target_scale=200.0,
+                cca_output_step_limit=10.0,
+                cca_output_max=60.0,
+                cca_update_interval_minutes=360,
+            ),
+        )
+
+        initial_output_state = hass.states.get(_entity_id("sensor", "output"))
+        initial_next_update_state = hass.states.get(_entity_id("sensor", "next_update_in"))
+
+        assert initial_output_state is not None
+        assert initial_next_update_state is not None
+        assert float(initial_output_state.state) == pytest.approx(10.0, abs=0.01)
+        assert float(initial_next_update_state.state) == pytest.approx(360.0, abs=0.01)
+
+        with patch.object(
+            hass.config_entries,
+            "async_reload",
+            new_callable=AsyncMock,
+        ) as mock_reload:
+            with (
+                patch(
+                    "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.get_entity_on_state",
+                    return_value=True,
+                ),
+                patch(
+                    "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.async_get_daily_forecasts",
+                    AsyncMock(),
+                ) as mock_forecasts,
+            ):
+                await hass.services.async_call(
+                    "number",
+                    "set_value",
+                    {
+                        "entity_id": _entity_id("number", "output_step_limit"),
+                        "value": 20.0,
+                    },
+                    blocking=True,
+                )
+
+        output_state = hass.states.get(_entity_id("sensor", "output"))
+        next_update_state = hass.states.get(_entity_id("sensor", "next_update_in"))
+        step_limit_state = hass.states.get(_entity_id("number", "output_step_limit"))
+
+        assert output_state is not None
+        assert next_update_state is not None
+        assert step_limit_state is not None
+        assert float(output_state.state) == pytest.approx(10.0, abs=0.01)
+        assert float(next_update_state.state) == pytest.approx(360.0, abs=0.01)
+        assert float(step_limit_state.state) == pytest.approx(20.0, abs=0.01)
+        assert entry.options["cca_output_step_limit"] == pytest.approx(20.0, abs=0.01)
+        mock_forecasts.assert_not_awaited()
+        mock_reload.assert_not_awaited()

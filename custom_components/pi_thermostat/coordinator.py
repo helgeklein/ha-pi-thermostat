@@ -129,9 +129,6 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         # Last coordinator result — used to preserve state when paused
         self._last_data: CoordinatorData | None = None
 
-        # When set, the next refresh bypasses the elapsed-time gate and recomputes CCA immediately.
-        self._cca_force_recompute = False
-
         # One-cycle startup grace for a restored active CCA state while the cooling gate is unreadable.
         self._cca_restore_gate_grace = False
 
@@ -189,13 +186,9 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
     # async_request_cca_runtime_recompute
     #
     async def async_request_cca_runtime_recompute(self) -> None:
-        """Apply runtime CCA option changes immediately via one forced recompute."""
+        """Apply runtime CCA option changes without consuming another scheduled CCA step."""
 
-        self._cca_force_recompute = True
-        try:
-            await self.async_request_refresh()
-        finally:
-            self._cca_force_recompute = False
+        await self.async_request_refresh()
 
     #
     # async_restore_cca_state
@@ -721,12 +714,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             elif self._consume_cca_restore_gate_grace():
                 return self._build_cca_refresh_result(resolved)
 
-        if (
-            cooling_enabled
-            and not self._cca_force_recompute
-            and not self._should_recompute_cca_on_gate_enable()
-            and not self._is_cca_update_due(resolved)
-        ):
+        if cooling_enabled and not self._should_recompute_cca_on_gate_enable() and not self._is_cca_update_due(resolved):
             return self._build_cca_refresh_result(resolved)
 
         forecasts: list[dict[str, Any]] | None = None

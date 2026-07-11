@@ -422,8 +422,8 @@ class TestCCACycle:
         assert second_data.output == first_data.output
         assert second_data.cca_status == "forecast_hold"
 
-    async def test_cca_runtime_refresh_recomputes_immediately(self, hass: HomeAssistant) -> None:
-        """Runtime CCA option changes force an immediate recompute."""
+    async def test_cca_runtime_refresh_preserves_current_step(self, hass: HomeAssistant) -> None:
+        """A runtime CCA tuning change refreshes state without consuming the next step."""
 
         entry = _make_entry(
             hass,
@@ -468,12 +468,13 @@ class TestCCACycle:
         second_data = coordinator._last_data
 
         assert second_data is not None
+        assert second_data.output == pytest.approx(10.0)
         assert second_data.cca_status == "active"
         assert second_data.cca_next_update_in == 360
-        mock_forecasts.assert_awaited_once()
+        mock_forecasts.assert_not_awaited()
 
-    async def test_cca_interval_change_recomputes_immediately(self, hass: HomeAssistant) -> None:
-        """A runtime interval change recomputes immediately and resets the countdown."""
+    async def test_cca_interval_change_recomputes_when_now_due(self, hass: HomeAssistant) -> None:
+        """A shorter runtime interval recomputes immediately once the elapsed time is due."""
 
         entry = _make_entry(
             hass,
@@ -519,7 +520,7 @@ class TestCCACycle:
         mock_forecasts.assert_awaited_once()
 
     async def test_cca_manual_override_applies_immediately(self, hass: HomeAssistant) -> None:
-        """Manual override takes effect immediately on the forced recompute."""
+        """Manual override takes effect immediately without consuming a scheduled step."""
 
         entry = _make_entry(
             hass,
@@ -569,7 +570,54 @@ class TestCCACycle:
         assert second_data.cca_override_active == "on"
         assert second_data.cca_status == "manual_override"
         assert second_data.cca_next_update_in == 360
-        mock_forecasts.assert_awaited_once()
+        mock_forecasts.assert_not_awaited()
+
+    async def test_cca_output_max_change_does_not_consume_next_step(self, hass: HomeAssistant) -> None:
+        """A runtime output-maximum change must not advance the automatic CCA step."""
+
+        entry = _make_entry(
+            hass,
+            _default_cca_options(
+                cca_charge_target_scale=200.0,
+                cca_output_step_limit=10.0,
+                cca_output_max=60.0,
+                cca_update_interval_minutes=360,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(
+                coordinator._ha,
+                "async_get_daily_forecasts",
+                AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 35.0, "templow": 24.0}]),
+            ),
+        ):
+            first_data = await coordinator._async_update_data()
+
+        assert first_data.output == pytest.approx(10.0)
+
+        hass.config_entries.async_update_entry(
+            entry,
+            options={
+                **entry.options,
+                "cca_output_max": 80.0,
+            },
+        )
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(coordinator._ha, "async_get_daily_forecasts", AsyncMock()) as mock_forecasts,
+        ):
+            await coordinator.async_request_cca_runtime_recompute()
+
+        second_data = coordinator._last_data
+
+        assert second_data is not None
+        assert second_data.output == pytest.approx(10.0)
+        assert second_data.cca_next_update_in == 360
+        mock_forecasts.assert_not_awaited()
 
     async def test_cca_reenable_refresh_recomputes_immediately(self, hass: HomeAssistant) -> None:
         """Re-enabling a CCA instance runs a real control step immediately."""
