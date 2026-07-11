@@ -279,6 +279,75 @@ class TestCCACycle:
         assert data.current_mode == "off"
         assert data.cca_status == "inactive"
 
+    async def test_cca_unreadable_gate_preserves_restored_active_state(self, hass: HomeAssistant) -> None:
+        """A transiently unreadable cooling gate preserves the restored active CCA state once."""
+
+        entry = _make_entry(hass, _default_cca_options(cca_update_interval_minutes=360))
+        coordinator = DataUpdateCoordinator(hass, entry)
+        coordinator.restore_cca_state(
+            CCAState(
+                charge_estimate=18.0,
+                last_auto_output=12.0,
+                last_heat_score=45.0,
+                last_update_iso=(datetime.now(UTC) - timedelta(hours=2)).isoformat(),
+                status="active",
+            )
+        )
+
+        with patch.object(coordinator._ha, "get_entity_on_state", return_value=None):
+            data = await coordinator._async_update_data()
+
+        assert data.output == 12.0
+        assert data.current_mode == "cooling"
+        assert data.cca_status == "active"
+        assert data.cca_next_update_in == 240
+
+        with patch.object(coordinator._ha, "get_entity_on_state", return_value=None):
+            second_data = await coordinator._async_update_data()
+
+        assert second_data.output == 0.0
+        assert second_data.current_mode == "off"
+        assert second_data.cca_status == "inactive"
+        assert second_data.cca_next_update_in is None
+
+    async def test_cca_gate_recovery_recomputes_immediately(self, hass: HomeAssistant) -> None:
+        """When the cooling gate becomes readable/on again, CCA recovers immediately without waiting for the interval."""
+
+        entry = _make_entry(hass, _default_cca_options(cca_update_interval_minutes=360))
+        coordinator = DataUpdateCoordinator(hass, entry)
+        coordinator.restore_cca_state(
+            CCAState(
+                charge_estimate=18.0,
+                last_auto_output=12.0,
+                last_heat_score=45.0,
+                last_update_iso=(datetime.now(UTC) - timedelta(hours=2)).isoformat(),
+                status="active",
+            )
+        )
+
+        with patch.object(coordinator._ha, "get_entity_on_state", return_value=False):
+            first_data = await coordinator._async_update_data()
+
+        assert first_data.output == 0.0
+        assert first_data.current_mode == "off"
+        assert first_data.cca_status == "inactive"
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(
+                coordinator._ha,
+                "async_get_daily_forecasts",
+                AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 35.0, "templow": 24.0}]),
+            ) as mock_forecasts,
+        ):
+            second_data = await coordinator._async_update_data()
+
+        assert second_data.output > 0.0
+        assert second_data.current_mode == "cooling"
+        assert second_data.cca_status == "active"
+        assert second_data.cca_next_update_in == 360
+        mock_forecasts.assert_awaited_once()
+
     async def test_cca_manual_override_replaces_auto_output(self, hass: HomeAssistant) -> None:
         """CCA manual override replaces the automatic output value."""
 

@@ -132,6 +132,9 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         # When set, the next refresh bypasses the elapsed-time gate and recomputes CCA immediately.
         self._cca_force_recompute = False
 
+        # One-cycle startup grace for a restored active CCA state while the cooling gate is unreadable.
+        self._cca_restore_gate_grace = False
+
         # Track last-applied tunings to detect changes
         self._last_prop_band: float = resolved.proportional_band
         self._last_int_time: float = resolved.integral_time
@@ -171,6 +174,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         """Restore the CCA controller state after restart."""
 
         self._cca.restore_state(state)
+        self._cca_restore_gate_grace = state.last_auto_output > 0.0 and state.status != "inactive"
         self._logger.info("Restored CCA state: charge=%s status=%s", state.charge_estimate, state.status)
 
     #
@@ -447,6 +451,26 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         )
 
     #
+    # _should_preserve_unreadable_cca_gate_state
+    #
+    def _consume_cca_restore_gate_grace(self) -> bool:
+        """Consume the one-cycle startup grace for a restored active CCA state."""
+
+        if not self._cca_restore_gate_grace:
+            return False
+
+        self._cca_restore_gate_grace = False
+        return True
+
+    #
+    # _should_recompute_cca_on_gate_enable
+    #
+    def _should_recompute_cca_on_gate_enable(self) -> bool:
+        """Return whether a readable enabled gate should force immediate recovery from inactivity."""
+
+        return self._cca.get_state().status == "inactive"
+
+    #
     # _read_current_temp
     #
     def _read_current_temp(self, resolved: ResolvedConfig) -> float | None:
@@ -692,9 +716,17 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         if resolved.cca_cooling_enable_entity:
             cooling_signal_on = self._ha.get_entity_on_state(resolved.cca_cooling_enable_entity)
             if cooling_signal_on is not None:
+                self._cca_restore_gate_grace = False
                 cooling_enabled = cooling_signal_on if resolved.cca_cooling_enable_on else not cooling_signal_on
+            elif self._consume_cca_restore_gate_grace():
+                return self._build_cca_refresh_result(resolved)
 
-        if cooling_enabled and not self._cca_force_recompute and not self._is_cca_update_due(resolved):
+        if (
+            cooling_enabled
+            and not self._cca_force_recompute
+            and not self._should_recompute_cca_on_gate_enable()
+            and not self._is_cca_update_due(resolved)
+        ):
             return self._build_cca_refresh_result(resolved)
 
         forecasts: list[dict[str, Any]] | None = None
