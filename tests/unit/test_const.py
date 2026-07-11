@@ -7,6 +7,7 @@ string values match expectations for serialization/translation lookups.
 from __future__ import annotations
 
 from custom_components.pi_thermostat.const import (
+    CCA_COORDINATOR_POLL_INTERVAL_SECONDS,
     DEFAULT_CCA_CHARGE_GAIN,
     DEFAULT_CCA_CHARGE_TARGET_SCALE,
     DEFAULT_CCA_DISCHARGE_GAIN,
@@ -82,6 +83,7 @@ class TestDefaults:
         """Default update interval is 60 seconds."""
 
         assert UPDATE_INTERVAL_DEFAULT_SECONDS == 60
+        assert CCA_COORDINATOR_POLL_INTERVAL_SECONDS == 60
 
     def test_prop_band(self) -> None:
         """Default proportional band is 4 K."""

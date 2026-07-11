@@ -167,6 +167,9 @@
             "cca_charge_target": {
                 "name": "Charge target"
             },
+            "cca_next_update_in": {
+                "name": "Next update in"
+            },
             "cca_override_active": {
                 "name": "Override active",
                 "state": {

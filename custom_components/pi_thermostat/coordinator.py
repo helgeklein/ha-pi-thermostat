@@ -21,6 +21,7 @@ The ``_async_update_data`` cycle runs on every update interval:
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from math import ceil
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.climate.const import HVACAction, HVACMode
@@ -35,6 +36,7 @@ from homeassistant.helpers.update_coordinator import (
 from .cca_controller import CCAControllerStrategy, CCAState
 from .config import ResolvedConfig, resolve_entry
 from .const import (
+    CCA_COORDINATOR_POLL_INTERVAL_SECONDS,
     CCA_STATE_STORAGE_KEY_PREFIX,
     CCA_STATE_STORAGE_VERSION,
     DOMAIN,
@@ -243,8 +245,17 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         """Return the coordinator interval for the selected control mode."""
 
         if resolved.control_mode == ControlMode.CCA:
-            return max(1, resolved.cca_update_interval_hours * 3600)
+            return CCA_COORDINATOR_POLL_INTERVAL_SECONDS
         return resolved.update_interval
+
+    #
+    # _cca_update_interval
+    #
+    @staticmethod
+    def _cca_update_interval(resolved: ResolvedConfig) -> timedelta:
+        """Return the configured elapsed time between automatic CCA control steps."""
+
+        return timedelta(hours=resolved.cca_update_interval_hours)
 
     #
     # _paused_result
@@ -369,8 +380,24 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         if last_update is None:
             return True
 
-        update_interval = timedelta(hours=resolved.cca_update_interval_hours)
+        update_interval = self._cca_update_interval(resolved)
         return datetime.now(UTC) - last_update >= update_interval
+
+    #
+    # _cca_next_update_in_minutes
+    #
+    def _cca_next_update_in_minutes(self, resolved: ResolvedConfig) -> int:
+        """Return the remaining minutes until the next automatic CCA control step."""
+
+        last_update = self._parse_cca_last_update(self._cca.get_state().last_update_iso)
+        if last_update is None:
+            return 0
+
+        remaining = self._cca_update_interval(resolved) - (datetime.now(UTC) - last_update)
+        if remaining <= timedelta(0):
+            return 0
+
+        return ceil(remaining.total_seconds() / 60.0)
 
     #
     # _build_cca_refresh_result
@@ -401,6 +428,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             cca_charge_target=charge_target,
             cca_override_active=override_active,
             cca_status=status,
+            cca_next_update_in=self._cca_next_update_in_minutes(resolved),
         )
 
     #
@@ -661,13 +689,15 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             except Exception as err:
                 self._logger.warning("CCA forecast retrieval failed: %s", err)
 
+        previous_state = self._cca.get_state()
         result = self._cca.compute(
             resolved,
             cooling_enabled=cooling_enabled,
             forecasts=forecasts,
         )
 
-        await self._async_save_cca_state(result.state)
+        if result.state != previous_state:
+            await self._async_save_cca_state(result.state)
 
         return CoordinatorData(
             output=result.output,
@@ -678,6 +708,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             cca_charge_target=result.charge_target,
             cca_override_active=result.override_active,
             cca_status=result.status,
+            cca_next_update_in=self._cca_next_update_in_minutes(resolved),
         )
 
     #
@@ -686,13 +717,15 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
     async def _async_update_disabled_cca_data(self, resolved: ResolvedConfig) -> CoordinatorData:
         """Return the disabled-state CCA payload and persist the inactive state."""
 
+        previous_state = self._cca.get_state()
         result = self._cca.compute(
             resolved,
             cooling_enabled=False,
             forecasts=None,
         )
 
-        await self._async_save_cca_state(result.state)
+        if result.state != previous_state:
+            await self._async_save_cca_state(result.state)
 
         return CoordinatorData(
             output=result.output,
@@ -703,6 +736,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             cca_charge_target=result.charge_target,
             cca_override_active=result.override_active,
             cca_status=result.status,
+            cca_next_update_in=self._cca_next_update_in_minutes(resolved),
         )
 
     #

@@ -88,6 +88,7 @@ HA_OPTIONS: Final[str] = "options"
 # ---------------------------------------------------------------------------
 
 UPDATE_INTERVAL_DEFAULT_SECONDS: Final[int] = 60
+CCA_COORDINATOR_POLL_INTERVAL_SECONDS: Final[int] = 60
 
 # ---------------------------------------------------------------------------
 # PI controller defaults (HVAC-standard units)
@@ -165,6 +166,7 @@ SENSOR_KEY_CCA_CHARGE_ESTIMATE: Final[str] = "cca_charge_estimate"
 SENSOR_KEY_CCA_CHARGE_TARGET: Final[str] = "cca_charge_target"
 SENSOR_KEY_CCA_OVERRIDE_ACTIVE: Final[str] = "cca_override_active"
 SENSOR_KEY_CCA_STATUS: Final[str] = "cca_status"
+SENSOR_KEY_CCA_NEXT_UPDATE_IN: Final[str] = "cca_next_update_in"
 SENSOR_KEY_CCA_STATE_STORE: Final[str] = "cca_state_store"
 
 # ---------------------------------------------------------------------------

@@ -130,6 +130,31 @@ class TestCompute:
         assert result.current_mode == "off"
         assert result.state.last_auto_output == 0.0
 
+    def test_disabled_cooling_preserves_last_update_timestamp(self) -> None:
+        """Inactive CCA refreshes do not consume another automatic control step."""
+
+        controller = CCAControllerStrategy()
+        controller.restore_state(
+            CCAState(
+                charge_estimate=30.0,
+                last_auto_output=12.0,
+                last_heat_score=35.0,
+                last_update_iso="2026-07-01T00:00:00+00:00",
+                status="active",
+            )
+        )
+
+        result = controller.compute(
+            _resolved(),
+            cooling_enabled=False,
+            forecasts=None,
+        )
+
+        assert result.output == 0.0
+        assert result.status == "inactive"
+        assert result.state.last_auto_output == 0.0
+        assert result.state.last_update_iso == "2026-07-01T00:00:00+00:00"
+
     def test_valid_forecast_updates_charge_and_respects_step_limit(self) -> None:
         """Valid forecasts produce a bounded automatic output and updated state."""
 

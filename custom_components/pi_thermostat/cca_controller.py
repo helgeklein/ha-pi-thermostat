@@ -166,7 +166,7 @@ class CCAControllerStrategy:
                 charge_estimate=self._state.charge_estimate,
                 last_auto_output=0.0,
                 last_heat_score=self._state.last_heat_score,
-                last_update_iso=now_iso,
+                last_update_iso=self._state.last_update_iso,
                 status="inactive",
             )
             self._state = state
