@@ -29,17 +29,20 @@ from homeassistant.const import EntityCategory, UnitOfTemperature, UnitOfTime
 
 from .config import ConfKeys, resolve_entry
 from .const import (
+    CCA_TUNING_MAX,
+    CCA_TUNING_MIN,
+    CCA_TUNING_STEP,
     CCA_UPDATE_INTERVAL_MAX_MINUTES,
     CCA_UPDATE_INTERVAL_MIN_MINUTES,
     CCA_UPDATE_INTERVAL_STEP_MINUTES,
-    NUMBER_KEY_CCA_CHARGE_GAIN,
     NUMBER_KEY_CCA_CHARGE_TARGET_SCALE,
-    NUMBER_KEY_CCA_DISCHARGE_GAIN,
+    NUMBER_KEY_CCA_FORECAST_RESPONSE_STRENGTH,
     NUMBER_KEY_CCA_HOT_DAY_THRESHOLD,
     NUMBER_KEY_CCA_MANUAL_OUTPUT,
     NUMBER_KEY_CCA_OUTPUT_MAX,
     NUMBER_KEY_CCA_OUTPUT_MIN,
     NUMBER_KEY_CCA_OUTPUT_STEP_LIMIT,
+    NUMBER_KEY_CCA_THERMAL_STORAGE_PERSISTENCE,
     NUMBER_KEY_CCA_UPDATE_INTERVAL,
     NUMBER_KEY_CCA_WARM_NIGHT_THRESHOLD,
     NUMBER_KEY_INT_TIME,
@@ -206,25 +209,25 @@ NUMBER_CCA_OUTPUT_MAX = NumberEntityDescription(
     native_unit_of_measurement="%",
 )
 
-NUMBER_CCA_CHARGE_GAIN = NumberEntityDescription(
-    key=NUMBER_KEY_CCA_CHARGE_GAIN,
-    translation_key=NUMBER_KEY_CCA_CHARGE_GAIN,
+NUMBER_CCA_FORECAST_RESPONSE_STRENGTH = NumberEntityDescription(
+    key=NUMBER_KEY_CCA_FORECAST_RESPONSE_STRENGTH,
+    translation_key=NUMBER_KEY_CCA_FORECAST_RESPONSE_STRENGTH,
     entity_category=EntityCategory.CONFIG,
-    native_min_value=0.0,
-    native_max_value=100.0,
-    native_step=1.0,
-    mode=NumberMode.BOX,
+    native_min_value=CCA_TUNING_MIN,
+    native_max_value=CCA_TUNING_MAX,
+    native_step=CCA_TUNING_STEP,
+    mode=NumberMode.SLIDER,
     native_unit_of_measurement="%",
 )
 
-NUMBER_CCA_DISCHARGE_GAIN = NumberEntityDescription(
-    key=NUMBER_KEY_CCA_DISCHARGE_GAIN,
-    translation_key=NUMBER_KEY_CCA_DISCHARGE_GAIN,
+NUMBER_CCA_THERMAL_STORAGE_PERSISTENCE = NumberEntityDescription(
+    key=NUMBER_KEY_CCA_THERMAL_STORAGE_PERSISTENCE,
+    translation_key=NUMBER_KEY_CCA_THERMAL_STORAGE_PERSISTENCE,
     entity_category=EntityCategory.CONFIG,
-    native_min_value=0.0,
-    native_max_value=100.0,
-    native_step=1.0,
-    mode=NumberMode.BOX,
+    native_min_value=CCA_TUNING_MIN,
+    native_max_value=CCA_TUNING_MAX,
+    native_step=CCA_TUNING_STEP,
+    mode=NumberMode.SLIDER,
     native_unit_of_measurement="%",
 )
 
@@ -272,8 +275,8 @@ _NUMBERS_CCA: list[tuple[NumberEntityDescription, ConfKeys]] = [
     (NUMBER_CCA_WARM_NIGHT_THRESHOLD, ConfKeys.CCA_WARM_NIGHT_THRESHOLD),
     (NUMBER_CCA_OUTPUT_MIN, ConfKeys.CCA_OUTPUT_MIN),
     (NUMBER_CCA_OUTPUT_MAX, ConfKeys.CCA_OUTPUT_MAX),
-    (NUMBER_CCA_CHARGE_GAIN, ConfKeys.CCA_CHARGE_GAIN),
-    (NUMBER_CCA_DISCHARGE_GAIN, ConfKeys.CCA_DISCHARGE_GAIN),
+    (NUMBER_CCA_FORECAST_RESPONSE_STRENGTH, ConfKeys.CCA_FORECAST_RESPONSE_STRENGTH),
+    (NUMBER_CCA_THERMAL_STORAGE_PERSISTENCE, ConfKeys.CCA_THERMAL_STORAGE_PERSISTENCE),
     (NUMBER_CCA_OUTPUT_STEP_LIMIT, ConfKeys.CCA_OUTPUT_STEP_LIMIT),
     (NUMBER_CCA_CHARGE_TARGET_SCALE, ConfKeys.CCA_CHARGE_TARGET_SCALE),
 ]

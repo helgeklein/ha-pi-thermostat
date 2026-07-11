@@ -12,16 +12,20 @@ from enum import StrEnum
 from typing import Any, Callable, Generic, Mapping, TypeVar
 
 from custom_components.pi_thermostat.const import (
+    CCA_TUNING_MAX,
+    CCA_TUNING_MIN,
     DEFAULT_CCA_CHARGE_GAIN,
     DEFAULT_CCA_CHARGE_TARGET_SCALE,
     DEFAULT_CCA_COOLING_ENABLE_ON,
     DEFAULT_CCA_DISCHARGE_GAIN,
     DEFAULT_CCA_FORECAST_HORIZON_DAYS,
+    DEFAULT_CCA_FORECAST_RESPONSE_STRENGTH,
     DEFAULT_CCA_HOT_DAY_THRESHOLD,
     DEFAULT_CCA_MANUAL_OUTPUT,
     DEFAULT_CCA_OUTPUT_MAX,
     DEFAULT_CCA_OUTPUT_MIN,
     DEFAULT_CCA_OUTPUT_STEP_LIMIT,
+    DEFAULT_CCA_THERMAL_STORAGE_PERSISTENCE,
     DEFAULT_CCA_UPDATE_INTERVAL_MINUTES,
     DEFAULT_CCA_WARM_NIGHT_THRESHOLD,
     DEFAULT_INT_TIME,
@@ -104,8 +108,8 @@ class ConfKeys(StrEnum):
     CCA_WARM_NIGHT_THRESHOLD = "cca_warm_night_threshold"
     CCA_OUTPUT_MIN = "cca_output_min"
     CCA_OUTPUT_MAX = "cca_output_max"
-    CCA_CHARGE_GAIN = "cca_charge_gain"
-    CCA_DISCHARGE_GAIN = "cca_discharge_gain"
+    CCA_FORECAST_RESPONSE_STRENGTH = "cca_forecast_response_strength"
+    CCA_THERMAL_STORAGE_PERSISTENCE = "cca_thermal_storage_persistence"
     CCA_OUTPUT_STEP_LIMIT = "cca_output_step_limit"
     CCA_CHARGE_TARGET_SCALE = "cca_charge_target_scale"
 
@@ -142,6 +146,15 @@ class _Converters:
         """Convert to float."""
 
         return float(v)
+
+    @staticmethod
+    def to_cca_tuning_value(v: Any) -> float:
+        """Validate a CCA tuning slider value."""
+
+        value = float(v)
+        if value < CCA_TUNING_MIN or value > CCA_TUNING_MAX:
+            raise ValueError(f"CCA tuning value out of range: {v}")
+        return value
 
     @staticmethod
     def to_str(v: Any) -> str:
@@ -293,14 +306,14 @@ CONF_SPECS: dict[ConfKeys, _ConfSpec[Any]] = {
         converter=_Converters.to_float,
         runtime_configurable=True,
     ),
-    ConfKeys.CCA_CHARGE_GAIN: _ConfSpec(
-        default=DEFAULT_CCA_CHARGE_GAIN,
-        converter=_Converters.to_float,
+    ConfKeys.CCA_FORECAST_RESPONSE_STRENGTH: _ConfSpec(
+        default=DEFAULT_CCA_FORECAST_RESPONSE_STRENGTH,
+        converter=_Converters.to_cca_tuning_value,
         runtime_configurable=True,
     ),
-    ConfKeys.CCA_DISCHARGE_GAIN: _ConfSpec(
-        default=DEFAULT_CCA_DISCHARGE_GAIN,
-        converter=_Converters.to_float,
+    ConfKeys.CCA_THERMAL_STORAGE_PERSISTENCE: _ConfSpec(
+        default=DEFAULT_CCA_THERMAL_STORAGE_PERSISTENCE,
+        converter=_Converters.to_cca_tuning_value,
         runtime_configurable=True,
     ),
     ConfKeys.CCA_OUTPUT_STEP_LIMIT: _ConfSpec(
@@ -381,6 +394,8 @@ class ResolvedConfig:
     cca_warm_night_threshold: float
     cca_output_min: float
     cca_output_max: float
+    cca_forecast_response_strength: float
+    cca_thermal_storage_persistence: float
     cca_charge_gain: float
     cca_discharge_gain: float
     cca_output_step_limit: float
@@ -430,6 +445,14 @@ def resolve(options: Mapping[str, Any] | None) -> ResolvedConfig:
 
     # Build kwargs dynamically by iterating over ConfKeys, applying coercion
     converted: dict[str, Any] = {k.value: _val(k) for k in ConfKeys}
+
+    response_scale = converted[ConfKeys.CCA_FORECAST_RESPONSE_STRENGTH.value] / 100.0
+    persistence_scale = converted[ConfKeys.CCA_THERMAL_STORAGE_PERSISTENCE.value] / 100.0
+    converted["cca_charge_gain"] = max(10.0, min(40.0, DEFAULT_CCA_CHARGE_GAIN / persistence_scale))
+    converted["cca_discharge_gain"] = max(
+        8.0,
+        min(40.0, DEFAULT_CCA_DISCHARGE_GAIN * response_scale / persistence_scale),
+    )
 
     # Filter strictly to ResolvedConfig fields and fail clearly if anything is missing
     field_names = {f.name for f in fields(ResolvedConfig)}

@@ -410,7 +410,10 @@ class TestNumberEntities:
     async def test_cca_numbers_created(self, hass: HomeAssistant) -> None:
         """CCA mode creates the runtime tuning number entities."""
 
+        from homeassistant.helpers import entity_registry as er
+
         await _setup_cca_integration(hass)
+        entity_registry = er.async_get(hass)
 
         expected_entity_ids = [
             _entity_id("number", "manual_output"),
@@ -418,16 +421,18 @@ class TestNumberEntities:
             _entity_id("number", "warm_night_threshold"),
             _entity_id("number", "output_minimum"),
             _entity_id("number", "output_maximum"),
-            _entity_id("number", "charge_gain"),
-            _entity_id("number", "discharge_gain"),
+            _entity_id("number", "forecast_response_strength"),
+            _entity_id("number", "thermal_storage_persistence"),
             _entity_id("number", "output_step_limit"),
             _entity_id("number", "charge_target_scale"),
         ]
 
         for entity_id in expected_entity_ids:
-            assert hass.states.get(entity_id) is not None, f"{entity_id} not found"
+            assert entity_registry.async_get(entity_id) is not None, f"{entity_id} not found"
 
         assert hass.states.get(_entity_id("number", "proportional_band")) is None
+        assert entity_registry.async_get(_entity_id("number", "charge_gain")) is None
+        assert entity_registry.async_get(_entity_id("number", "discharge_gain")) is None
 
 
 # ===========================================================================

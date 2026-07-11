@@ -165,8 +165,8 @@ class TestCompute:
             _resolved(
                 cca_hot_day_threshold=26.0,
                 cca_warm_night_threshold=18.0,
-                cca_charge_gain=20.0,
-                cca_discharge_gain=10.0,
+                cca_forecast_response_strength=62.5,
+                cca_thermal_storage_persistence=125.0,
                 cca_charge_target_scale=100.0,
                 cca_output_step_limit=4.0,
                 cca_output_max=60.0,
