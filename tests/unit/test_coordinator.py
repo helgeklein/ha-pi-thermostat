@@ -622,6 +622,7 @@ class TestCCACycle:
         assert second_data.cca_override_active == "off"
         assert second_data.cca_status == "active"
         assert second_data.cca_next_update_in == 360
+        assert coordinator.get_cca_state().status == "active"
         mock_forecasts.assert_not_awaited()
 
     async def test_cca_output_max_change_does_not_consume_next_step(self, hass: HomeAssistant) -> None:
@@ -713,6 +714,7 @@ class TestCCACycle:
         assert second_data.output == pytest.approx(20.0)
         assert second_data.cca_status == "active"
         assert second_data.cca_next_update_in == 360
+        assert coordinator.get_cca_state().last_auto_output == pytest.approx(20.0)
         mock_forecasts.assert_not_awaited()
 
     async def test_cca_output_min_raise_clamps_immediately(self, hass: HomeAssistant) -> None:
@@ -757,6 +759,7 @@ class TestCCACycle:
         assert second_data.output == pytest.approx(15.0)
         assert second_data.cca_status == "active"
         assert second_data.cca_next_update_in == 360
+        assert coordinator.get_cca_state().last_auto_output == pytest.approx(15.0)
         mock_forecasts.assert_not_awaited()
 
     async def test_cca_reenable_refresh_recomputes_immediately(self, hass: HomeAssistant) -> None:

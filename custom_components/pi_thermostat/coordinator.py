@@ -20,6 +20,7 @@ The ``_async_update_data`` cycle runs on every update interval:
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from math import ceil
 from typing import TYPE_CHECKING, Any
@@ -417,21 +418,14 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
     def _build_cca_refresh_result(self, resolved: ResolvedConfig) -> CoordinatorData:
         """Return the current CCA output without consuming another control step."""
 
-        state = self._cca.get_state()
-        output = max(0.0, min(100.0, state.last_auto_output))
+        state = self._normalized_cca_refresh_state(resolved)
+        output = state.last_auto_output
         override_active = "off"
         status = state.status
 
         if resolved.cca_manual_override_enabled:
             output = max(0.0, min(100.0, resolved.cca_manual_output))
             override_active = "on"
-            status = "manual_override"
-        else:
-            if output > 0.0:
-                output = max(resolved.cca_output_min, min(resolved.cca_output_max, output))
-
-            if status == "manual_override":
-                status = "active"
 
         current_mode = "cooling" if output > 0 else "off"
         heat_score = state.last_heat_score if self._last_data is None else self._last_data.cca_heat_score
@@ -448,6 +442,45 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             cca_status=status,
             cca_next_update_in=self._cca_next_update_in_minutes(resolved),
         )
+
+    #
+    # _normalized_cca_refresh_state
+    #
+    def _normalized_cca_refresh_state(self, resolved: ResolvedConfig) -> CCAState:
+        """Return the cached CCA state normalized for immediate runtime setting changes."""
+
+        state = self._cca.get_state()
+        last_auto_output = max(0.0, min(100.0, state.last_auto_output))
+        status = state.status
+
+        if resolved.cca_manual_override_enabled:
+            status = "manual_override"
+        else:
+            if last_auto_output > 0.0:
+                last_auto_output = max(resolved.cca_output_min, min(resolved.cca_output_max, last_auto_output))
+
+            if status == "manual_override":
+                status = "active"
+
+        return replace(
+            state,
+            last_auto_output=last_auto_output,
+            status=status,
+        )
+
+    #
+    # _async_apply_cca_refresh_state
+    #
+    async def _async_apply_cca_refresh_state(self, resolved: ResolvedConfig) -> None:
+        """Persist any cached CCA state normalization caused by a runtime refresh."""
+
+        previous_state = self._cca.get_state()
+        normalized_state = self._normalized_cca_refresh_state(resolved)
+        if normalized_state == previous_state:
+            return
+
+        self._cca.restore_state(normalized_state)
+        await self._async_save_cca_state(normalized_state)
 
     #
     # _should_preserve_unreadable_cca_gate_state
@@ -718,9 +751,11 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
                 self._cca_restore_gate_grace = False
                 cooling_enabled = cooling_signal_on if resolved.cca_cooling_enable_on else not cooling_signal_on
             elif self._consume_cca_restore_gate_grace():
+                await self._async_apply_cca_refresh_state(resolved)
                 return self._build_cca_refresh_result(resolved)
 
         if cooling_enabled and not self._should_recompute_cca_on_gate_enable() and not self._is_cca_update_due(resolved):
+            await self._async_apply_cca_refresh_state(resolved)
             return self._build_cca_refresh_result(resolved)
 
         forecasts: list[dict[str, Any]] | None = None
