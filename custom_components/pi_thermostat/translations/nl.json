@@ -205,12 +205,6 @@
             "output_max": {
                 "name": "Maximum uitgang"
             },
-            "cca_forecast_response_strength": {
-                "name": "Reactiesterkte op voorspelling"
-            },
-            "cca_thermal_storage_persistence": {
-                "name": "Persistentie van warmteopslag"
-            },
             "cca_update_interval_minutes": {
                 "name": "Automatisch update-interval"
             },

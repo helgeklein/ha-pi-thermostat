@@ -205,12 +205,6 @@
             "output_max": {
                 "name": "Sortie maximale"
             },
-            "cca_forecast_response_strength": {
-                "name": "Intensité de réponse aux prévisions"
-            },
-            "cca_thermal_storage_persistence": {
-                "name": "Persistance du stockage thermique"
-            },
             "cca_update_interval_minutes": {
                 "name": "Intervalle de mise à jour automatique"
             },

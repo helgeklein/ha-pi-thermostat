@@ -205,12 +205,6 @@
             "output_max": {
                 "name": "Hogsta utgang"
             },
-            "cca_forecast_response_strength": {
-                "name": "Prognosens responsstyrka"
-            },
-            "cca_thermal_storage_persistence": {
-                "name": "Värmelagringens persistens"
-            },
             "cca_update_interval_minutes": {
                 "name": "Automatiskt uppdateringsintervall"
             },
