@@ -167,6 +167,9 @@
             "cca_charge_target": {
                 "name": "Laddningsmal"
             },
+            "cca_next_update_in": {
+                "name": "Nästa uppdatering om"
+            },
             "cca_override_active": {
                 "name": "Aidosattning aktiv",
                 "state": {
@@ -207,6 +210,9 @@
             },
             "cca_manual_output": {
                 "name": "Manuell utgang"
+            },
+            "cca_update_interval_minutes": {
+                "name": "Automatiskt uppdateringsintervall"
             },
             "cca_hot_day_threshold": {
                 "name": "Troskel for varm dag"

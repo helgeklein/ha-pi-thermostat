@@ -167,6 +167,9 @@
             "cca_charge_target": {
                 "name": "Objectif de charge"
             },
+            "cca_next_update_in": {
+                "name": "Prochaine mise à jour dans"
+            },
             "cca_override_active": {
                 "name": "Override actif",
                 "state": {
@@ -207,6 +210,9 @@
             },
             "cca_manual_output": {
                 "name": "Sortie manuelle"
+            },
+            "cca_update_interval_minutes": {
+                "name": "Intervalle de mise à jour automatique"
             },
             "cca_hot_day_threshold": {
                 "name": "Seuil de jour chaud"

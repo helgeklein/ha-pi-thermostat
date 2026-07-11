@@ -167,6 +167,9 @@
             "cca_charge_target": {
                 "name": "充能目标"
             },
+            "cca_next_update_in": {
+                "name": "距离下次更新"
+            },
             "cca_override_active": {
                 "name": "覆盖已激活",
                 "state": {
@@ -207,6 +210,9 @@
             },
             "cca_manual_output": {
                 "name": "手动输出"
+            },
+            "cca_update_interval_minutes": {
+                "name": "自动更新间隔"
             },
             "cca_hot_day_threshold": {
                 "name": "炎热白天阈值"

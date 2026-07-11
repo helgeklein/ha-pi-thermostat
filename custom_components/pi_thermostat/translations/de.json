@@ -167,6 +167,9 @@
             "cca_charge_target": {
                 "name": "Ladeziel"
             },
+            "cca_next_update_in": {
+                "name": "Nächstes Update in"
+            },
             "cca_override_active": {
                 "name": "Überschreibung aktiv",
                 "state": {
@@ -207,6 +210,9 @@
             },
             "cca_manual_output": {
                 "name": "Manuelle Ausgabe"
+            },
+            "cca_update_interval_minutes": {
+                "name": "Automatisches Aktualisierungsintervall"
             },
             "cca_hot_day_threshold": {
                 "name": "Schwellwert für heiße Tage"

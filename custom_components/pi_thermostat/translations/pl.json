@@ -167,6 +167,9 @@
             "cca_charge_target": {
                 "name": "Cel ladowania"
             },
+            "cca_next_update_in": {
+                "name": "Następna aktualizacja za"
+            },
             "cca_override_active": {
                 "name": "Nadpisanie aktywne",
                 "state": {
@@ -207,6 +210,9 @@
             },
             "cca_manual_output": {
                 "name": "Wyjscie reczne"
+            },
+            "cca_update_interval_minutes": {
+                "name": "Interwał automatycznej aktualizacji"
             },
             "cca_hot_day_threshold": {
                 "name": "Prog goracego dnia"

@@ -167,6 +167,9 @@
             "cca_charge_target": {
                 "name": "Objetivo de carga"
             },
+            "cca_next_update_in": {
+                "name": "Próxima actualización en"
+            },
             "cca_override_active": {
                 "name": "Anulacion activa",
                 "state": {
@@ -207,6 +210,9 @@
             },
             "cca_manual_output": {
                 "name": "Salida manual"
+            },
+            "cca_update_interval_minutes": {
+                "name": "Intervalo de actualización automática"
             },
             "cca_hot_day_threshold": {
                 "name": "Umbral de dia caluroso"

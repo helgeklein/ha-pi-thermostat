@@ -167,6 +167,9 @@
             "cca_charge_target": {
                 "name": "Laaddoel"
             },
+            "cca_next_update_in": {
+                "name": "Volgende update over"
+            },
             "cca_override_active": {
                 "name": "Override actief",
                 "state": {
@@ -207,6 +210,9 @@
             },
             "cca_manual_output": {
                 "name": "Handmatige uitgang"
+            },
+            "cca_update_interval_minutes": {
+                "name": "Automatisch update-interval"
             },
             "cca_hot_day_threshold": {
                 "name": "Drempel voor hete dag"
