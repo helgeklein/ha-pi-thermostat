@@ -59,6 +59,18 @@ if TYPE_CHECKING:
     from .data import IntegrationConfigEntry
 
 
+CCA_VALID_STATUSES: frozenset[str] = frozenset(
+    {
+        "idle",
+        "inactive",
+        "forecast_hold",
+        "forecast_unavailable",
+        "active",
+        "manual_override",
+    }
+)
+
+
 # ---------------------------------------------------------------------------
 # DataUpdateCoordinator
 # ---------------------------------------------------------------------------
@@ -217,7 +229,12 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             self._logger.warning("Invalid persisted CCA state ignored")
             return
 
-        self.restore_cca_state(restored_state)
+        normalized_state = self._normalize_restored_cca_state(restored_state)
+        self.restore_cca_state(normalized_state)
+
+        if normalized_state != restored_state:
+            self._logger.warning("Normalized persisted CCA state during restore")
+            await self._async_save_cca_state(normalized_state)
 
     #
     # _async_save_cca_state
@@ -249,6 +266,30 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
 
         opts = dict(getattr(self.config_entry, HA_OPTIONS, {}) or {})
         return resolve(opts)
+
+    #
+    # _normalize_restored_cca_state
+    #
+    def _normalize_restored_cca_state(self, state: CCAState) -> CCAState:
+        """Return a restored CCA state clamped to valid persisted ranges."""
+
+        last_update_iso = state.last_update_iso
+        parsed_last_update = self._parse_cca_last_update(last_update_iso)
+        if last_update_iso is not None and parsed_last_update is None:
+            last_update_iso = None
+        elif parsed_last_update is not None:
+            last_update_iso = parsed_last_update.isoformat()
+
+        status = state.status if state.status in CCA_VALID_STATUSES else "idle"
+
+        return replace(
+            state,
+            charge_estimate=max(0.0, min(100.0, state.charge_estimate)),
+            last_auto_output=max(0.0, min(100.0, state.last_auto_output)),
+            last_heat_score=max(0.0, min(100.0, state.last_heat_score)),
+            last_update_iso=last_update_iso,
+            status=status,
+        )
 
     #
     # _initial_update_interval_seconds

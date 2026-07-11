@@ -149,6 +149,72 @@ class TestCoordinatorInit:
         assert state.last_update_iso == "2026-07-01T00:00:00+00:00"
         assert state.status == "active"
 
+    async def test_restores_cca_state_from_storage_with_normalization(self, hass: HomeAssistant) -> None:
+        """CCA restore clamps persisted values and heals invalid persisted fields."""
+
+        entry = _make_entry(hass, _default_cca_options())
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with (
+            patch.object(
+                coordinator._cca_store,
+                "async_load",
+                AsyncMock(
+                    return_value={
+                        "charge_estimate": 140.0,
+                        "last_auto_output": -5.0,
+                        "last_heat_score": 125.0,
+                        "last_update_iso": "not-a-timestamp",
+                        "status": "broken",
+                    }
+                ),
+            ),
+            patch.object(coordinator._cca_store, "async_save", AsyncMock()) as mock_save,
+        ):
+            await coordinator.async_restore_cca_state()
+
+        state = coordinator.get_cca_state()
+        assert state.charge_estimate == 100.0
+        assert state.last_auto_output == 0.0
+        assert state.last_heat_score == 100.0
+        assert state.last_update_iso is None
+        assert state.status == "idle"
+        mock_save.assert_awaited_once_with(
+            {
+                "charge_estimate": 100.0,
+                "last_auto_output": 0.0,
+                "last_heat_score": 100.0,
+                "last_update_iso": None,
+                "status": "idle",
+            }
+        )
+
+    async def test_restores_cca_state_from_storage_without_rewriting_valid_data(self, hass: HomeAssistant) -> None:
+        """CCA restore does not rewrite storage when the persisted state is already valid."""
+
+        entry = _make_entry(hass, _default_cca_options())
+        coordinator = DataUpdateCoordinator(hass, entry)
+
+        with (
+            patch.object(
+                coordinator._cca_store,
+                "async_load",
+                AsyncMock(
+                    return_value={
+                        "charge_estimate": 12.5,
+                        "last_auto_output": 8.0,
+                        "last_heat_score": 55.0,
+                        "last_update_iso": "2026-07-01T00:00:00+00:00",
+                        "status": "active",
+                    }
+                ),
+            ),
+            patch.object(coordinator._cca_store, "async_save", AsyncMock()) as mock_save,
+        ):
+            await coordinator.async_restore_cca_state()
+
+        mock_save.assert_not_awaited()
+
 
 class TestNormalCycle:
     """Test a normal PI control cycle."""
