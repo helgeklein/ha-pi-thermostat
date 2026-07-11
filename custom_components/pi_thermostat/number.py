@@ -29,6 +29,9 @@ from homeassistant.const import EntityCategory, UnitOfTemperature, UnitOfTime
 
 from .config import ConfKeys, resolve_entry
 from .const import (
+    CCA_UPDATE_INTERVAL_MAX_MINUTES,
+    CCA_UPDATE_INTERVAL_MIN_MINUTES,
+    CCA_UPDATE_INTERVAL_STEP_MINUTES,
     NUMBER_KEY_CCA_CHARGE_GAIN,
     NUMBER_KEY_CCA_CHARGE_TARGET_SCALE,
     NUMBER_KEY_CCA_DISCHARGE_GAIN,
@@ -37,6 +40,7 @@ from .const import (
     NUMBER_KEY_CCA_OUTPUT_MAX,
     NUMBER_KEY_CCA_OUTPUT_MIN,
     NUMBER_KEY_CCA_OUTPUT_STEP_LIMIT,
+    NUMBER_KEY_CCA_UPDATE_INTERVAL,
     NUMBER_KEY_CCA_WARM_NIGHT_THRESHOLD,
     NUMBER_KEY_INT_TIME,
     NUMBER_KEY_OUTPUT_MAX,
@@ -142,6 +146,18 @@ NUMBER_CCA_MANUAL_OUTPUT = NumberEntityDescription(
     native_step=1.0,
     mode=NumberMode.BOX,
     native_unit_of_measurement="%",
+)
+
+NUMBER_CCA_UPDATE_INTERVAL = NumberEntityDescription(
+    key=NUMBER_KEY_CCA_UPDATE_INTERVAL,
+    translation_key=NUMBER_KEY_CCA_UPDATE_INTERVAL,
+    device_class=NumberDeviceClass.DURATION,
+    entity_category=EntityCategory.CONFIG,
+    native_min_value=CCA_UPDATE_INTERVAL_MIN_MINUTES,
+    native_max_value=CCA_UPDATE_INTERVAL_MAX_MINUTES,
+    native_step=CCA_UPDATE_INTERVAL_STEP_MINUTES,
+    mode=NumberMode.BOX,
+    native_unit_of_measurement=UnitOfTime.MINUTES,
 )
 
 NUMBER_CCA_HOT_DAY_THRESHOLD = NumberEntityDescription(
@@ -251,6 +267,7 @@ _NUMBER_TARGET_TEMP: tuple[NumberEntityDescription, ConfKeys] = (
 
 _NUMBERS_CCA: list[tuple[NumberEntityDescription, ConfKeys]] = [
     (NUMBER_CCA_MANUAL_OUTPUT, ConfKeys.CCA_MANUAL_OUTPUT),
+    (NUMBER_CCA_UPDATE_INTERVAL, ConfKeys.CCA_UPDATE_INTERVAL_MINUTES),
     (NUMBER_CCA_HOT_DAY_THRESHOLD, ConfKeys.CCA_HOT_DAY_THRESHOLD),
     (NUMBER_CCA_WARM_NIGHT_THRESHOLD, ConfKeys.CCA_WARM_NIGHT_THRESHOLD),
     (NUMBER_CCA_OUTPUT_MIN, ConfKeys.CCA_OUTPUT_MIN),

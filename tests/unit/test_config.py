@@ -35,7 +35,7 @@ from custom_components.pi_thermostat.const import (
     DEFAULT_CCA_OUTPUT_MAX,
     DEFAULT_CCA_OUTPUT_MIN,
     DEFAULT_CCA_OUTPUT_STEP_LIMIT,
-    DEFAULT_CCA_UPDATE_INTERVAL_HOURS,
+    DEFAULT_CCA_UPDATE_INTERVAL_MINUTES,
     DEFAULT_CCA_WARM_NIGHT_THRESHOLD,
     DEFAULT_INT_TIME,
     DEFAULT_ITERM_STARTUP_VALUE,
@@ -180,7 +180,7 @@ class TestResolve:
         assert resolved.cca_weather_entity == ""
         assert resolved.cca_forecast_horizon_days == DEFAULT_CCA_FORECAST_HORIZON_DAYS
         assert resolved.cca_forecast_unavailable_mode == CCAForecastUnavailableMode.HOLD
-        assert resolved.cca_update_interval_hours == DEFAULT_CCA_UPDATE_INTERVAL_HOURS
+        assert resolved.cca_update_interval_minutes == DEFAULT_CCA_UPDATE_INTERVAL_MINUTES
         assert resolved.cca_manual_override_enabled is False
         assert resolved.cca_manual_output == DEFAULT_CCA_MANUAL_OUTPUT
         assert resolved.cca_hot_day_threshold == DEFAULT_CCA_HOT_DAY_THRESHOLD
@@ -388,6 +388,7 @@ class TestRuntimeConfigurableKeys:
         assert "cca_output_max" in keys
         assert "cca_charge_gain" in keys
         assert "cca_discharge_gain" in keys
+        assert "cca_update_interval_minutes" in keys
         assert "cca_output_step_limit" in keys
         assert "cca_charge_target_scale" in keys
 

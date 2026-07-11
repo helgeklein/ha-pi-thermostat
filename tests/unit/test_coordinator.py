@@ -228,7 +228,7 @@ class TestCCACycle:
     async def test_cca_update_interval(self, hass: HomeAssistant) -> None:
         """CCA mode uses the fixed heartbeat poll interval."""
 
-        entry = _make_entry(hass, _default_cca_options(cca_update_interval_hours=6))
+        entry = _make_entry(hass, _default_cca_options(cca_update_interval_minutes=360))
         coordinator = DataUpdateCoordinator(hass, entry)
 
         assert coordinator.update_interval == timedelta(seconds=CCA_COORDINATOR_POLL_INTERVAL_SECONDS)
@@ -361,7 +361,7 @@ class TestCCACycle:
             _default_cca_options(
                 cca_charge_target_scale=200.0,
                 cca_output_step_limit=10.0,
-                cca_update_interval_hours=6,
+                cca_update_interval_minutes=360,
             ),
         )
         coordinator = DataUpdateCoordinator(hass, entry)
@@ -397,6 +397,63 @@ class TestCCACycle:
         assert second_data.cca_next_update_in == 360
         mock_forecasts.assert_not_awaited()
 
+    async def test_cca_interval_change_waits_for_next_heartbeat(self, hass: HomeAssistant) -> None:
+        """A runtime interval change updates the countdown immediately but defers recomputation to the next heartbeat."""
+
+        entry = _make_entry(
+            hass,
+            _default_cca_options(
+                cca_charge_target_scale=200.0,
+                cca_update_interval_minutes=360,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+        coordinator.restore_cca_state(
+            CCAState(
+                charge_estimate=18.0,
+                last_auto_output=12.0,
+                last_heat_score=45.0,
+                last_update_iso=(datetime.now(UTC) - timedelta(minutes=300)).isoformat(),
+                status="active",
+            )
+        )
+
+        hass.config_entries.async_update_entry(
+            entry,
+            options={
+                **entry.options,
+                "cca_update_interval_minutes": 240,
+            },
+        )
+
+        coordinator._cca_runtime_refresh_only = True
+        try:
+            with (
+                patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+                patch.object(coordinator._ha, "async_get_daily_forecasts", AsyncMock()) as mock_forecasts,
+            ):
+                refresh_data = await coordinator._async_update_data()
+        finally:
+            coordinator._cca_runtime_refresh_only = False
+
+        assert refresh_data.output == 12.0
+        assert refresh_data.cca_next_update_in == 0
+        mock_forecasts.assert_not_awaited()
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(
+                coordinator._ha,
+                "async_get_daily_forecasts",
+                AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 35.0, "templow": 24.0}]),
+            ) as mock_forecasts,
+        ):
+            heartbeat_data = await coordinator._async_update_data()
+
+        assert heartbeat_data.output > 0.0
+        assert heartbeat_data.cca_next_update_in == 240
+        mock_forecasts.assert_awaited_once()
+
     async def test_cca_manual_override_applies_immediately_without_advancing_auto_state(self, hass: HomeAssistant) -> None:
         """Manual override takes effect immediately without consuming an automatic CCA step."""
 
@@ -405,7 +462,7 @@ class TestCCACycle:
             _default_cca_options(
                 cca_charge_target_scale=200.0,
                 cca_output_step_limit=10.0,
-                cca_update_interval_hours=6,
+                cca_update_interval_minutes=360,
             ),
         )
         coordinator = DataUpdateCoordinator(hass, entry)
@@ -447,7 +504,7 @@ class TestCCACycle:
     async def test_cca_non_due_refresh_reports_time_until_next_update(self, hass: HomeAssistant) -> None:
         """Non-due CCA heartbeats expose the remaining countdown without fetching forecasts."""
 
-        entry = _make_entry(hass, _default_cca_options(cca_update_interval_hours=6))
+        entry = _make_entry(hass, _default_cca_options(cca_update_interval_minutes=360))
         coordinator = DataUpdateCoordinator(hass, entry)
         coordinator.restore_cca_state(
             CCAState(
@@ -473,7 +530,7 @@ class TestCCACycle:
     async def test_cca_overdue_refresh_recomputes_and_resets_countdown(self, hass: HomeAssistant) -> None:
         """Overdue CCA heartbeats perform a real control step immediately after restart."""
 
-        entry = _make_entry(hass, _default_cca_options(cca_update_interval_hours=6))
+        entry = _make_entry(hass, _default_cca_options(cca_update_interval_minutes=360))
         coordinator = DataUpdateCoordinator(hass, entry)
         coordinator.restore_cca_state(
             CCAState(

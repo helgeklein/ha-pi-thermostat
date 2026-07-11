@@ -211,6 +211,9 @@
             "cca_manual_output": {
                 "name": "Manual output"
             },
+            "cca_update_interval_minutes": {
+                "name": "Automatic update interval"
+            },
             "cca_hot_day_threshold": {
                 "name": "Hot day threshold"
             },

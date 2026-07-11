@@ -129,6 +129,9 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         # Last coordinator result — used to preserve state when paused
         self._last_data: CoordinatorData | None = None
 
+        # When set, the next refresh publishes current CCA state without consuming a control step.
+        self._cca_runtime_refresh_only = False
+
         # Track last-applied tunings to detect changes
         self._last_prop_band: float = resolved.proportional_band
         self._last_int_time: float = resolved.integral_time
@@ -177,6 +180,18 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         """Return the current CCA state for persistence entities."""
 
         return self._cca.get_state()
+
+    #
+    # async_request_cca_runtime_refresh_only
+    #
+    async def async_request_cca_runtime_refresh_only(self) -> None:
+        """Refresh published CCA state without consuming an automatic control step."""
+
+        self._cca_runtime_refresh_only = True
+        try:
+            await self.async_request_refresh()
+        finally:
+            self._cca_runtime_refresh_only = False
 
     #
     # async_restore_cca_state
@@ -255,7 +270,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
     def _cca_update_interval(resolved: ResolvedConfig) -> timedelta:
         """Return the configured elapsed time between automatic CCA control steps."""
 
-        return timedelta(hours=resolved.cca_update_interval_hours)
+        return timedelta(minutes=resolved.cca_update_interval_minutes)
 
     #
     # _paused_result
@@ -679,7 +694,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             if cooling_signal_on is not None:
                 cooling_enabled = cooling_signal_on if resolved.cca_cooling_enable_on else not cooling_signal_on
 
-        if cooling_enabled and not self._is_cca_update_due(resolved):
+        if cooling_enabled and (self._cca_runtime_refresh_only or not self._is_cca_update_due(resolved)):
             return self._build_cca_refresh_result(resolved)
 
         forecasts: list[dict[str, Any]] | None = None

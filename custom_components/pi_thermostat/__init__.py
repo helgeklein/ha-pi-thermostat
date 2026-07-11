@@ -27,6 +27,7 @@ from .const import (
     NUMBER_KEY_CCA_OUTPUT_MAX,
     NUMBER_KEY_CCA_OUTPUT_MIN,
     NUMBER_KEY_CCA_OUTPUT_STEP_LIMIT,
+    NUMBER_KEY_CCA_UPDATE_INTERVAL,
     NUMBER_KEY_CCA_WARM_NIGHT_THRESHOLD,
     NUMBER_KEY_TARGET_TEMP,
     SENSOR_KEY_CCA_CHARGE_ESTIMATE,
@@ -150,6 +151,7 @@ def _remove_stale_conditional_entities(
     if resolved.control_mode == ControlMode.PI:
         stale_entities: list[tuple[Platform, str]] = [
             (Platform.NUMBER, NUMBER_KEY_CCA_MANUAL_OUTPUT),
+            (Platform.NUMBER, NUMBER_KEY_CCA_UPDATE_INTERVAL),
             (Platform.NUMBER, NUMBER_KEY_CCA_HOT_DAY_THRESHOLD),
             (Platform.NUMBER, NUMBER_KEY_CCA_WARM_NIGHT_THRESHOLD),
             (Platform.NUMBER, NUMBER_KEY_CCA_OUTPUT_MIN),
@@ -275,8 +277,13 @@ async def async_reload_entry(
             coordinator._merged_config = new_config
             entry.runtime_data.config = new_config
 
-            # Trigger a coordinator refresh to apply the changes
-            await coordinator.async_request_refresh()
+            # Trigger a coordinator refresh to apply the changes. In CCA mode,
+            # runtime changes update the published state immediately but defer
+            # automatic control-step recomputation until the next heartbeat.
+            if resolve_entry(entry).control_mode == ControlMode.CCA:
+                await coordinator.async_request_cca_runtime_refresh_only()
+            else:
+                await coordinator.async_request_refresh()
             return
 
     # For all other changes (structural, new keys, etc.), do a full reload
