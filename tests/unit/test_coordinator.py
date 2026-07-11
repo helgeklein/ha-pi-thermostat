@@ -300,6 +300,7 @@ class TestCCACycle:
         assert data.output == 12.0
         assert data.current_mode == "cooling"
         assert data.cca_status == "active"
+        assert data.cca_charge_target == pytest.approx(45.0)
         assert data.cca_next_update_in == 240
 
         with patch.object(coordinator._ha, "get_entity_on_state", return_value=None):
@@ -420,6 +421,7 @@ class TestCCACycle:
             second_data = await coordinator._async_update_data()
 
         assert second_data.output == first_data.output
+        assert second_data.cca_charge_target == first_data.cca_charge_target
         assert second_data.cca_status == "forecast_hold"
 
     async def test_cca_runtime_refresh_preserves_current_step(self, hass: HomeAssistant) -> None:
@@ -884,6 +886,7 @@ class TestCCACycle:
 
         assert data.output == 0.0
         assert data.current_mode == "off"
+        assert data.cca_charge_target == pytest.approx(45.0)
         assert data.cca_status == "inactive"
         assert data.cca_next_update_in is None
 

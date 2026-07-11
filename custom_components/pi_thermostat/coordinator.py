@@ -429,7 +429,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
 
         current_mode = "cooling" if output > 0 else "off"
         heat_score = state.last_heat_score if self._last_data is None else self._last_data.cca_heat_score
-        charge_target = None if self._last_data is None else self._last_data.cca_charge_target
+        charge_target = self._cca.compute_charge_target(state.last_heat_score, resolved)
 
         return CoordinatorData(
             output=output,

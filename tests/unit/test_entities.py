@@ -330,8 +330,8 @@ class TestSensorEntities:
         expected_entity_ids = [
             _entity_id("sensor", "output"),
             _entity_id("sensor", "current_mode"),
-            _entity_id("sensor", "heat_score"),
-            _entity_id("sensor", "charge_estimate"),
+            _entity_id("sensor", "charge_target_before_scaling"),
+            _entity_id("sensor", "current_charge_est"),
             _entity_id("sensor", "charge_target"),
             _entity_id("sensor", "override_active"),
             _entity_id("sensor", "status"),
