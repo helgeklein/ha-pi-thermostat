@@ -205,6 +205,12 @@
             "output_max": {
                 "name": "Salida maxima"
             },
+            "update_interval": {
+                "name": "Intervalo de actualización"
+            },
+            "cca_manual_output": {
+                "name": "Salida manual"
+            },
             "cca_update_interval_minutes": {
                 "name": "Intervalo de actualización automática"
             },
