@@ -7,7 +7,7 @@ A Home Assistant integration to control your smart home's thermal actuators, opt
 
 ## Features
 
-### PI Controller for Radiant Ceilint Heating & Cooling
+### PI Controller for Radiant Ceiling Heating & Cooling
 
 - **PI control algorithm:**
    - Industry-standard proportional–integral controller (PID with Kd=0).
@@ -30,7 +30,7 @@ A Home Assistant integration to control your smart home's thermal actuators, opt
    - The integral term is saved via Home Assistant's `RestoreEntity` mechanism.
    - Configurable startup modes: **last persisted**, **fixed value**, or **zero**.
 - **Runtime-configurable entities:**
-   - Number entities for proportional band, integral time, target temperature, output min/max, and update interval - all adjustable without reconfiguring.
+   - Number entities for proportional band, integral time, target temperature, output min/max, and update interval, all adjustable without reconfiguring.
    - `Enabled` switch to pause/resume the controller.
 - **Diagnostic sensors:**
    - Output %, deviation, proportional term, integral term.
@@ -38,22 +38,24 @@ A Home Assistant integration to control your smart home's thermal actuators, opt
 ### CCA Controller for Cooling via Concrete Core Activation
 
 - **Forecast-driven cooling control**
-   - Takes the huge mass (=cooling storage capacity) and slow reaction speed into account.
+   - Takes the large thermal mass (= cooling storage capacity) and slow reaction speed into account.
    - Driven by multi-day weather forecasts.
 - **Cooling-enable and weather inputs**
    - Reads from a binary entity whether cooling is enabled.
    - Uses a Home Assistant weather entity for daily forecasts.
 - **Building tuning controls**
    - Tune overall cooling level, forecast reaction strength, and thermal storage persistence to match the building's thermal mass and cooling behavior.
-- **Scheduled automatic updates**
+- **Scheduled updates**
    - Updates the output value in 6 hour steps with a limit on how much each step may increase or decrease the previous value.
    - Changed settings are applied immediately without waiting for the step interval end.
 - **Runtime-configurable entities**
-   - Number entities for forecast thresholds, output min/max, output step limit, charge target scale, and the abovementioned tuning controls.
+   - Number entities for forecast thresholds, output min/max, output step limit, charge target scale, and the tuning controls mentioned above.
 - **Manual override**
    - Manual output override for forcing a specific value.
 - **Diagnostic sensors**
-   - Exposes output %, heat score, charge estimate, charge target, override state, status, and time until the next automatic update.
+   - Exposes output %, heat score, charge estimate, charge target, override state, status, and time until the next scheduled update.
+
+For a deeper explanation of the background and algorithm, see [CCA Control Mode]({{ '/cca-control-mode/' | relative_url }}).
 
 ### Other Features
 
