@@ -212,7 +212,7 @@
                 "name": "Handmatige uitvoer"
             },
             "cca_update_interval_minutes": {
-                "name": "Automatisch update-interval"
+                "name": "Update-interval"
             },
             "cca_hot_day_threshold": {
                 "name": "Drempel voor hete dag"

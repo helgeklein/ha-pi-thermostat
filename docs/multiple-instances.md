@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Multiple Instances
-nav_order: 7
+nav_order: 9
 description: "Configuring multiple instances of PI Thermostat & CCA Control for Home Assistant."
 permalink: /multiple-instances/
 ---

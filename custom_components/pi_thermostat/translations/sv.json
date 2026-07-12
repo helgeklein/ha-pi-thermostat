@@ -212,7 +212,7 @@
                 "name": "Manuell utgång"
             },
             "cca_update_interval_minutes": {
-                "name": "Automatiskt uppdateringsintervall"
+                "name": "Uppdateringsintervall"
             },
             "cca_hot_day_threshold": {
                 "name": "Troskel for varm dag"

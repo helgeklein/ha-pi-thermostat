@@ -212,7 +212,7 @@
                 "name": "Uscita manuale"
             },
             "cca_update_interval_minutes": {
-                "name": "Intervallo di aggiornamento automatico"
+                "name": "Intervallo di aggiornamento"
             },
             "cca_hot_day_threshold": {
                 "name": "Soglia giorno caldo"

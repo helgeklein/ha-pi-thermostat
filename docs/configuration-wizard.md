@@ -2,13 +2,13 @@
 layout: default
 title: Configuration Wizard
 nav_order: 4
-description: "Configuration guide part 1 for PI Thermostat & CCA Control for Home Assistant."
+description: "Configuration wizard guide for PI Thermostat & CCA Control for Home Assistant."
 permalink: /configuration-wizard/
 ---
 
 # Configuration Wizard
 
-The integration's settings are managed via a three-step options wizard. To invoke the configuration wizard:
+The integration's settings are managed via a multi-step wizard. To invoke the configuration wizard:
 
 1. Go to **Settings** → **Devices & Services**.
 2. Find **PI Thermostat & CCA Control**.
@@ -19,7 +19,23 @@ The integration's settings are managed via a three-step options wizard. To invok
 - The configuration wizard can be canceled at any time. When you do that, no changes are made to the configuration.
 - The configuration wizard can be invoked as often as needed to inspect the configuration or make changes to it.
 
-## Step 1: Climate Entity & Operating Mode
+The options flow is mode-aware:
+
+- **PI mode path:** Controller mode → Climate entity & operating mode → Temperature sensors & target → Sensor fault & startup mode
+- **CCA mode path:** Controller mode → CCA data sources
+
+## Step 1: Controller Mode
+
+Choose which controller the integration should run:
+
+- **PI** — the room-temperature PI controller for heating, cooling, or auto mode.
+- **CCA** — the forecast-driven controller for concrete core activation cooling.
+
+The remaining steps depend on this selection.
+
+## PI Mode
+
+### Step 2: Climate Entity & Operating Mode
 
 ### Climate Entity (Optional)
 
@@ -42,7 +58,7 @@ Determines how the controller decides between heating and cooling:
 
 When enabled and a climate entity is configured, the controller's output is set to 0 % whenever the climate entity's HVAC mode is "off".
 
-## Step 2: Temperature Sensors & Target
+### Step 3: Temperature Sensors & Target
 
 ### Temperature Sensor (Optional)
 
@@ -62,7 +78,7 @@ Where to read the target (setpoint) temperature from:
 
 Only used when the target temperature mode is "External entity". Select the entity to read the target temperature from.
 
-## Step 3: Sensor Fault & Startup Mode
+### Step 4: Sensor Fault & Startup Mode
 
 ### Sensor Fault Mode
 
@@ -83,6 +99,60 @@ How the integral term (and thus the output) is initialized when the integration 
 
 The output percentage to use on startup. Used as the initial value when startup mode is "Fixed value", or as the fallback when mode is "Last persisted" and no previous value exists. Range: 0–100 %.
 
+## CCA Mode
+
+### Step 2: CCA Data Sources
+
+This step configures the inputs the CCA controller needs for forecast-driven cooling.
+
+### Cooling Enable Entity
+
+Select an entity that indicates whether cooling is currently allowed. Supported entity types are binary sensors, switches, and input booleans.
+
+The CCA controller only produces cooling output while this signal indicates that cooling is enabled.
+
+### Cooling Enable On
+
+Defines which state of the cooling-enable entity means "cooling enabled":
+
+- **On:** Cooling is enabled when the selected entity is on.
+- **Off:** Cooling is enabled when the selected entity is off.
+
+This is useful when the source signal uses inverted logic.
+
+### Weather Entity
+
+Select the Home Assistant weather entity that provides the daily forecast used by the CCA controller.
+
+The selected weather entity must support daily forecasts.
+
+### Forecast Horizon Days
+
+How many forecast days the CCA controller should consider when computing its heat score and cooling target.
+
+Smaller values make the controller focus more on the near-term forecast. Larger values make it consider a longer upcoming warm period.
+
+### Forecast Unavailable Mode
+
+Behavior when no usable forecast is available:
+
+- **Hold:** Keep using the last automatic CCA output.
+- **Shutdown:** Set the CCA output to 0 %.
+
+If you want more background on how CCA uses forecasts, stored cooling, and scheduled update steps, see [CCA Control Mode]({{ '/cca-control-mode/' | relative_url }}).
+
+### Validation Notes
+
+The CCA data-source step validates that:
+
+- a cooling-enable entity is configured
+- a weather entity is configured
+- the weather entity supports daily forecasts
+
 ## Next Steps
 
-After the configuration wizard, take a look at the [runtime-configurable entities]({{ '/ui-configuration-entities/' | relative_url }}).
+After the configuration wizard, take a look at the runtime-configuration guide for your selected mode:
+
+- [PI mode UI configuration entities]({{ '/ui-configuration-entities-pi/' | relative_url }})
+- [CCA mode UI configuration entities]({{ '/ui-configuration-entities-cca/' | relative_url }})
+- [CCA control mode background and algorithm]({{ '/cca-control-mode/' | relative_url }})
