@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Troubleshooting
-nav_order: 6
+nav_order: 7
 description: "Common issues and solutions for PI Thermostat & CCA Control for Home Assistant."
 permalink: /troubleshooting/
 ---

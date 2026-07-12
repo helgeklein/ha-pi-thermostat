@@ -1,20 +1,20 @@
 ---
 layout: default
-title: UI Configuration Entities
+title: PI Mode UI Configuration Entities
 nav_order: 5
-description: "Configuration guide part 2 for PI Thermostat & CCA Control for Home Assistant."
-permalink: /ui-configuration-entities/
+description: "Runtime configuration entities for PI mode in PI Thermostat & CCA Control for Home Assistant."
+permalink: /ui-configuration-entities-pi/
 ---
 
-# UI Configuration Entities
+# PI Mode UI Configuration Entities
 
-In addition to the configuration settings managed through the wizard, the integration's behavior can be fine-tuned at runtime via entities on the device page. Changes take effect immediately without requiring a restart.
+In addition to the configuration settings managed through the wizard, PI mode can be fine-tuned at runtime via entities on the device page. Changes take effect immediately without requiring a restart.
 
 ## Switch
 
 ### Enabled
 
-Master **on/off switch** for the PI controller. When off, the controller is paused and output is set to 0 %. Turning it back on resumes normal operation.
+Master **on/off switch** for the PI controller. When off, the controller is paused. Turning it back on resumes normal operation.
 
 ## Number Entities
 

@@ -2,7 +2,7 @@
 layout: default
 title: Configuration Wizard
 nav_order: 4
-description: "Configuration guide part 1 for PI Thermostat & CCA Control for Home Assistant."
+description: "Configuration wizard guide for PI Thermostat & CCA Control for Home Assistant."
 permalink: /configuration-wizard/
 ---
 
@@ -149,4 +149,7 @@ The CCA data-source step validates that:
 
 ## Next Steps
 
-After the configuration wizard, take a look at the [runtime-configurable entities]({{ '/ui-configuration-entities/' | relative_url }}).
+After the configuration wizard, take a look at the runtime-configuration guide for your selected mode:
+
+- [PI mode UI configuration entities]({{ '/ui-configuration-entities-pi/' | relative_url }})
+- [CCA mode UI configuration entities]({{ '/ui-configuration-entities-cca/' | relative_url }})
