@@ -75,6 +75,34 @@ The two CCA tuning controls are exposed as sliders:
 
 `100` means baseline behavior. Lower values reduce that behavior; higher values increase it.
 
+### Practical tuning
+
+For day-to-day tuning, treat these three settings as the main building-matching controls:
+
+- `cca_forecast_response_strength`
+  - What it does: changes how strongly hot forecasts pull the controller toward more cooling.
+  - Higher values: the system reacts more aggressively to coming heat and raises output sooner.
+  - Lower values: the system reacts more gently and is less eager to add cooling.
+  - Typical use: raise it if the building tends to get too warm on hot days even though cooling was enabled in time. Lower it if the building often cools more than necessary.
+
+- `cca_thermal_storage_persistence`
+  - What it does: changes how much previously stored cooling is assumed to remain in the building core.
+  - Higher values: cooling is treated as lasting longer, so the controller is slower to spend more output.
+  - Lower values: cooling is treated as fading faster, so the controller refills sooner.
+  - Typical use: raise it for heavy, slow buildings with a lot of thermal mass. Lower it for light buildings that warm up again quickly.
+
+- `cca_charge_target_scale`
+  - What it does: changes the overall cooling target level for a given forecast.
+  - Higher values: the controller aims for a higher stored-cooling level across the board.
+  - Lower values: the controller aims for a lower stored-cooling level across the board.
+  - Typical use: raise it if the whole building consistently runs too warm during hot weather. Lower it if the whole building consistently ends up overcooled.
+
+A practical tuning order is:
+
+1. Start with `cca_charge_target_scale` to set the overall cooling level for the building.
+2. Adjust `cca_forecast_response_strength` to decide how early and how strongly the controller reacts to hot forecasts.
+3. Adjust `cca_thermal_storage_persistence` to match how long cooling actually lasts in the building fabric.
+
 ## Options Flow
 
 The options flow is mode-aware.
