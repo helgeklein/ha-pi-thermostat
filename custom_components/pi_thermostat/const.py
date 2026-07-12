@@ -88,6 +88,7 @@ HA_OPTIONS: Final[str] = "options"
 # ---------------------------------------------------------------------------
 
 UPDATE_INTERVAL_DEFAULT_SECONDS: Final[int] = 60
+CCA_COORDINATOR_POLL_INTERVAL_SECONDS: Final[int] = 60
 
 # ---------------------------------------------------------------------------
 # PI controller defaults (HVAC-standard units)
@@ -104,12 +105,20 @@ DEFAULT_OUTPUT_MAX: Final[float] = 100.0  # Maximum output %
 
 DEFAULT_CCA_FORECAST_HORIZON_DAYS: Final[int] = 3
 DEFAULT_CCA_COOLING_ENABLE_ON: Final[bool] = True
-DEFAULT_CCA_UPDATE_INTERVAL_HOURS: Final[int] = 6
+DEFAULT_CCA_UPDATE_INTERVAL_MINUTES: Final[int] = 360
+CCA_UPDATE_INTERVAL_MIN_MINUTES: Final[int] = 60
+CCA_UPDATE_INTERVAL_MAX_MINUTES: Final[int] = 1440
+CCA_UPDATE_INTERVAL_STEP_MINUTES: Final[int] = 15
 DEFAULT_CCA_MANUAL_OUTPUT: Final[float] = 0.0
 DEFAULT_CCA_HOT_DAY_THRESHOLD: Final[float] = 26.0
 DEFAULT_CCA_WARM_NIGHT_THRESHOLD: Final[float] = 18.0
 DEFAULT_CCA_OUTPUT_MIN: Final[float] = 0.0
 DEFAULT_CCA_OUTPUT_MAX: Final[float] = 60.0
+DEFAULT_CCA_FORECAST_RESPONSE_STRENGTH: Final[float] = 100.0
+DEFAULT_CCA_THERMAL_STORAGE_PERSISTENCE: Final[float] = 100.0
+CCA_TUNING_MIN: Final[float] = 60.0
+CCA_TUNING_MAX: Final[float] = 140.0
+CCA_TUNING_STEP: Final[float] = 5.0
 DEFAULT_CCA_CHARGE_GAIN: Final[float] = 25.0
 DEFAULT_CCA_DISCHARGE_GAIN: Final[float] = 20.0
 DEFAULT_CCA_OUTPUT_STEP_LIMIT: Final[float] = 10.0
@@ -140,10 +149,13 @@ NUMBER_KEY_OUTPUT_MIN: Final[str] = "output_min"
 NUMBER_KEY_OUTPUT_MAX: Final[str] = "output_max"
 NUMBER_KEY_UPDATE_INTERVAL: Final[str] = "update_interval"
 NUMBER_KEY_CCA_MANUAL_OUTPUT: Final[str] = "cca_manual_output"
+NUMBER_KEY_CCA_UPDATE_INTERVAL: Final[str] = "cca_update_interval_minutes"
 NUMBER_KEY_CCA_HOT_DAY_THRESHOLD: Final[str] = "cca_hot_day_threshold"
 NUMBER_KEY_CCA_WARM_NIGHT_THRESHOLD: Final[str] = "cca_warm_night_threshold"
 NUMBER_KEY_CCA_OUTPUT_MIN: Final[str] = "cca_output_min"
 NUMBER_KEY_CCA_OUTPUT_MAX: Final[str] = "cca_output_max"
+NUMBER_KEY_CCA_FORECAST_RESPONSE_STRENGTH: Final[str] = "cca_forecast_response_strength"
+NUMBER_KEY_CCA_THERMAL_STORAGE_PERSISTENCE: Final[str] = "cca_thermal_storage_persistence"
 NUMBER_KEY_CCA_CHARGE_GAIN: Final[str] = "cca_charge_gain"
 NUMBER_KEY_CCA_DISCHARGE_GAIN: Final[str] = "cca_discharge_gain"
 NUMBER_KEY_CCA_OUTPUT_STEP_LIMIT: Final[str] = "cca_output_step_limit"
@@ -165,6 +177,7 @@ SENSOR_KEY_CCA_CHARGE_ESTIMATE: Final[str] = "cca_charge_estimate"
 SENSOR_KEY_CCA_CHARGE_TARGET: Final[str] = "cca_charge_target"
 SENSOR_KEY_CCA_OVERRIDE_ACTIVE: Final[str] = "cca_override_active"
 SENSOR_KEY_CCA_STATUS: Final[str] = "cca_status"
+SENSOR_KEY_CCA_NEXT_UPDATE_IN: Final[str] = "cca_next_update_in"
 SENSOR_KEY_CCA_STATE_STORE: Final[str] = "cca_state_store"
 
 # ---------------------------------------------------------------------------

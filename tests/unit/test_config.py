@@ -30,12 +30,14 @@ from custom_components.pi_thermostat.const import (
     DEFAULT_CCA_COOLING_ENABLE_ON,
     DEFAULT_CCA_DISCHARGE_GAIN,
     DEFAULT_CCA_FORECAST_HORIZON_DAYS,
+    DEFAULT_CCA_FORECAST_RESPONSE_STRENGTH,
     DEFAULT_CCA_HOT_DAY_THRESHOLD,
     DEFAULT_CCA_MANUAL_OUTPUT,
     DEFAULT_CCA_OUTPUT_MAX,
     DEFAULT_CCA_OUTPUT_MIN,
     DEFAULT_CCA_OUTPUT_STEP_LIMIT,
-    DEFAULT_CCA_UPDATE_INTERVAL_HOURS,
+    DEFAULT_CCA_THERMAL_STORAGE_PERSISTENCE,
+    DEFAULT_CCA_UPDATE_INTERVAL_MINUTES,
     DEFAULT_CCA_WARM_NIGHT_THRESHOLD,
     DEFAULT_INT_TIME,
     DEFAULT_ITERM_STARTUP_VALUE,
@@ -180,17 +182,34 @@ class TestResolve:
         assert resolved.cca_weather_entity == ""
         assert resolved.cca_forecast_horizon_days == DEFAULT_CCA_FORECAST_HORIZON_DAYS
         assert resolved.cca_forecast_unavailable_mode == CCAForecastUnavailableMode.HOLD
-        assert resolved.cca_update_interval_hours == DEFAULT_CCA_UPDATE_INTERVAL_HOURS
+        assert resolved.cca_update_interval_minutes == DEFAULT_CCA_UPDATE_INTERVAL_MINUTES
         assert resolved.cca_manual_override_enabled is False
         assert resolved.cca_manual_output == DEFAULT_CCA_MANUAL_OUTPUT
         assert resolved.cca_hot_day_threshold == DEFAULT_CCA_HOT_DAY_THRESHOLD
         assert resolved.cca_warm_night_threshold == DEFAULT_CCA_WARM_NIGHT_THRESHOLD
         assert resolved.cca_output_min == DEFAULT_CCA_OUTPUT_MIN
         assert resolved.cca_output_max == DEFAULT_CCA_OUTPUT_MAX
+        assert resolved.cca_forecast_response_strength == DEFAULT_CCA_FORECAST_RESPONSE_STRENGTH
+        assert resolved.cca_thermal_storage_persistence == DEFAULT_CCA_THERMAL_STORAGE_PERSISTENCE
         assert resolved.cca_charge_gain == DEFAULT_CCA_CHARGE_GAIN
         assert resolved.cca_discharge_gain == DEFAULT_CCA_DISCHARGE_GAIN
         assert resolved.cca_output_step_limit == DEFAULT_CCA_OUTPUT_STEP_LIMIT
         assert resolved.cca_charge_target_scale == DEFAULT_CCA_CHARGE_TARGET_SCALE
+
+    def test_cca_tuning_sliders_derive_internal_gains(self) -> None:
+        """High-level CCA tuning values derive the internal gains."""
+
+        resolved = resolve(
+            {
+                "cca_forecast_response_strength": 120.0,
+                "cca_thermal_storage_persistence": 125.0,
+            }
+        )
+
+        assert resolved.cca_forecast_response_strength == 120.0
+        assert resolved.cca_thermal_storage_persistence == 125.0
+        assert resolved.cca_charge_gain == pytest.approx(20.0)
+        assert resolved.cca_discharge_gain == pytest.approx(19.2)
 
     def test_empty_dict_defaults(self) -> None:
         """Resolve with empty dict is equivalent to None."""
@@ -348,9 +367,11 @@ class TestResolvedConfig:
         assert set(d.keys()) == set(ConfKeys)
 
     def test_field_count_matches_confkeys(self) -> None:
-        """ResolvedConfig has the same number of fields as ConfKeys members."""
+        """ResolvedConfig includes all public keys plus derived internal fields."""
 
-        assert len(fields(ResolvedConfig)) == len(ConfKeys)
+        field_names = {field.name for field in fields(ResolvedConfig)}
+        assert {key.value for key in ConfKeys}.issubset(field_names)
+        assert {"cca_charge_gain", "cca_discharge_gain"}.issubset(field_names)
 
 
 # ---------------------------------------------------------------------------
@@ -386,8 +407,9 @@ class TestRuntimeConfigurableKeys:
         assert "cca_warm_night_threshold" in keys
         assert "cca_output_min" in keys
         assert "cca_output_max" in keys
-        assert "cca_charge_gain" in keys
-        assert "cca_discharge_gain" in keys
+        assert "cca_forecast_response_strength" in keys
+        assert "cca_thermal_storage_persistence" in keys
+        assert "cca_update_interval_minutes" in keys
         assert "cca_output_step_limit" in keys
         assert "cca_charge_target_scale" in keys
 
