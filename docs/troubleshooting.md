@@ -89,4 +89,4 @@ You can find the **Home Assistant Core** log at **Settings** → **Systems** →
 
 1. **Documentation:** Review all sections of this documentation.
 1. **GitHub Issues:** [Report a bug](https://github.com/helgeklein/ha-pi-thermostat-cca-control/issues).
-1. **Home Assistant Community:** [Join a forum discussion](https://community.home-assistant.io/).
+1. **GitHub Discussions:** [Join a discussion](https://github.com/helgeklein/ha-pi-thermostat-cca-control/discussions).
