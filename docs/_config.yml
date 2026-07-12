@@ -2,7 +2,7 @@
 title: PI Thermostat & CCA Control for Home Assistant
 description: >-
   A Home Assistant custom integration that combines a PI (proportional-integral) controller with CCA (concrete core activation) control.
-url: "https://ha-pi-thermostat.helgeklein.com"
+url: "https://ha-pi-thermostat-cca-control.helgeklein.com"
 
 # Logo configuration
 logo: "/assets/img/logo.png"

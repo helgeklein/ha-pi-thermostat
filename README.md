@@ -62,7 +62,7 @@ A Home Assistant integration to control your smart home's thermal actuators, opt
 
 ## Installation & Usage
 
-For installation instructions, configuration guides, and troubleshooting info please **visit the [documentation website](https://ha-pi-thermostat.helgeklein.com/).**
+For installation instructions, configuration guides, and troubleshooting info please **visit the [documentation website](https://ha-pi-thermostat-cca-control.helgeklein.com/).**
 
 ### Setting Up a Development Environment
 

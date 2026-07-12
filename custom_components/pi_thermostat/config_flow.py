@@ -55,7 +55,7 @@ SELECTOR_KEY_CCA_FORECAST_UNAVAILABLE_MODE: str = "cca_forecast_unavailable_mode
 # Documentation URL shown in the config flow welcome page
 # ---------------------------------------------------------------------------
 
-DOCS_URL: str = "https://ha-pi-thermostat.helgeklein.com/"
+DOCS_URL: str = "https://ha-pi-thermostat-cca-control.helgeklein.com/"
 
 # ---------------------------------------------------------------------------
 # Entity selector domains
