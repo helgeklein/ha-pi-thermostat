@@ -53,7 +53,7 @@ A Home Assistant integration to control your smart home's thermal actuators, opt
    - Uses a Home Assistant weather entity for daily forecasts.
 - **Building tuning controls**
    - Tune overall cooling level, forecast reaction strength, and thermal storage persistence to match the building's thermal mass and cooling behavior.
-- **Scheduled automatic updates**
+- **Scheduled updates**
    - Updates the output value in 6 hour steps with a limit on how much each step may increase or decrease the previous value.
    - Changed settings are applied immediately without waiting for the step interval end.
 - **Runtime-configurable entities**
@@ -61,7 +61,7 @@ A Home Assistant integration to control your smart home's thermal actuators, opt
 - **Manual override**
    - Manual output override for forcing a specific value.
 - **Diagnostic sensors**
-   - Exposes output %, heat score, charge estimate, charge target, override state, status, and time until the next automatic update.
+   - Exposes output %, heat score, charge estimate, charge target, override state, status, and time until the next scheduled update.
 
 ### Other Features
 

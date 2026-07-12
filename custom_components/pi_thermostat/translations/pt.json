@@ -212,7 +212,7 @@
                 "name": "Saida manual"
             },
             "cca_update_interval_minutes": {
-                "name": "Intervalo de atualização automática"
+                "name": "Intervalo de atualização"
             },
             "cca_hot_day_threshold": {
                 "name": "Limite de dia quente"
