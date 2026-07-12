@@ -135,7 +135,7 @@ class TestCoordinatorInit:
                     "charge_estimate": 12.5,
                     "last_auto_output": 8.0,
                     "last_heat_score": 55.0,
-                    "last_update_iso": "2026-07-01T00:00:00+00:00",
+                    "last_step_timestamp_iso": "2026-07-01T00:00:00+00:00",
                     "status": "active",
                 }
             ),
@@ -146,7 +146,7 @@ class TestCoordinatorInit:
         assert state.charge_estimate == 12.5
         assert state.last_auto_output == 8.0
         assert state.last_heat_score == 55.0
-        assert state.last_update_iso == "2026-07-01T00:00:00+00:00"
+        assert state.last_step_timestamp_iso == "2026-07-01T00:00:00+00:00"
         assert state.status == "active"
 
     async def test_restores_cca_state_from_storage_with_normalization(self, hass: HomeAssistant) -> None:
@@ -164,7 +164,7 @@ class TestCoordinatorInit:
                         "charge_estimate": 140.0,
                         "last_auto_output": -5.0,
                         "last_heat_score": 125.0,
-                        "last_update_iso": "not-a-timestamp",
+                        "last_step_timestamp_iso": "not-a-timestamp",
                         "status": "broken",
                     }
                 ),
@@ -177,14 +177,14 @@ class TestCoordinatorInit:
         assert state.charge_estimate == 100.0
         assert state.last_auto_output == 0.0
         assert state.last_heat_score == 100.0
-        assert state.last_update_iso is None
+        assert state.last_step_timestamp_iso is None
         assert state.status == "idle"
         mock_save.assert_awaited_once_with(
             {
                 "charge_estimate": 100.0,
                 "last_auto_output": 0.0,
                 "last_heat_score": 100.0,
-                "last_update_iso": None,
+                "last_step_timestamp_iso": None,
                 "status": "idle",
             }
         )
@@ -204,7 +204,7 @@ class TestCoordinatorInit:
                         "charge_estimate": 12.5,
                         "last_auto_output": 8.0,
                         "last_heat_score": 55.0,
-                        "last_update_iso": "2026-07-01T00:00:00+00:00",
+                        "last_step_timestamp_iso": "2026-07-01T00:00:00+00:00",
                         "status": "active",
                     }
                 ),
@@ -355,7 +355,7 @@ class TestCCACycle:
                 charge_estimate=18.0,
                 last_auto_output=12.0,
                 last_heat_score=45.0,
-                last_update_iso=(datetime.now(UTC) - timedelta(hours=2)).isoformat(),
+                last_step_timestamp_iso=(datetime.now(UTC) - timedelta(hours=2)).isoformat(),
                 status="active",
             )
         )
@@ -387,7 +387,7 @@ class TestCCACycle:
                 charge_estimate=18.0,
                 last_auto_output=12.0,
                 last_heat_score=45.0,
-                last_update_iso=(datetime.now(UTC) - timedelta(hours=2)).isoformat(),
+                last_step_timestamp_iso=(datetime.now(UTC) - timedelta(hours=2)).isoformat(),
                 status="active",
             )
         )
@@ -471,7 +471,7 @@ class TestCCACycle:
                 charge_estimate=coordinator.get_cca_state().charge_estimate,
                 last_auto_output=coordinator.get_cca_state().last_auto_output,
                 last_heat_score=coordinator.get_cca_state().last_heat_score,
-                last_update_iso=(datetime.now(UTC) - timedelta(hours=7)).isoformat(),
+                last_step_timestamp_iso=(datetime.now(UTC) - timedelta(hours=7)).isoformat(),
                 status=coordinator.get_cca_state().status,
             )
         )
@@ -557,7 +557,7 @@ class TestCCACycle:
                 charge_estimate=18.0,
                 last_auto_output=12.0,
                 last_heat_score=45.0,
-                last_update_iso=(datetime.now(UTC) - timedelta(minutes=300)).isoformat(),
+                last_step_timestamp_iso=(datetime.now(UTC) - timedelta(minutes=300)).isoformat(),
                 status="active",
             )
         )
@@ -585,6 +585,56 @@ class TestCCACycle:
         assert refresh_data is not None
         assert refresh_data.output > 0.0
         assert refresh_data.cca_next_update_in == 240
+        mock_forecasts.assert_awaited_once()
+
+    async def test_cca_charge_target_scale_change_recomputes_without_resetting_step_timer(self, hass: HomeAssistant) -> None:
+        """Changing charge target scale recomputes output immediately without resetting the step timer."""
+
+        entry = _make_entry(
+            hass,
+            _default_cca_options(
+                cca_charge_target_scale=100.0,
+                cca_output_step_limit=100.0,
+                cca_update_interval_minutes=360,
+            ),
+        )
+        coordinator = DataUpdateCoordinator(hass, entry)
+        previous_step_timestamp = (datetime.now(UTC) - timedelta(hours=2)).isoformat()
+        coordinator.restore_cca_state(
+            CCAState(
+                charge_estimate=0.0,
+                last_auto_output=0.0,
+                last_heat_score=45.0,
+                last_step_timestamp_iso=previous_step_timestamp,
+                status="active",
+            )
+        )
+
+        hass.config_entries.async_update_entry(
+            entry,
+            options={
+                **entry.options,
+                "cca_charge_target_scale": 200.0,
+            },
+        )
+
+        with (
+            patch.object(coordinator._ha, "get_entity_on_state", return_value=True),
+            patch.object(
+                coordinator._ha,
+                "async_get_daily_forecasts",
+                AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 35.0, "templow": 24.0}]),
+            ) as mock_forecasts,
+        ):
+            await coordinator.async_request_cca_runtime_recompute(refresh_forecast=True)
+
+        second_data = coordinator._last_data
+
+        assert second_data is not None
+        assert second_data.output > 0.0
+        assert second_data.cca_charge_target == pytest.approx(100.0)
+        assert second_data.cca_next_update_in == 240
+        assert coordinator.get_cca_state().last_step_timestamp_iso == previous_step_timestamp
         mock_forecasts.assert_awaited_once()
 
     async def test_cca_manual_override_applies_immediately(self, hass: HomeAssistant) -> None:
@@ -757,7 +807,7 @@ class TestCCACycle:
                 charge_estimate=18.0,
                 last_auto_output=30.0,
                 last_heat_score=45.0,
-                last_update_iso=datetime.now(UTC).isoformat(),
+                last_step_timestamp_iso=datetime.now(UTC).isoformat(),
                 status="active",
             )
         )
@@ -802,7 +852,7 @@ class TestCCACycle:
                 charge_estimate=18.0,
                 last_auto_output=10.0,
                 last_heat_score=45.0,
-                last_update_iso=datetime.now(UTC).isoformat(),
+                last_step_timestamp_iso=datetime.now(UTC).isoformat(),
                 status="active",
             )
         )
@@ -886,7 +936,7 @@ class TestCCACycle:
                 charge_estimate=18.0,
                 last_auto_output=12.0,
                 last_heat_score=45.0,
-                last_update_iso=(datetime.now(UTC) - timedelta(hours=2)).isoformat(),
+                last_step_timestamp_iso=(datetime.now(UTC) - timedelta(hours=2)).isoformat(),
                 status="active",
             )
         )
@@ -912,7 +962,7 @@ class TestCCACycle:
                 charge_estimate=18.0,
                 last_auto_output=12.0,
                 last_heat_score=45.0,
-                last_update_iso=(datetime.now(UTC) - timedelta(hours=7)).isoformat(),
+                last_step_timestamp_iso=(datetime.now(UTC) - timedelta(hours=7)).isoformat(),
                 status="active",
             )
         )
@@ -942,7 +992,7 @@ class TestCCACycle:
                 charge_estimate=18.0,
                 last_auto_output=12.0,
                 last_heat_score=45.0,
-                last_update_iso=(datetime.now(UTC) - timedelta(hours=2)).isoformat(),
+                last_step_timestamp_iso=(datetime.now(UTC) - timedelta(hours=2)).isoformat(),
                 status="active",
             )
         )

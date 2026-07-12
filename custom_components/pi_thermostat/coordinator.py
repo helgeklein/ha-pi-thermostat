@@ -145,6 +145,10 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         # One-cycle startup grace for a restored active CCA state while the cooling gate is unreadable.
         self._cca_restore_gate_grace = False
 
+        # One-shot flag used to fetch forecasts and recompute the automatic
+        # output immediately without consuming the scheduled CCA step.
+        self._cca_runtime_forecast_refresh_pending = False
+
         # Track last-applied tunings to detect changes
         self._last_prop_band: float = resolved.proportional_band
         self._last_int_time: float = resolved.integral_time
@@ -198,8 +202,17 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
     #
     # async_request_cca_runtime_recompute
     #
-    async def async_request_cca_runtime_recompute(self) -> None:
-        """Apply runtime CCA option changes without consuming another scheduled CCA step."""
+    async def async_request_cca_runtime_recompute(self, *, refresh_forecast: bool = False) -> None:
+        """Apply runtime CCA option changes.
+
+        Args:
+            refresh_forecast: When ``True``, the next CCA coordinator run fetches
+                forecasts and recomputes the automatic output immediately without
+                advancing the scheduled CCA step.
+        """
+
+        if refresh_forecast:
+            self._cca_runtime_forecast_refresh_pending = True
 
         await self.async_request_refresh()
 
@@ -222,7 +235,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
                 charge_estimate=float(payload.get("charge_estimate", 0.0)),
                 last_auto_output=float(payload.get("last_auto_output", 0.0)),
                 last_heat_score=float(payload.get("last_heat_score", 0.0)),
-                last_update_iso=payload.get("last_update_iso"),
+                last_step_timestamp_iso=payload.get("last_step_timestamp_iso") or payload.get("last_update_iso"),
                 status=str(payload.get("status", "idle")),
             )
         except (TypeError, ValueError):
@@ -247,7 +260,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
                 "charge_estimate": state.charge_estimate,
                 "last_auto_output": state.last_auto_output,
                 "last_heat_score": state.last_heat_score,
-                "last_update_iso": state.last_update_iso,
+                "last_step_timestamp_iso": state.last_step_timestamp_iso,
                 "status": state.status,
             }
         )
@@ -273,12 +286,12 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
     def _normalize_restored_cca_state(self, state: CCAState) -> CCAState:
         """Return a restored CCA state clamped to valid persisted ranges."""
 
-        last_update_iso = state.last_update_iso
-        parsed_last_update = self._parse_cca_last_update(last_update_iso)
-        if last_update_iso is not None and parsed_last_update is None:
-            last_update_iso = None
-        elif parsed_last_update is not None:
-            last_update_iso = parsed_last_update.isoformat()
+        last_step_timestamp_iso = state.last_step_timestamp_iso
+        parsed_last_step_timestamp = self._parse_cca_last_step_timestamp(last_step_timestamp_iso)
+        if last_step_timestamp_iso is not None and parsed_last_step_timestamp is None:
+            last_step_timestamp_iso = None
+        elif parsed_last_step_timestamp is not None:
+            last_step_timestamp_iso = parsed_last_step_timestamp.isoformat()
 
         status = state.status if state.status in CCA_VALID_STATUSES else "idle"
 
@@ -287,7 +300,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
             charge_estimate=max(0.0, min(100.0, state.charge_estimate)),
             last_auto_output=max(0.0, min(100.0, state.last_auto_output)),
             last_heat_score=max(0.0, min(100.0, state.last_heat_score)),
-            last_update_iso=last_update_iso,
+            last_step_timestamp_iso=last_step_timestamp_iso,
             status=status,
         )
 
@@ -406,17 +419,17 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         return "heating"
 
     #
-    # _parse_cca_last_update
+    # _parse_cca_last_step_timestamp
     #
     @staticmethod
-    def _parse_cca_last_update(last_update_iso: str | None) -> datetime | None:
-        """Parse the persisted CCA update timestamp."""
+    def _parse_cca_last_step_timestamp(last_step_timestamp_iso: str | None) -> datetime | None:
+        """Parse the persisted CCA step timestamp."""
 
-        if not last_update_iso:
+        if not last_step_timestamp_iso:
             return None
 
         try:
-            parsed = datetime.fromisoformat(last_update_iso)
+            parsed = datetime.fromisoformat(last_step_timestamp_iso)
         except ValueError:
             return None
 
@@ -430,12 +443,12 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
     def _is_cca_update_due(self, resolved: ResolvedConfig) -> bool:
         """Return whether the next automatic CCA control step is due."""
 
-        last_update = self._parse_cca_last_update(self._cca.get_state().last_update_iso)
-        if last_update is None:
+        last_step_timestamp = self._parse_cca_last_step_timestamp(self._cca.get_state().last_step_timestamp_iso)
+        if last_step_timestamp is None:
             return True
 
         update_interval = self._cca_update_interval(resolved)
-        return datetime.now(UTC) - last_update >= update_interval
+        return datetime.now(UTC) - last_step_timestamp >= update_interval
 
     #
     # _cca_next_update_in_minutes
@@ -443,11 +456,11 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
     def _cca_next_update_in_minutes(self, resolved: ResolvedConfig) -> int:
         """Return the remaining minutes until the next automatic CCA control step."""
 
-        last_update = self._parse_cca_last_update(self._cca.get_state().last_update_iso)
-        if last_update is None:
+        last_step_timestamp = self._parse_cca_last_step_timestamp(self._cca.get_state().last_step_timestamp_iso)
+        if last_step_timestamp is None:
             return 0
 
-        remaining = self._cca_update_interval(resolved) - (datetime.now(UTC) - last_update)
+        remaining = self._cca_update_interval(resolved) - (datetime.now(UTC) - last_step_timestamp)
         if remaining <= timedelta(0):
             return 0
 
@@ -795,7 +808,12 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
                 await self._async_apply_cca_refresh_state(resolved)
                 return self._build_cca_refresh_result(resolved)
 
-        if cooling_enabled and not self._should_recompute_cca_on_gate_enable() and not self._is_cca_update_due(resolved):
+        if (
+            cooling_enabled
+            and not self._cca_runtime_forecast_refresh_pending
+            and not self._should_recompute_cca_on_gate_enable()
+            and not self._is_cca_update_due(resolved)
+        ):
             await self._async_apply_cca_refresh_state(resolved)
             return self._build_cca_refresh_result(resolved)
 
@@ -807,11 +825,27 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
                 self._logger.warning("CCA forecast retrieval failed: %s", err)
 
         previous_state = self._cca.get_state()
-        result = self._cca.compute(
-            resolved,
-            cooling_enabled=cooling_enabled,
-            forecasts=forecasts,
+        should_recompute_now = (
+            cooling_enabled
+            and self._cca_runtime_forecast_refresh_pending
+            and not self._should_recompute_cca_on_gate_enable()
+            and not self._is_cca_update_due(resolved)
         )
+
+        if should_recompute_now:
+            result = self._cca.recompute_now(
+                resolved,
+                cooling_enabled=cooling_enabled,
+                forecasts=forecasts,
+            )
+        else:
+            result = self._cca.compute_step(
+                resolved,
+                cooling_enabled=cooling_enabled,
+                forecasts=forecasts,
+            )
+
+        self._cca_runtime_forecast_refresh_pending = False
 
         if result.state != previous_state:
             await self._async_save_cca_state(result.state)
@@ -835,7 +869,7 @@ class DataUpdateCoordinator(BaseCoordinator[CoordinatorData]):
         """Return the disabled-state CCA payload and persist the inactive state."""
 
         previous_state = self._cca.get_state()
-        result = self._cca.compute(
+        result = self._cca.recompute_now(
             resolved,
             cooling_enabled=False,
             forecasts=None,

@@ -16,7 +16,7 @@ class CCAState:
     charge_estimate: float = 0.0
     last_auto_output: float = 0.0
     last_heat_score: float = 0.0
-    last_update_iso: str | None = None
+    last_step_timestamp_iso: str | None = None
     status: str = "idle"
 
 
@@ -160,12 +160,13 @@ class CCAControllerStrategy:
 
         return sum(scores) / len(scores)
 
-    def compute(
+    def _compute_with_forecasts(
         self,
         resolved: ResolvedConfig,
         *,
         cooling_enabled: bool,
         forecasts: list[dict[str, Any]] | None,
+        advance_step: bool,
     ) -> CCAControllerResult:
         """Compute one CCA control cycle from forecasts and current settings."""
 
@@ -177,7 +178,7 @@ class CCAControllerStrategy:
                 charge_estimate=self._state.charge_estimate,
                 last_auto_output=0.0,
                 last_heat_score=self._state.last_heat_score,
-                last_update_iso=self._state.last_update_iso,
+                last_step_timestamp_iso=self._state.last_step_timestamp_iso,
                 status="inactive",
             )
             self._state = state
@@ -205,7 +206,7 @@ class CCAControllerStrategy:
                 charge_estimate=self._state.charge_estimate,
                 last_auto_output=output,
                 last_heat_score=self._state.last_heat_score,
-                last_update_iso=now_iso,
+                last_step_timestamp_iso=(now_iso if advance_step else self._state.last_step_timestamp_iso),
                 status=status,
             )
             self._state = state
@@ -230,13 +231,17 @@ class CCAControllerStrategy:
 
         heat_score = self._compute_heat_score(valid_forecasts, resolved)
         charge_target = self.compute_charge_target(heat_score, resolved)
-        charge_estimate = self._clip(
-            self._state.charge_estimate
-            + resolved.cca_charge_gain * (self._state.last_auto_output / 100.0)
-            - resolved.cca_discharge_gain * (heat_score / 100.0),
-            0.0,
-            100.0,
-        )
+        if advance_step:
+            charge_estimate = self._clip(
+                self._state.charge_estimate
+                + resolved.cca_charge_gain * (self._state.last_auto_output / 100.0)
+                - resolved.cca_discharge_gain * (heat_score / 100.0),
+                0.0,
+                100.0,
+            )
+        else:
+            charge_estimate = self._state.charge_estimate
+
         requested_output = self._clip(charge_target - charge_estimate, 0.0, 100.0)
 
         delta = requested_output - self._state.last_auto_output
@@ -268,7 +273,7 @@ class CCAControllerStrategy:
             charge_estimate=charge_estimate,
             last_auto_output=auto_output,
             last_heat_score=heat_score,
-            last_update_iso=now_iso,
+            last_step_timestamp_iso=now_iso if advance_step else self._state.last_step_timestamp_iso,
             status=status,
         )
         self._state = state
@@ -282,4 +287,36 @@ class CCAControllerStrategy:
             override_active=override_active,
             status=status,
             state=state,
+        )
+
+    def compute_step(
+        self,
+        resolved: ResolvedConfig,
+        *,
+        cooling_enabled: bool,
+        forecasts: list[dict[str, Any]] | None,
+    ) -> CCAControllerResult:
+        """Compute a scheduled CCA control step and advance persisted step timing."""
+
+        return self._compute_with_forecasts(
+            resolved,
+            cooling_enabled=cooling_enabled,
+            forecasts=forecasts,
+            advance_step=True,
+        )
+
+    def recompute_now(
+        self,
+        resolved: ResolvedConfig,
+        *,
+        cooling_enabled: bool,
+        forecasts: list[dict[str, Any]] | None,
+    ) -> CCAControllerResult:
+        """Recompute the current automatic output without consuming the scheduled step."""
+
+        return self._compute_with_forecasts(
+            resolved,
+            cooling_enabled=cooling_enabled,
+            forecasts=forecasts,
+            advance_step=False,
         )

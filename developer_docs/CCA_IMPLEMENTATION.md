@@ -147,7 +147,7 @@ The CCA controller persists this runtime state:
 - `charge_estimate`
 - `last_auto_output`
 - `last_heat_score`
-- `last_update_iso`
+- `last_step_timestamp_iso`
 - `status`
 
 This is represented by `CCAState` in `cca_controller.py`.
@@ -157,7 +157,7 @@ Default first-start state is:
 - `charge_estimate = 0.0`
 - `last_auto_output = 0.0`
 - `last_heat_score = 0.0`
-- `last_update_iso = None`
+- `last_step_timestamp_iso = None`
 - `status = "idle"`
 
 ## Persistence and Restore
@@ -185,7 +185,7 @@ Stored CCA state is validated and normalized during restore:
 
 - `charge_estimate`, `last_auto_output`, and `last_heat_score` are clamped to `0..100`
 - `status` must be one of `idle`, `inactive`, `forecast_hold`, `forecast_unavailable`, `active`, or `manual_override`
-- `last_update_iso` must be a valid ISO timestamp
+- `last_step_timestamp_iso` must be a valid ISO timestamp
 
 If normalization changes the stored payload, the normalized state is written back immediately.
 
@@ -196,7 +196,7 @@ CCA uses two time concepts:
 - coordinator heartbeat: fixed at 60 seconds
 - automatic CCA control interval: `cca_update_interval_minutes`
 
-The coordinator wakes up every minute in CCA mode, but a new automatic CCA control step is only computed when the elapsed time since `last_update_iso` reaches the configured CCA interval.
+The coordinator wakes up every minute in CCA mode, but a new automatic CCA control step is only computed when the elapsed time since `last_step_timestamp_iso` reaches the configured CCA interval.
 
 This allows the UI to refresh state frequently without forcing the controller to recalculate at minute cadence.
 
@@ -319,7 +319,7 @@ Important published-state behaviors:
 - `cca_charge_target` is derived and published even on cached-refresh, inactive, and forecast-unavailable paths
 - `cca_next_update_in` is only shown while cooling is enabled
 
-## Runtime Refresh Behavior
+### Runtime Refresh Behavior
 
 Runtime CCA setting changes are applied without consuming the next scheduled automatic CCA step.
 
@@ -329,7 +329,9 @@ During such refreshes, the coordinator may normalize cached CCA state immediatel
 - clamp cached `last_auto_output` to current `cca_output_min` and `cca_output_max`
 - persist the normalized cached state before returning the refresh result
 
-This keeps published sensor state aligned with the next scheduled automatic control step.
+Some forecast-driven tuning changes, including `cca_charge_target_scale`, also trigger an immediate forecast-backed recompute of `last_auto_output`.
+
+That recompute updates the current automatic output and published sensors immediately, but it does not advance `charge_estimate` and does not reset `last_step_timestamp_iso`.
 
 ## PI Persistence Notes
 
