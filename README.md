@@ -55,8 +55,6 @@ A Home Assistant integration to control your smart home's thermal actuators, opt
 - **Diagnostic sensors**
    - Exposes output %, heat score, charge estimate, charge target, override state, status, and time until the next scheduled update.
 
-For a deeper explanation of the background and algorithm, see [CCA Control Mode]({{ '/cca-control-mode/' | relative_url }}).
-
 ### Other Features
 
 - **Multiple instances:** Run independent controllers for different thermostat zones or for thermostat plus CCA control.
