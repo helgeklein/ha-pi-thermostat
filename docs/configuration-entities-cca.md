@@ -10,6 +10,8 @@ permalink: /ui-configuration-entities-cca/
 
 In addition to the configuration settings managed through the wizard, CCA mode can be fine-tuned at runtime via entities on the device page. Changes take effect immediately without requiring a restart.
 
+For background on how CCA mode works internally and how these values relate to the algorithm, see [CCA Control Mode]({{ '/cca-control-mode/' | relative_url }}).
+
 ## Controls
 
 ### Manual Override
@@ -130,4 +132,4 @@ The remaining time in minutes until the next automatic CCA control step is due. 
 
 ## Next Steps
 
-After configuration, see the [Troubleshooting Guide]({{ '/troubleshooting/' | relative_url }}) for common issues and solutions.
+After configuration, see [CCA Control Mode]({{ '/cca-control-mode/' | relative_url }}) for the algorithm overview, or the [Troubleshooting Guide]({{ '/troubleshooting/' | relative_url }}) for common issues and solutions.

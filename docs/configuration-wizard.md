@@ -139,6 +139,8 @@ Behavior when no usable forecast is available:
 - **Hold:** Keep using the last automatic CCA output.
 - **Shutdown:** Set the CCA output to 0 %.
 
+If you want more background on how CCA uses forecasts, stored cooling, and scheduled update steps, see [CCA Control Mode]({{ '/cca-control-mode/' | relative_url }}).
+
 ### Validation Notes
 
 The CCA data-source step validates that:
@@ -153,3 +155,4 @@ After the configuration wizard, take a look at the runtime-configuration guide f
 
 - [PI mode UI configuration entities]({{ '/ui-configuration-entities-pi/' | relative_url }})
 - [CCA mode UI configuration entities]({{ '/ui-configuration-entities-cca/' | relative_url }})
+- [CCA control mode background and algorithm]({{ '/cca-control-mode/' | relative_url }})
