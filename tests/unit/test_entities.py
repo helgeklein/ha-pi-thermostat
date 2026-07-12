@@ -330,8 +330,8 @@ class TestSensorEntities:
         expected_entity_ids = [
             _entity_id("sensor", "output"),
             _entity_id("sensor", "current_mode"),
-            _entity_id("sensor", "heat_score"),
-            _entity_id("sensor", "charge_estimate"),
+            _entity_id("sensor", "charge_target_before_scaling"),
+            _entity_id("sensor", "current_charge_est"),
             _entity_id("sensor", "charge_target"),
             _entity_id("sensor", "override_active"),
             _entity_id("sensor", "status"),
@@ -410,7 +410,10 @@ class TestNumberEntities:
     async def test_cca_numbers_created(self, hass: HomeAssistant) -> None:
         """CCA mode creates the runtime tuning number entities."""
 
+        from homeassistant.helpers import entity_registry as er
+
         await _setup_cca_integration(hass)
+        entity_registry = er.async_get(hass)
 
         expected_entity_ids = [
             _entity_id("number", "manual_output"),
@@ -418,16 +421,18 @@ class TestNumberEntities:
             _entity_id("number", "warm_night_threshold"),
             _entity_id("number", "output_minimum"),
             _entity_id("number", "output_maximum"),
-            _entity_id("number", "charge_gain"),
-            _entity_id("number", "discharge_gain"),
+            _entity_id("number", "forecast_response_strength"),
+            _entity_id("number", "thermal_storage_persistence"),
             _entity_id("number", "output_step_limit"),
             _entity_id("number", "charge_target_scale"),
         ]
 
         for entity_id in expected_entity_ids:
-            assert hass.states.get(entity_id) is not None, f"{entity_id} not found"
+            assert entity_registry.async_get(entity_id) is not None, f"{entity_id} not found"
 
         assert hass.states.get(_entity_id("number", "proportional_band")) is None
+        assert entity_registry.async_get(_entity_id("number", "charge_gain")) is None
+        assert entity_registry.async_get(_entity_id("number", "discharge_gain")) is None
 
 
 # ===========================================================================
@@ -663,6 +668,60 @@ class TestSwitchWrite:
         assert entry.options["enabled"] is False
         mock_reload.assert_not_awaited()
 
+    async def test_turn_on_cca_switch_updates_published_sensor_states(self, hass: HomeAssistant) -> None:
+        """Turning on the CCA enabled switch recomputes and republishes active sensor state."""
+
+        entry = await _setup_cca_integration(hass, _default_cca_options(enabled=False))
+
+        initial_output_state = hass.states.get(_entity_id("sensor", "output"))
+        initial_status_state = hass.states.get(_entity_id("sensor", "status"))
+
+        assert initial_output_state is not None
+        assert initial_status_state is not None
+        assert float(initial_output_state.state) == pytest.approx(0.0, abs=0.01)
+        assert initial_status_state.state == "inactive"
+
+        with patch.object(
+            hass.config_entries,
+            "async_reload",
+            new_callable=AsyncMock,
+        ) as mock_reload:
+            with (
+                patch(
+                    "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.get_entity_on_state",
+                    return_value=True,
+                ),
+                patch(
+                    "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.async_get_daily_forecasts",
+                    AsyncMock(return_value=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 31.0, "templow": 21.0}]),
+                ),
+            ):
+                await hass.services.async_call(
+                    "switch",
+                    "turn_on",
+                    {"entity_id": _entity_id("switch", "enabled")},
+                    blocking=True,
+                )
+
+        output_state = hass.states.get(_entity_id("sensor", "output"))
+        current_mode_state = hass.states.get(_entity_id("sensor", "current_mode"))
+        status_state = hass.states.get(_entity_id("sensor", "status"))
+        next_update_state = hass.states.get(_entity_id("sensor", "next_update_in"))
+        switch_state = hass.states.get(_entity_id("switch", "enabled"))
+
+        assert output_state is not None
+        assert current_mode_state is not None
+        assert status_state is not None
+        assert next_update_state is not None
+        assert switch_state is not None
+        assert float(output_state.state) > 0.0
+        assert current_mode_state.state == "cooling"
+        assert status_state.state == "active"
+        assert float(next_update_state.state) == pytest.approx(360.0, abs=0.01)
+        assert switch_state.state == "on"
+        assert entry.options["enabled"] is True
+        mock_reload.assert_not_awaited()
+
 
 # ===========================================================================
 # Number write operations
@@ -721,3 +780,63 @@ class TestNumberWrite:
         assert state is not None
         assert float(state.state) == pytest.approx(8.0, abs=0.01)
         assert entry.options["proportional_band"] == pytest.approx(8.0, abs=0.01)
+
+    async def test_set_cca_output_step_limit_does_not_advance_output(self, hass: HomeAssistant) -> None:
+        """Changing the CCA step limit in the UI must not consume the next scheduled step."""
+
+        entry = await _setup_cca_integration(
+            hass,
+            _default_cca_options(
+                cca_charge_target_scale=200.0,
+                cca_output_step_limit=10.0,
+                cca_output_max=60.0,
+                cca_update_interval_minutes=360,
+            ),
+        )
+
+        initial_output_state = hass.states.get(_entity_id("sensor", "output"))
+        initial_next_update_state = hass.states.get(_entity_id("sensor", "next_update_in"))
+
+        assert initial_output_state is not None
+        assert initial_next_update_state is not None
+        assert float(initial_output_state.state) == pytest.approx(10.0, abs=0.01)
+        assert float(initial_next_update_state.state) == pytest.approx(360.0, abs=0.01)
+
+        with patch.object(
+            hass.config_entries,
+            "async_reload",
+            new_callable=AsyncMock,
+        ) as mock_reload:
+            with (
+                patch(
+                    "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.get_entity_on_state",
+                    return_value=True,
+                ),
+                patch(
+                    "custom_components.pi_thermostat.ha_interface.HomeAssistantInterface.async_get_daily_forecasts",
+                    AsyncMock(),
+                ) as mock_forecasts,
+            ):
+                await hass.services.async_call(
+                    "number",
+                    "set_value",
+                    {
+                        "entity_id": _entity_id("number", "output_step_limit"),
+                        "value": 20.0,
+                    },
+                    blocking=True,
+                )
+
+        output_state = hass.states.get(_entity_id("sensor", "output"))
+        next_update_state = hass.states.get(_entity_id("sensor", "next_update_in"))
+        step_limit_state = hass.states.get(_entity_id("number", "output_step_limit"))
+
+        assert output_state is not None
+        assert next_update_state is not None
+        assert step_limit_state is not None
+        assert float(output_state.state) == pytest.approx(10.0, abs=0.01)
+        assert float(next_update_state.state) == pytest.approx(360.0, abs=0.01)
+        assert float(step_limit_state.state) == pytest.approx(20.0, abs=0.01)
+        assert entry.options["cca_output_step_limit"] == pytest.approx(20.0, abs=0.01)
+        mock_forecasts.assert_not_awaited()
+        mock_reload.assert_not_awaited()

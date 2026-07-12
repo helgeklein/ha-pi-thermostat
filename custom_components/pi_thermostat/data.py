@@ -55,6 +55,7 @@ class CoordinatorData:
     cca_charge_target: float | None = None
     cca_override_active: str | None = None
     cca_status: str | None = None
+    cca_next_update_in: float | None = None
 
 
 #
