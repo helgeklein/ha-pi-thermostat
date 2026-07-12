@@ -8,7 +8,7 @@ url: "https://ha-pi-thermostat-cca-control.helgeklein.com"
 logo: "/assets/img/logo.png"
 
 # Favicon configuration
-favicon: "/assets/img/favicon-32.png"
+favicon: "/assets/img/icon.svg"
 
 # Theme
 remote_theme: just-the-docs/just-the-docs
