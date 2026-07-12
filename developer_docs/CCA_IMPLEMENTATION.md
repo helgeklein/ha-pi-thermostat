@@ -319,7 +319,7 @@ Important published-state behaviors:
 - `cca_charge_target` is derived and published even on cached-refresh, inactive, and forecast-unavailable paths
 - `cca_next_update_in` is only shown while cooling is enabled
 
-### Runtime Refresh Behavior
+## Runtime Refresh Behavior
 
 Runtime CCA setting changes are applied without consuming the next scheduled automatic CCA step.
 
