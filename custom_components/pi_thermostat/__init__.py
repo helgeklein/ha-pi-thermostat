@@ -13,7 +13,7 @@ from homeassistant.const import Platform
 from homeassistant.helpers import entity_registry as er
 from homeassistant.loader import async_get_loaded_integration
 
-from .config import get_runtime_configurable_keys, resolve_entry
+from .config import ConfKeys, get_runtime_configurable_keys, resolve_entry
 from .config_flow import OptionsFlowHandler
 from .const import (
     DOMAIN,
@@ -63,6 +63,12 @@ PLATFORMS: list[Platform] = [
     Platform.SENSOR,
     Platform.SWITCH,
 ]
+
+CCA_RUNTIME_FORECAST_REFRESH_KEYS: frozenset[str] = frozenset(
+    {
+        ConfKeys.CCA_CHARGE_TARGET_SCALE.value,
+    }
+)
 
 
 #
@@ -286,7 +292,9 @@ async def async_reload_entry(
             # Trigger a coordinator refresh to apply the changes. In CCA mode,
             # runtime changes must not consume the next scheduled control step.
             if resolve_entry(entry).control_mode == ControlMode.CCA:
-                await coordinator.async_request_cca_runtime_recompute()
+                await coordinator.async_request_cca_runtime_recompute(
+                    refresh_forecast=bool(changed_keys & CCA_RUNTIME_FORECAST_REFRESH_KEYS)
+                )
             else:
                 await coordinator.async_request_refresh()
             return
