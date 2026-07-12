@@ -227,7 +227,12 @@ class CCAControllerStrategy:
         )
 
         if not valid_forecasts:
-            return self.compute(resolved, cooling_enabled=cooling_enabled, forecasts=None)
+            return self._compute_with_forecasts(
+                resolved,
+                cooling_enabled=cooling_enabled,
+                forecasts=None,
+                advance_step=advance_step,
+            )
 
         heat_score = self._compute_heat_score(valid_forecasts, resolved)
         charge_target = self.compute_charge_target(heat_score, resolved)

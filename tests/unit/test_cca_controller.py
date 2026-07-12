@@ -209,3 +209,28 @@ class TestCompute:
         assert result.charge_estimate == pytest.approx(0.0)
         assert result.state.last_auto_output == pytest.approx(result.output)
         assert result.state.last_step_timestamp_iso == "2026-07-01T00:00:00+00:00"
+
+    def test_malformed_forecasts_fall_back_without_advancing_step_timestamp(self) -> None:
+        """Malformed forecast lists fall back to forecast-unavailable handling without consuming a recompute-only refresh."""
+
+        controller = CCAControllerStrategy()
+        controller.restore_state(
+            CCAState(
+                charge_estimate=25.0,
+                last_auto_output=17.0,
+                last_heat_score=40.0,
+                last_step_timestamp_iso="2026-07-01T00:00:00+00:00",
+                status="active",
+            )
+        )
+
+        result = controller.recompute_now(
+            _resolved(cca_forecast_unavailable_mode=CCAForecastUnavailableMode.HOLD),
+            cooling_enabled=True,
+            forecasts=[{"datetime": "bad-date", "temperature": "bad", "templow": None}],
+        )
+
+        assert result.output == 17.0
+        assert result.status == "forecast_hold"
+        assert result.current_mode == "cooling"
+        assert result.state.last_step_timestamp_iso == "2026-07-01T00:00:00+00:00"
