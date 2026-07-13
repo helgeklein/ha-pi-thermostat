@@ -210,6 +210,33 @@ class TestCompute:
         assert result.state.last_auto_output == pytest.approx(result.output)
         assert result.state.last_step_timestamp_iso == "2026-07-01T00:00:00+00:00"
 
+    def test_charge_estimate_tracks_scaled_charge_target(self) -> None:
+        """Charge estimation respects charge-target scaling during scheduled steps."""
+
+        controller = CCAControllerStrategy()
+
+        first_result = controller.compute_step(
+            _resolved(
+                cca_charge_target_scale=50.0,
+                cca_output_step_limit=100.0,
+            ),
+            cooling_enabled=True,
+            forecasts=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 31.0, "templow": 19.0}],
+        )
+
+        second_result = controller.compute_step(
+            _resolved(
+                cca_charge_target_scale=50.0,
+                cca_output_step_limit=100.0,
+            ),
+            cooling_enabled=True,
+            forecasts=[{"datetime": "2026-07-01T12:00:00+00:00", "temperature": 31.0, "templow": 19.0}],
+        )
+
+        assert first_result.output == pytest.approx(24.875)
+        assert second_result.charge_estimate > 0.0
+        assert second_result.output < first_result.output
+
     def test_malformed_forecasts_fall_back_without_advancing_step_timestamp(self) -> None:
         """Malformed forecast lists fall back to forecast-unavailable handling without consuming a recompute-only refresh."""
 
