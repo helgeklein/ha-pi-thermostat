@@ -240,7 +240,7 @@ class CCAControllerStrategy:
             charge_estimate = self._clip(
                 self._state.charge_estimate
                 + resolved.cca_charge_gain * (self._state.last_auto_output / 100.0)
-                - resolved.cca_discharge_gain * (heat_score / 100.0),
+                - resolved.cca_discharge_gain * (charge_target / 100.0),
                 0.0,
                 100.0,
             )
