@@ -2,7 +2,7 @@
     "name": "pi_thermostat",
     "image": "mcr.microsoft.com/devcontainers/python:3.13",
     // Install Ruby for Jekyll documentation
-    "onCreateCommand": "sudo apt-get update && sudo apt-get install -y ruby-full build-essential zlib1g-dev ripgrep",
+    "onCreateCommand": "sudo apt-get update && sudo apt-get install -y ruby-full bundler build-essential zlib1g-dev ripgrep",
     "postCreateCommand": "scripts/setup",
     "forwardPorts": [
         8123,
