@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from homeassistant.const import Platform
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er
 from homeassistant.loader import async_get_loaded_integration
 
@@ -131,6 +132,8 @@ async def async_setup_entry(
         # Register the update listener
         entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
+    except (ConfigEntryNotReady, ConfigEntryAuthFailed):
+        raise
     except (OSError, ValueError, TypeError) as err:
         # "Expected" errors: only log an error message
         logger.error(f"Failed to set up {INTEGRATION_NAME} integration: {err}")
