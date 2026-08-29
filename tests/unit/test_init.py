@@ -14,11 +14,14 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 
 from custom_components.pi_thermostat import (
     async_get_options_flow,
     async_reload_entry,
+    async_setup_entry,
     async_unload_entry,
 )
 from custom_components.pi_thermostat.config_flow import OptionsFlowHandler
@@ -84,6 +87,43 @@ async def _setup_integration(
 class TestSetupEntryErrors:
     """Test async_setup_entry exception handling."""
 
+    #
+    # test_config_entry_lifecycle_errors_propagate
+    #
+    @pytest.mark.parametrize(
+        "exception_type",
+        [ConfigEntryNotReady, ConfigEntryAuthFailed],
+    )
+    async def test_config_entry_lifecycle_errors_propagate(
+        self,
+        hass: HomeAssistant,
+        exception_type: type[Exception],
+    ) -> None:
+        """Allow Home Assistant lifecycle errors to handle retries or reauthentication."""
+
+        entry = _make_entry()
+        entry.add_to_hass(hass)
+
+        with (
+            patch.object(
+                hass.config_entries,
+                "async_forward_entry_setups",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "custom_components.pi_thermostat.async_get_loaded_integration",
+            ),
+            patch(
+                "custom_components.pi_thermostat.coordinator.DataUpdateCoordinator.async_config_entry_first_refresh",
+                side_effect=exception_type("initial refresh failed"),
+            ),
+        ):
+            with pytest.raises(exception_type):
+                await async_setup_entry(hass, entry)
+
+    #
+    # test_expected_error_returns_false
+    #
     async def test_expected_error_returns_false(self, hass: HomeAssistant) -> None:
         """OSError/ValueError/TypeError during setup returns False."""
 
@@ -99,6 +139,9 @@ class TestSetupEntryErrors:
 
         assert result is False
 
+    #
+    # test_unexpected_error_returns_false
+    #
     async def test_unexpected_error_returns_false(self, hass: HomeAssistant) -> None:
         """Unexpected Exception during setup returns False."""
 
